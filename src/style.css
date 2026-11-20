@@ -4,6 +4,14 @@
   font-weight: 100 900;
   font-display: swap;
 }
+.viewer-actions {
+  display: flex;
+  gap: 7px;
+}
+.layers {
+  flex-wrap: wrap;
+  max-width: calc(100% - 90px);
+}
 :root {
   font-family: Inter, system-ui, sans-serif;
   color: #1f2b35;

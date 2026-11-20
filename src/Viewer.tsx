@@ -10,12 +10,22 @@ import {
   Box,
   Scan,
   MapPin,
+  House,
 } from "lucide-react";
 import { triangulateSurface } from "./geometry";
-import type { HouseData, Asset, Point } from "./types";
+import type { HouseData, Asset, Point, HouseAppearance } from "./types";
+import {
+  facadeDetails,
+  frontFrame,
+  isFrontSurface,
+  materialTextures,
+  projectFront,
+  projectMaterial,
+} from "./appearance";
 
 interface Props {
   data: HouseData;
+  appearance: HouseAppearance | null;
   assets: Asset[];
   selected: Asset | undefined;
   onSelect: (id: string) => void;
@@ -24,7 +34,7 @@ interface Props {
   onError: (message: string) => void;
 }
 interface ViewerApi {
-  frame: (top?: boolean) => void;
+  frame: (top?: boolean, front?: boolean) => void;
   zoom: (factor: number) => void;
   photo: () => void;
   update: (
@@ -32,11 +42,13 @@ interface ViewerApi {
     wire: boolean,
     selected: Asset | undefined,
     assets: Asset[],
+    styled: boolean,
   ) => void;
 }
 
 export function Viewer({
   data,
+  appearance,
   assets,
   selected,
   onSelect,
@@ -53,6 +65,7 @@ export function Viewer({
   const [wire, setWire] = useState(false);
   const [top, setTop] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [styled, setStyled] = useState(true);
 
   useEffect(() => {
     if (!host.current) return;
@@ -108,11 +121,29 @@ export function Viewer({
     ];
     const buildings = new THREE.Group();
     const meshes: THREE.Mesh[] = [];
+    const targetEdges: THREE.LineSegments[] = [];
+    let invalidate = () => {};
+    const textures = appearance ? materialTextures() : null;
+    const facadeMap = appearance
+      ? new THREE.TextureLoader().load(
+          appearance.front.texture,
+          () => invalidate(),
+          undefined,
+          () =>
+            onError(
+              "Het gevelbeeld kon niet worden geladen. De oorspronkelijke gebouwvorm blijft beschikbaar.",
+            ),
+        )
+      : null;
+    if (facadeMap) {
+      facadeMap.colorSpace = THREE.SRGBColorSpace;
+      facadeMap.anisotropy = 8;
+    }
     const targetBox = new THREE.Box3();
     for (const building of data.buildings) {
       const group = new THREE.Group();
       group.userData.isTarget = building.target;
-      for (const surface of building.surfaces) {
+      for (const [surfaceIndex, surface] of building.surfaces.entries()) {
         const geometry = triangulateSurface(surface, origin);
         if (!geometry) continue;
         const roof = surface.type === "RoofSurface";
@@ -123,9 +154,27 @@ export function Viewer({
           : roof
             ? "#b9bbae"
             : "#d7d5c9";
+        const front = Boolean(
+          building.target && appearance && isFrontSurface(surface, appearance),
+        );
+        const styleMap =
+          building.target && textures
+            ? front
+              ? facadeMap
+              : roof
+                ? textures.roofMap
+                : textures.stuccoMap
+            : null;
+        if (building.target && appearance) {
+          if (front) projectFront(geometry, appearance, origin);
+          else projectMaterial(geometry, appearance, origin, roof);
+        }
+        const styleColor = building.target && appearance ? "#ffffff" : color;
         const material = new THREE.MeshStandardMaterial({
-          color,
-          roughness: 0.95,
+          color: styleColor,
+          map: styleMap,
+          roughness: roof && appearance ? 0.73 : 0.95,
+          metalness: roof && appearance ? 0.12 : 0,
           side: THREE.DoubleSide,
           flatShading: true,
         });
@@ -137,6 +186,9 @@ export function Viewer({
           surfaceType: surface.type,
           baseColor: color,
           buildingId: building.id,
+          styleMap,
+          styleColor,
+          surfaceIndex,
         };
         group.add(mesh);
         meshes.push(mesh);
@@ -150,10 +202,18 @@ export function Viewer({
           }),
         );
         group.add(edges);
+        if (building.target) {
+          targetEdges.push(edges);
+          edges.visible = !appearance;
+        }
       }
       buildings.add(group);
     }
     scene.add(buildings);
+    const details = appearance
+      ? facadeDetails(appearance, origin, target.surfaces, textures?.roofMap)
+      : new THREE.Group();
+    scene.add(details);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(250, 250),
       new THREE.MeshStandardMaterial({ color: "#eee9dc", roughness: 1 }),
@@ -182,9 +242,40 @@ export function Viewer({
     const center = targetBox.getCenter(new THREE.Vector3());
     const size = targetBox.getSize(new THREE.Vector3());
     const span = Math.max(size.x, size.z, size.y, 10);
-    const frame = (fromTop = false) => {
+    const frame = (fromTop = false, fromFront = false) => {
       controls.target.copy(center).y = fromTop ? 0 : size.y * 0.36;
       const distance = span * (container.clientWidth < 500 ? 3.4 : 2.6);
+      if (appearance && !fromTop) {
+        const { u, normal, width } = frontFrame(appearance);
+        if (fromFront) {
+          const height = size.y;
+          controls.target.set(
+            appearance.front.left[0] + (u[0] * width) / 2 - origin[0],
+            height * 0.48,
+            -(appearance.front.left[1] + (u[1] * width) / 2 - origin[1]),
+          );
+          camera.position
+            .copy(controls.target)
+            .add(
+              new THREE.Vector3(
+                normal[0] * height * 2.1,
+                height * 0.08,
+                -normal[1] * height * 2.1,
+              ),
+            );
+        } else
+          camera.position
+            .copy(controls.target)
+            .add(
+              new THREE.Vector3(
+                (normal[0] + u[0] * 0.48) * distance,
+                distance * 0.49,
+                -(normal[1] + u[1] * 0.48) * distance,
+              ),
+            );
+        controls.update();
+        return;
+      }
       camera.position
         .copy(controls.target)
         .add(
@@ -198,7 +289,7 @@ export function Viewer({
         );
       controls.update();
     };
-    frame();
+    frame(false, Boolean(appearance));
     let animationFrame = 0;
     const requestRender = () => {
       if (animationFrame) return;
@@ -211,6 +302,7 @@ export function Viewer({
       });
     };
     controls.addEventListener("change", requestRender);
+    invalidate = requestRender;
     const pins = new THREE.Group();
     scene.add(pins);
     const cleanGroup = (group: THREE.Group) => {
@@ -240,11 +332,19 @@ export function Viewer({
         a.download = `${data.house.id}-3d.png`;
         a.click();
       },
-      update(showContext, wireframe, current, currentAssets) {
+      update(showContext, wireframe, current, currentAssets, showStyle) {
         buildings.children.forEach((g) => {
           g.visible = g.userData.isTarget || showContext;
         });
         meshes.forEach((mesh) => {
+          mesh.visible = !(
+            showStyle &&
+            !wireframe &&
+            mesh.userData.isTarget &&
+            appearance?.roof?.hiddenSurfaceIndices.includes(
+              mesh.userData.surfaceIndex,
+            )
+          );
           const material = mesh.material as THREE.MeshStandardMaterial;
           const match =
             current?.kind === "dak"
@@ -253,16 +353,32 @@ export function Viewer({
                 ? mesh.userData.surfaceType === "WallSurface"
                 : false;
           material.wireframe = wireframe;
+          const textured = Boolean(
+            showStyle && appearance && mesh.userData.isTarget,
+          );
+          const map = textured ? mesh.userData.styleMap : null;
+          if (material.map !== map) {
+            material.map = map;
+            material.needsUpdate = true;
+          }
           material.color.set(
             mesh.userData.isTarget && match
-              ? "#F8891E"
-              : mesh.userData.baseColor,
+              ? textured
+                ? "#fff2d8"
+                : "#F8891E"
+              : textured
+                ? mesh.userData.styleColor
+                : mesh.userData.baseColor,
           );
           material.emissive.set(
             mesh.userData.isTarget && match ? "#4d2100" : "#000000",
           );
           material.emissiveIntensity = 0.12;
         });
+        targetEdges.forEach((edges) => {
+          edges.visible = !showStyle || !appearance;
+        });
+        details.visible = Boolean(showStyle && appearance && !wireframe);
         cleanGroup(pins);
         currentAssets
           .filter((a) => a.position)
@@ -309,9 +425,15 @@ export function Viewer({
         callbacks.current.onSelect(pin.object.userData.assetId);
         return;
       }
-      const hits = raycaster.intersectObjects(
-        meshes.filter((m) => m.parent?.visible),
-      );
+      const detailMeshes: THREE.Object3D[] = [];
+      if (details.visible)
+        details.traverse((object) => {
+          if (object instanceof THREE.Mesh) detailMeshes.push(object);
+        });
+      const hits = raycaster.intersectObjects([
+        ...meshes.filter((m) => m.visible && m.parent?.visible),
+        ...detailMeshes,
+      ]);
       const hit = hits[0];
       if (!hit?.object.userData.isTarget) return;
       if (callbacks.current.placing)
@@ -361,12 +483,15 @@ export function Viewer({
         }
       });
       renderer.dispose();
+      facadeMap?.dispose();
+      textures?.stuccoMap.dispose();
+      textures?.roofMap.dispose();
       renderer.domElement.remove();
     };
-  }, [data, onError]);
+  }, [data, appearance, onError]);
   useEffect(() => {
-    api.current?.update(context, wire, selected, assets);
-  }, [context, wire, selected, assets, data]);
+    api.current?.update(context, wire, selected, assets, styled);
+  }, [context, wire, selected, assets, data, appearance, styled]);
   return (
     <section
       className={`viewer ${placing ? "placing" : ""}`}
@@ -393,14 +518,29 @@ export function Viewer({
             <Scan size={16} /> Bovenaanzicht
           </button>
         </div>
-        <button
-          className="icon-button photo-button"
-          title="Bewaar afbeelding van het model"
-          aria-label="Bewaar afbeelding van het model"
-          onClick={() => api.current?.photo()}
-        >
-          <Camera size={18} />
-        </button>
+        <div className="viewer-actions">
+          {appearance && (
+            <button
+              className="icon-button photo-button"
+              title="Bekijk de voorgevel"
+              aria-label="Bekijk de voorgevel"
+              onClick={() => {
+                setTop(false);
+                api.current?.frame(false, true);
+              }}
+            >
+              <House size={18} />
+            </button>
+          )}
+          <button
+            className="icon-button photo-button"
+            title="Bewaar afbeelding van het model"
+            aria-label="Bewaar afbeelding van het model"
+            onClick={() => api.current?.photo()}
+          >
+            <Camera size={18} />
+          </button>
+        </div>
       </div>
       <div className="scene" ref={host} />
       {failed && (
@@ -417,7 +557,11 @@ export function Viewer({
         <span className="orange-line" />
         <div>
           <strong>{data.house.address}</strong>
-          <span>Gebouwmodel · 3DBAG LoD 2.2</span>
+          <span>
+            {appearance && styled
+              ? "Gevelafwerking · visuele reconstructie"
+              : "Gebouwmodel · 3DBAG LoD 2.2"}
+          </span>
         </div>
       </div>
       <div className="compass" aria-label="Noordrichting" ref={north}>
@@ -434,6 +578,16 @@ export function Viewer({
         </svg>
       </div>
       <div className="layers">
+        {appearance && (
+          <label>
+            <input
+              type="checkbox"
+              checked={styled}
+              onChange={(event) => setStyled(event.target.checked)}
+            />{" "}
+            Gevelafwerking
+          </label>
+        )}
         <label>
           <input
             type="checkbox"

@@ -63,3 +63,27 @@ export interface Dossier {
   attachments: Attachment[];
   tasks: Task[];
 }
+export interface HouseAppearance {
+  version: 1;
+  label: string;
+  description: string;
+  attribution: string;
+  generated: boolean;
+  front: {
+    left: [number, number];
+    right: [number, number];
+    bottom: number;
+    top: number;
+    texture: string;
+  };
+  materials: { wall: string; roof: string; plinth: string };
+  dormerSurface?: number;
+  roof?: {
+    hiddenSurfaceIndices: number[];
+    top: number;
+    inset: number;
+    dormerWidth: number;
+    dormerInset: number;
+    dormerBottom: number;
+  };
+}

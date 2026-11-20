@@ -6,6 +6,8 @@ Bron: gesprek met Karian/Kilian op 20 november 2026; het voorstel om een eerste 
 
 De eerste versie levert de geverifieerde buitenzijde van het pand, dossieronderdelen, originele bestanden en onderhoud. Plattegronden, ingemeten interieurs en fotorealisme hebben eigen opnames nodig en zijn nog niet opgenomen.
 
+Aanvulling 20 november 2026: de gebruiker heeft twee gevelbeelden aangeleverd. Een apart lokaal afwerkingsprofiel projecteert een AI-gecorrigeerd frontbeeld op de bestaande voorgevel. Zijmaterialen, cornice en een opgeschoonde mansardedak/dakkapelvariant zijn visuele benaderingen. Het profiel kan worden uitgeschakeld; de originele brongeometrie wordt niet overschreven. Afwerking en attributie blijven privé in `data/appearance/` en gaan mee in de dossierexport. Deze laag staat los van de feitelijke BAG-gegevens en van toekomstige ingemeten geometrie.
+
 ## Structuur
 
 Een Node-proces serveert de lokale API en de webinterface. React/TypeScript verzorgt de interface; Three.js verzorgt alleen de weergave. Express valideert mutaties met Zod. Node SQLite bewaart records en losse bestanden bewaren de originelen. De keuze voor SQLite maakt deze versie eenvoudig op één computer te gebruiken; netwerkhosting of meerdere accounts vraagt een apart ontwerp en is geen impliciete vervolgfunctionaliteit.

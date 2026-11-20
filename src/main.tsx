@@ -35,7 +35,14 @@ import {
   Layers3,
 } from "lucide-react";
 import { request } from "./api";
-import type { HouseData, Attachment, Task, Dossier, Point } from "./types";
+import type {
+  HouseData,
+  HouseAppearance,
+  Attachment,
+  Task,
+  Dossier,
+  Point,
+} from "./types";
 import "./style.css";
 const Viewer = lazy(() =>
   import("./Viewer").then((module) => ({ default: module.Viewer })),
@@ -73,6 +80,7 @@ const assetIcon = (kind: string, size = 18) =>
   );
 
 function App() {
+  const [appearance, setAppearance] = useState<HouseAppearance | null>(null);
   const [houseId, setHouseId] = useState("");
   const [houses, setHouses] = useState<
     { id: string; name: string; address: string }[]
@@ -115,15 +123,18 @@ function App() {
     if (!houseId) return;
     let cancelled = false;
     setData(null);
+    setAppearance(null);
     setDossier({ assets: [], attachments: [], tasks: [] });
     setPlacing(false);
     Promise.all([
       request<HouseData>(`/data/${houseId}.json`),
       request<Dossier>(`/api/houses/${houseId}/dossier`),
+      request<HouseAppearance | null>(`/api/houses/${houseId}/appearance`),
     ])
-      .then(([model, records]) => {
+      .then(([model, records, finish]) => {
         if (!cancelled) {
           setData(model);
+          setAppearance(finish);
           document.title = `${model.house.address} · Geokari Huisdossier`;
           setDossier(records);
           setSelectedId(`${houseId}:building`);
@@ -495,6 +506,7 @@ function App() {
                   >
                     <Viewer
                       data={data}
+                      appearance={appearance}
                       assets={dossier.assets}
                       selected={selected}
                       onSelect={select}
@@ -708,8 +720,10 @@ function App() {
                     {data.house.buildingUnitCount
                       ? ` met ${data.house.buildingUnitCount} verblijfsobjecten`
                       : ""}
-                    . De binnenindeling, ramen en materialen zijn nog niet
-                    vastgelegd. Foto’s en scans maken het straks persoonlijker.
+                    .{" "}
+                    {appearance
+                      ? "De voorgevel is visueel gereconstrueerd uit je beelden. Zijgevels, dakmaterialen en kleine details zijn een benadering; het interieur is nog niet vastgelegd."
+                      : "De binnenindeling, ramen en materialen zijn nog niet vastgelegd. Foto’s en scans maken het straks persoonlijker."}
                   </p>
                   <button onClick={() => setPage("sources")}>
                     Bekijk bronnen <ExternalLink size={14} />
@@ -947,6 +961,27 @@ function App() {
                       </p>
                     </div>
                   </div>
+                  {appearance && (
+                    <div className="source-block">
+                      <span className="source-number">Foto</span>
+                      <div>
+                        <h3>{appearance.label}</h3>
+                        <p>{appearance.description}</p>
+                        <a
+                          href={appearance.front.texture}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Bekijk het gereconstrueerde gevelbeeld{" "}
+                          <ExternalLink size={14} />
+                        </a>
+                        <p className="attribution">
+                          {appearance.attribution} Het gevelbeeld blijft lokaal
+                          en staat los van de geometrie en de open-datalicentie.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <aside className="next-step-panel">
                   <Box size={31} strokeWidth={1.3} />

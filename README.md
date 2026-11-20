@@ -34,9 +34,17 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 
 Het adres is via het officiële BAG-verblijfsobject `0344010000061984` gekoppeld aan pand `0344100000021151`. Dat pand bevat **drie verblijfsobjecten**; het model toont de gedeelde buitenzijde, geen afbakening van alleen nummer 17.
 
-De geometrie komt uit 3DBAG LoD 2.2, gebaseerd op BAG en AHN. Gevelkleuren zijn alleen een weergavestijl. Er zijn geen ramen, deuren, geveltexturen of binnenruimtes verzonnen. Het bovenaanzicht is een zicht op het gebouwmodel, geen ingemeten plattegrond. BAG-bouwjaar en gebruiksoppervlakte zijn registratiewaarden, geen eigen inmeting. De bestaande voorbeeldonderdelen komen uit de projectcontext; hun exacte locatie en toestelgegevens zijn onbekend totdat de bewoner ze invult.
+De oorspronkelijke geometrie komt uit 3DBAG LoD 2.2, gebaseerd op BAG en AHN. Het bovenaanzicht is een zicht op het gebouwmodel, geen ingemeten plattegrond. BAG-bouwjaar en gebruiksoppervlakte zijn registratiewaarden, geen eigen inmeting. De bestaande voorbeeldonderdelen komen uit de projectcontext; hun exacte locatie en toestelgegevens zijn onbekend totdat de bewoner ze invult.
 
-**Attributie:** 3DBAG door TU Delft 3D geoinformation en 3DGI, [CC BY 4.0](https://docs.3dbag.nl/nl/copyright/). BAG via PDOK / Kadaster, Public Domain Mark 1.0. Bron-URL's, ophaaldatum en modelbeperkingen staan in het geïmporteerde JSON-bestand en in de app onder Bronnen & model. Geen Google Street View-data gebruikt.
+**Attributie basisgeometrie:** 3DBAG door TU Delft 3D geoinformation en 3DGI, [CC BY 4.0](https://docs.3dbag.nl/nl/copyright/). BAG via PDOK / Kadaster, Public Domain Mark 1.0. Bron-URL's, ophaaldatum en modelbeperkingen staan in het geïmporteerde JSON-bestand en in de app onder Bronnen & model.
+
+## Lokale gevelafwerking
+
+Een optioneel profiel onder `data/appearance/<woning-id>/profile.json` koppelt een lokaal gevelbeeld aan één RD/NAP-projectievlak. De textuur loopt door over alle coplanaire voorgevelvlakken; de zijkanten krijgen een aparte, indicatieve materiaalafwerking. Zet **Gevelafwerking** uit om de oorspronkelijke BAG-geometrie en basiskleuren te bekijken. De knop met het huisje toont de voorgevel.
+
+Voor de eigen woning is een AI-gecorrigeerd gevelbeeld gemaakt uit twee door de gebruiker aangeleverde Google Maps-screenshots. Het is een visuele reconstructie, geen ongewijzigde foto of inmeting. Bedekte delen zijn aangevuld. De dakkapel, dakmaterialen, kleine reliëfdetails en zijgevels zijn indicatief; er is geen interieur toegevoegd. De oorspronkelijke brongeometrie blijft intact. De decoratieve dakvariant gebruikt een expliciete lijst bronvlakken; controleer het profiel en die indices opnieuw na een modelherimport.
+
+Het gevelbeeld, de parameters, de promptnotitie en de bronattributie blijven in de genegeerde `data/`-map. Ze worden niet naar GitHub gepusht. Een verse checkout bevat daarom geen privé-gevelbeeld. De volledige dossierexport bevat het profiel en de originele textuurbestanden; de open-datalicentie van 3DBAG wordt niet op die beelden toegepast. De API biedt uitsluitend bestanden aan die bij het gekozen huisprofiel horen.
 
 ## Projectindeling
 

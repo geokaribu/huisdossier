@@ -6,6 +6,11 @@ import { mkdirSync } from "node:fs";
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createStore } from "./store.mjs";
+import {
+  appearanceDirectory,
+  readAppearance,
+  exportAppearance,
+} from "./appearance.mjs";
 
 const text = z.string().trim().min(1).max(200);
 const date = z
@@ -145,6 +150,31 @@ export function createApp({ directory, houses, root }) {
       return res.status(404).json({ error: "Melding niet gevonden." });
     res.json({ ok: true });
   });
+  app.get("/api/houses/:houseId/appearance", async (req, res) => {
+    const profile = await readAppearance(directory, req.params.houseId);
+    res.json(
+      profile
+        ? {
+            ...profile,
+            front: {
+              ...profile.front,
+              texture: `/api/houses/${req.params.houseId}/appearance/${profile.front.texture}`,
+            },
+          }
+        : null,
+    );
+  });
+  app.get("/api/houses/:houseId/appearance/:file", async (req, res) => {
+    const profile = await readAppearance(directory, req.params.houseId);
+    if (!profile || req.params.file !== profile.front.texture)
+      return res.status(404).json({ error: "Gevelbeeld niet gevonden." });
+    res.sendFile(
+      path.join(
+        appearanceDirectory(directory, req.params.houseId),
+        profile.front.texture,
+      ),
+    );
+  });
   app.get("/api/houses/:houseId/export", async (req, res) => {
     const houseId = req.params.houseId;
     const model = JSON.parse(
@@ -170,6 +200,7 @@ export function createApp({ directory, houses, root }) {
       model,
       dossier: store.dossier(houseId),
       files,
+      appearance: await exportAppearance(directory, houseId),
     });
   });
   // Preserve API 404 semantics rather than serving the SPA for a mistyped endpoint.

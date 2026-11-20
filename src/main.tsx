@@ -63,8 +63,13 @@ import {
   pageInfo,
 } from "./WorkspaceChrome";
 import { FileLibrary } from "./FileLibrary";
+import { Dialog } from "./Dialog";
+import { CapturePage } from "./CapturePage";
+import { ManagementPage } from "./ManagementPage";
+import { CompleteTaskDialog } from "./CompleteTaskDialog";
 import "./style.css";
 import "./workspace.css";
+import "./management.css";
 const Viewer = lazy(() =>
   import("./Viewer").then((module) => ({ default: module.Viewer })),
 );
@@ -74,7 +79,15 @@ const InteriorViewer = lazy(() =>
   })),
 );
 
-type Page = "dossier" | "model" | "interior" | "files" | "tasks" | "sources";
+type Page =
+  | "dossier"
+  | "model"
+  | "interior"
+  | "files"
+  | "tasks"
+  | "sources"
+  | "capture"
+  | "manage";
 type Modal = "asset" | "upload" | "task" | "task-edit" | "edit" | null;
 const formatDate = (date: string) =>
   !date
@@ -123,6 +136,7 @@ function App() {
   const [lightbox, setLightbox] = useState<Attachment | null>(null);
   const [readerId, setReaderId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [completingTask, setCompletingTask] = useState<Task | null>(null);
   const [scope, setScope] = useState("");
   const [category, setCategory] = useState("");
   const [libraryView, setLibraryView] = useState<"list" | "gallery">("list");
@@ -253,6 +267,7 @@ function App() {
     setReaderId(null);
     setLightbox(null);
     setModal(null);
+    setCompletingTask(null);
     setQuery("");
     setScope("");
     setCategory("");
@@ -424,18 +439,18 @@ function App() {
               }
               aria-label={`${task.status === "open" ? "Markeer als uitgevoerd" : "Heropen melding"}: ${task.title}`}
               onClick={() =>
-                save(
-                  () =>
-                    request(`${api}/tasks/${task.id}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({
-                        status: task.status === "open" ? "done" : "open",
-                      }),
-                    }),
-                  task.status === "open"
-                    ? "Onderhoud als uitgevoerd gemarkeerd"
-                    : "Melding heropend",
-                )
+                task.status === "open"
+                  ? setCompletingTask(task)
+                  : save(
+                      () =>
+                        request(`${api}/tasks/${task.id}`, {
+                          method: "PATCH",
+                          body: JSON.stringify({
+                            status: "open",
+                          }),
+                        }),
+                      "Melding heropend",
+                    )
               }
             >
               {task.status === "open" ? (
@@ -453,12 +468,54 @@ function App() {
                 {task.status === "done"
                   ? `Afgerond: ${task.completedAt || task.date ? formatDate(task.completedAt || task.date) : "datum niet vastgelegd"}`
                   : formatDate(task.date)}
-                {task.owner && <> · {task.owner}</>}
+                {task.owner && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    {dossier.people?.find(
+                      (person) => person.id === task.assigneeId,
+                    )?.name ?? task.owner}
+                  </>
+                )}
               </span>
-              {(task.description || task.source) && (
+              {(task.description ||
+                task.source ||
+                task.result ||
+                dossier.attachments.some(
+                  (file) => file.taskId === task.id,
+                )) && (
                 <details className="task-details">
                   <summary>Toelichting{task.source ? " & bron" : ""}</summary>
+                  {task.result && (
+                    <p>
+                      <strong>Uitvoering:</strong> {task.result}
+                      {task.completedById && (
+                        <>
+                          {" "}
+                          ·{" "}
+                          {dossier.people?.find(
+                            (person) => person.id === task.completedById,
+                          )?.name ?? "Persoon niet bekend"}
+                        </>
+                      )}
+                    </p>
+                  )}
                   {task.description && <p>{task.description}</p>}
+                  {dossier.attachments
+                    .filter((file) => file.taskId === task.id)
+                    .map((file) => (
+                      <button
+                        key={file.id}
+                        className="text-link task-evidence"
+                        onClick={() =>
+                          /^image\/(png|jpeg|webp|gif|avif)$/.test(file.type)
+                            ? setLightbox(file)
+                            : setReaderId(file.id)
+                        }
+                      >
+                        Bekijk bijlage: {file.name}
+                      </button>
+                    ))}
                   {task.source && (
                     <div className="task-source">
                       {task.sourceId &&
@@ -654,6 +711,29 @@ function App() {
                   interiorAvailable={Boolean(floorplan && appearance?.rear)}
                 />
               </div>
+            )}
+            {page === "capture" && (
+              <CapturePage
+                key={houseId}
+                houseId={houseId}
+                dossier={dossier}
+                onSaved={refresh}
+                onOpenDossier={openDossier}
+              />
+            )}
+            {page === "manage" && (
+              <ManagementPage
+                key={houseId}
+                houseId={houseId}
+                dossier={dossier}
+                onRefresh={refresh}
+                onFiles={showFiles}
+                onEditTask={(task) => {
+                  setEditingTask(task);
+                  openModal("task-edit");
+                }}
+                onCapture={() => setPage("capture")}
+              />
             )}
             {page === "dossier" && (
               <DossierHome
@@ -1490,6 +1570,25 @@ function App() {
           {notice}
         </div>
       )}
+      {completingTask && (
+        <CompleteTaskDialog
+          task={completingTask}
+          people={dossier.people ?? []}
+          onClose={() => setCompletingTask(null)}
+          onComplete={async (values) => {
+            const currentHouse = houseId;
+            await request(`${api}/tasks/${completingTask.id}`, {
+              method: "PATCH",
+              body: JSON.stringify(values),
+            });
+            await refresh();
+            if (activeHouse.current === currentHouse) {
+              setCompletingTask(null);
+              setNotice("Uitgevoerd onderhoud bewaard");
+            }
+          }}
+        />
+      )}
       {modal && (
         <Dialog
           title={
@@ -1565,7 +1664,14 @@ function App() {
                           description: form.get("description"),
                           date: form.get("date"),
                           assetId: form.get("assetId"),
-                          owner: form.get("owner"),
+                          assigneeId:
+                            form.get("assigneeId") === "external"
+                              ? null
+                              : form.get("assigneeId") || null,
+                          owner:
+                            form.get("assigneeId") === "external"
+                              ? String(form.get("owner") || "")
+                              : "",
                           state: form.get("state"),
                         }),
                       },
@@ -1691,15 +1797,47 @@ function App() {
                 </label>
                 <label>
                   Wie pakt het op?
-                  <input
-                    name="owner"
-                    maxLength={200}
+                  <select
+                    name="assigneeId"
                     defaultValue={
-                      modal === "task-edit" ? editingTask?.owner : ""
+                      modal === "task-edit"
+                        ? editingTask?.assigneeId ||
+                          (editingTask?.owner ? "external" : "")
+                        : ""
                     }
-                    placeholder="Nog niet afgesproken"
-                  />
+                  >
+                    <option value="">Nog af te spreken</option>
+                    {(dossier.people ?? [])
+                      .filter(
+                        (person) =>
+                          person.active ||
+                          person.id === editingTask?.assigneeId,
+                      )
+                      .map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                          {!person.active ? " (gearchiveerd)" : ""}
+                        </option>
+                      ))}
+                    <option value="external">
+                      Andere persoon of organisatie
+                    </option>
+                  </select>
                 </label>
+                <details className="external-person">
+                  <summary>Naam van een andere persoon of organisatie</summary>
+                  <label>
+                    Alleen gebruikt bij Andere persoon of organisatie
+                    <input
+                      name="owner"
+                      maxLength={200}
+                      defaultValue={
+                        modal === "task-edit" ? (editingTask?.owner ?? "") : ""
+                      }
+                      placeholder="Bijvoorbeeld een onderhoudsbedrijf…"
+                    />
+                  </label>
+                </details>
                 <label>
                   Opvolging
                   <select
@@ -1874,51 +2012,4 @@ function Empty({
     </div>
   );
 }
-function Dialog({
-  title,
-  onClose,
-  children,
-  wide = false,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  wide?: boolean;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const close = useRef(onClose);
-  close.current = onClose;
-  useEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    const cancel = (e: Event) => {
-      e.preventDefault();
-      close.current();
-    };
-    element?.addEventListener("cancel", cancel);
-    return () => {
-      element?.removeEventListener("cancel", cancel);
-      element?.close();
-    };
-  }, []);
-  return (
-    <dialog
-      ref={dialog}
-      className={wide ? "dialog wide" : "dialog"}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      aria-labelledby="dialog-title"
-    >
-      <div className="dialog-heading">
-        <h2 id="dialog-title">{title}</h2>
-        <button className="icon-button" aria-label="Sluiten" onClick={onClose}>
-          <X size={21} />
-        </button>
-      </div>
-      {children}
-    </dialog>
-  );
-}
-
 createRoot(document.getElementById("root")!).render(<App />);

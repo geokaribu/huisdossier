@@ -107,6 +107,8 @@ export interface Attachment {
   source?: string;
   sourceDate?: string;
   historical?: boolean;
+  taskId?: string;
+  recordedById?: string | null;
 }
 export interface Task {
   id: string;
@@ -122,11 +124,51 @@ export interface Task {
   sourceDate?: string;
   sourceId?: string | null;
   completedAt?: string;
+  assigneeId?: string | null;
+  recordedById?: string | null;
+  completedById?: string | null;
+  result?: string;
+  planId?: string;
+}
+export interface Person {
+  id: string;
+  name: string;
+  role: "resident" | "helper" | "professional";
+  email: string;
+  phone: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface MaintenancePlan {
+  id: string;
+  assetId: string;
+  title: string;
+  description: string;
+  intervalMonths: number;
+  anchorDate: string;
+  nextDate: string;
+  assigneeId: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface ManagementData {
+  people: Person[];
+  plans: MaintenancePlan[];
+  activity: {
+    id: string;
+    kind: string;
+    recordId: string;
+    label: string;
+    createdAt: string;
+  }[];
 }
 export interface Dossier {
   assets: Asset[];
   attachments: Attachment[];
   tasks: Task[];
+  people?: Person[];
 }
 export interface HouseAppearance {
   shell?: {

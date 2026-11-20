@@ -11,6 +11,7 @@ import {
   Plus,
   Wrench,
   X,
+  Settings2,
 } from "lucide-react";
 import { housePageUrl, type HousePage } from "./houseSelection";
 
@@ -46,6 +47,16 @@ export const pageInfo: Record<
     title: "Bronnen & model",
     description:
       "Bekijk de herkomst, nauwkeurigheid en grenzen van de woninggegevens.",
+  },
+  capture: {
+    title: "Iets toevoegen",
+    description:
+      "Bewaar wat je opmerkt, weet of hebt uitgevoerd. Een korte invoer is genoeg om te beginnen.",
+  },
+  manage: {
+    title: "Beheer",
+    description:
+      "Regel de personen, onderhoudsafspraken en het bijhouden van deze woning.",
   },
 };
 export function followWorkspaceLink(
@@ -121,6 +132,7 @@ export function WorkspaceNavigation({
       label: "Dossier",
       items: [
         { id: "dossier", label: "Overzicht", Icon: House },
+        { id: "capture", label: "Iets toevoegen", Icon: Plus },
         { id: "files", label: "Documenten & foto's", Icon: FolderOpen },
         { id: "tasks", label: "Onderhoud", Icon: Wrench },
       ],
@@ -134,7 +146,10 @@ export function WorkspaceNavigation({
     },
     {
       label: "Achtergrond",
-      items: [{ id: "sources", label: "Bronnen & model", Icon: Database }],
+      items: [
+        { id: "manage", label: "Beheer", Icon: Settings2 },
+        { id: "sources", label: "Bronnen & model", Icon: Database },
+      ],
     },
   ] as const;
   return (

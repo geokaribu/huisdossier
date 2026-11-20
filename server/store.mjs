@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import { createManagement, calendarToday } from "./management.mjs";
 
 export function createStore(directory, houses) {
   mkdirSync(directory, { recursive: true });
@@ -22,6 +23,7 @@ export function createStore(directory, houses) {
       CREATE TABLE imports (house_id TEXT NOT NULL, source_key TEXT NOT NULL, item_key TEXT NOT NULL, kind TEXT NOT NULL, record_id TEXT NOT NULL, snapshot TEXT NOT NULL, PRIMARY KEY(house_id,source_key,kind,item_key));
       INSERT INTO migrations VALUES(2); COMMIT;`);
   }
+  const management = createManagement(db);
   const seed = db.prepare("INSERT OR IGNORE INTO houses VALUES (?, ?)");
   for (const house of houses) {
     seed.run(house.id, house.name);
@@ -50,6 +52,14 @@ export function createStore(directory, houses) {
       "De gevel",
       "gevel",
       "Gevelvlakken uit het gebouwmodel. Ramen en deuren zijn nog niet afzonderlijk gemodelleerd.",
+      null,
+    );
+    add.run(
+      `${house.id}:inbox`,
+      house.id,
+      "Nog te ordenen",
+      "overig",
+      "Nieuwe informatie waarvan de juiste plek nog niet bekend is. Koppel ze later aan een ruimte of onderdeel.",
       null,
     );
     for (const { slug, name, description } of house.starterAssets ?? [])
@@ -95,6 +105,7 @@ export function createStore(directory, houses) {
     ...JSON.parse(r.metadata),
   });
   return {
+    ...management,
     db,
     houseExists: (id) =>
       Boolean(db.prepare("SELECT id FROM houses WHERE id=?").get(id)),
@@ -120,6 +131,7 @@ export function createStore(directory, houses) {
           )
           .all(houseId)
           .map(taskRow),
+        people: management.people(houseId),
       };
     },
     addAsset(houseId, data) {
@@ -149,10 +161,10 @@ export function createStore(directory, houses) {
         id,
       );
     },
-    addAttachment(houseId, assetId, file, textContent = "") {
+    addAttachment(houseId, assetId, file, textContent = "", metadata = {}) {
       const id = randomUUID();
       db.prepare(
-        "INSERT INTO attachments (id,house_id,asset_id,name,type,size,stored_name,created_at,text_content) VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO attachments (id,house_id,asset_id,name,type,size,stored_name,created_at,text_content,metadata) VALUES (?,?,?,?,?,?,?,?,?,?)",
       ).run(
         id,
         houseId,
@@ -163,6 +175,7 @@ export function createStore(directory, houses) {
         file.filename,
         new Date().toISOString(),
         textContent,
+        JSON.stringify(metadata),
       );
       return id;
     },
@@ -215,6 +228,8 @@ export function createStore(directory, houses) {
         });
     },
     addTask(houseId, data) {
+      data = management.taskPersonMetadata(houseId, data);
+      management.validatePerson(houseId, data.recordedById);
       const id = randomUUID();
       db.prepare(
         "INSERT INTO tasks (id,house_id,asset_id,title,description,date,status,created_at,metadata) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -225,41 +240,80 @@ export function createStore(directory, houses) {
         data.title,
         data.description,
         data.date,
-        "open",
+        data.status ?? "open",
         new Date().toISOString(),
         JSON.stringify({
           owner: data.owner ?? "",
           state: data.state ?? "active",
+          assigneeId: data.assigneeId ?? null,
+          recordedById: data.recordedById ?? null,
+          ...(data.status === "done"
+            ? {
+                completedAt: data.completedOn
+                  ? `${data.completedOn}T12:00:00.000Z`
+                  : new Date().toISOString(),
+                result: data.result ?? "",
+                completedById: data.recordedById ?? null,
+              }
+            : {}),
         }),
       );
       return id;
     },
     updateTask(houseId, id, data) {
-      const current = db
-        .prepare("SELECT * FROM tasks WHERE house_id=? AND id=?")
-        .get(houseId, id);
-      if (!current) return 0;
-      const meta = JSON.parse(current.metadata);
-      if (data.status === "done" && current.status !== "done")
-        meta.completedAt = new Date().toISOString();
-      if (data.status === "open" && current.status !== "open")
-        delete meta.completedAt;
-      for (const field of ["owner", "state"])
-        if (data[field] !== undefined) meta[field] = data[field];
-      return db
-        .prepare(
-          "UPDATE tasks SET asset_id=?,title=?,description=?,date=?,status=?,metadata=? WHERE house_id=? AND id=?",
-        )
-        .run(
-          data.assetId ?? current.asset_id,
-          data.title ?? current.title,
-          data.description ?? current.description,
-          data.date ?? current.date,
-          data.status ?? current.status,
-          JSON.stringify(meta),
+      return management.transaction(() => {
+        const current = db
+          .prepare("SELECT * FROM tasks WHERE house_id=? AND id=?")
+          .get(houseId, id);
+        if (!current) return 0;
+        const meta = JSON.parse(current.metadata);
+        data = management.taskPersonMetadata(houseId, data, meta);
+        if (data.completedById)
+          management.validatePerson(houseId, data.completedById);
+        if (data.status === "open" && current.status !== "open")
+          management.assertReopen(houseId, current);
+        if (data.status === "done" && current.status !== "done")
+          meta.completedAt = data.completedOn
+            ? `${data.completedOn}T12:00:00.000Z`
+            : new Date().toISOString();
+        if (data.status === "open" && current.status !== "open")
+          delete meta.completedAt;
+        for (const field of [
+          "owner",
+          "state",
+          "assigneeId",
+          "result",
+          "completedById",
+        ])
+          if (data[field] !== undefined) meta[field] = data[field];
+        const changes = db
+          .prepare(
+            "UPDATE tasks SET asset_id=?,title=?,description=?,date=?,status=?,metadata=? WHERE house_id=? AND id=?",
+          )
+          .run(
+            data.assetId ?? current.asset_id,
+            data.title ?? current.title,
+            data.description ?? current.description,
+            data.date ?? current.date,
+            data.status ?? current.status,
+            JSON.stringify(meta),
+            houseId,
+            id,
+          ).changes;
+        if (data.status === "done" && current.status !== "done")
+          management.completedPlan(
+            houseId,
+            current,
+            data.completedOn ?? calendarToday(),
+          );
+        management.activity(
           houseId,
+          "task",
           id,
-        ).changes;
+          `${data.status === "done" ? "Onderhoud uitgevoerd" : data.status === "open" && current.status === "done" ? "Melding heropend" : "Melding bijgewerkt"}: ${data.title ?? current.title}`,
+        );
+        return changes;
+      });
     },
     close() {
       db.close();

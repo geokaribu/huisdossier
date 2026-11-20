@@ -6,6 +6,8 @@ Bovenaan kies je een woning. Elke woning heeft een eigen model, dossier, bestand
 
 De werkruimte groepeert dossier, documenten en onderhoud; buiten- en binnenweergave staan onder Woning verkennen. Onderdelen kies je in een gegroepeerde lijst op desktop of een compacte selector op mobiel. De URL bewaart ook de gekozen plek en zoekfilters. Zie [structuur, ontwerpkeuzes en UI-review](docs/ui-design.md).
 
+**Iets toevoegen** begeleidt bewoners bij een melding, notitie, bestand of uitgevoerd werk. **Beheer** bevat personen per woning, terugkerende onderhoudsafspraken en een controle op open aandachtspunten. Concepttekst blijft tijdens de browsersessie bewaard; onbekende plekken kunnen eerst bij **Nog te ordenen**. Personen zijn lokale dossierprofielen, geen logins. Zie [invoer en beheer voor bewoners](docs/resident-management.md).
+
 **Balleistraat 57, 1790 Affligem** gebruikt Vlaamse bronnen: de exacte adreslocatie uit de Vlaamse geolocatiedienst, een GRB-gebouwcontour en de overeenkomstige 3D GRB-hoogte op basis van DHMV II. `npm run import:house -- balleistraat-57` gebruikt via `provider: "vlaanderen"` de Vlaamse importer. Het objectnummer wordt in beide bronnen gecontroleerd. Het resultaat is een LoD 1-volumemodel met een vlak bovenvlak; dakvorm, geveldetails en interieur zijn nog niet gereconstrueerd. De hoogteopname is van 2014 en de contour heeft een eigen brondatum. Bronvermelding, coördinatenstelsel en beperkingen staan bij de woning onder **Bronnen & model**. Alleen buren met een bijpassende, positieve bronhoogte worden opgenomen; ontbrekende hoogten worden niet verzonnen.
 
 ## Starten
@@ -100,6 +102,8 @@ data/                      Privé runtimegegevens (gitignored)
 `data/huisdossier.sqlite` bevat het dossier; `data/uploads/` bevat originele bestanden. Deze map wordt nooit aan Git toegevoegd. `HUISDOSSIER_DATA_DIR` kan een andere absolute opslagmap aanwijzen. De UI gebruikt geen localStorage als primaire opslag.
 
 Maak een export via **Exporteer dossier**, of stop de server en kopieer de volledige `data/`-map als consistente back-up. Een volledige JSON-export bevat alle bestanden en kan daardoor groot worden. Een herstelknop voor JSON-exports is nog niet gebouwd; voor direct herstel met deze versie gebruik je een kopie van de volledige `data/`-map. Modeldata onder `public/data/` is openbare brondata, niet de privé-inhoud van het dossier.
+
+Ook **Beheer → Download volledige dossierkopie** gebruikt deze export. Personen, onderhoudsafspraken en recente wijzigingen gaan mee. Herstel vraagt voorlopig technische hulp; automatisch herstel en geplande externe back-ups zijn niet ingericht.
 
 ## Bestaande documenten verwerken
 

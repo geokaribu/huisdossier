@@ -6,6 +6,8 @@ import { mkdirSync } from "node:fs";
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createStore } from "./store.mjs";
+import { managementRoutes, calendarDate } from "./management-routes.mjs";
+import { calendarToday } from "./management.mjs";
 import { floorplanForView } from "../src/furnishings.ts";
 import { readLighting, saveLampScenario } from "./lighting.mjs";
 import {
@@ -36,6 +38,7 @@ const taskSchema = z.object({
   description: z.string().trim().max(10000).default(""),
   date: z.union([date, z.literal("")]).default(""),
   owner: z.string().trim().max(200).default(""),
+  assigneeId: z.string().max(200).nullable().optional(),
   state: z.enum(["active", "hold", "verify"]).default("active"),
 });
 const assetSchema = z.object({
@@ -138,6 +141,7 @@ export function createApp({ directory, houses, root }) {
     }),
     limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   });
+  managementRoutes(app, { store, upload, directory });
   app.post(
     "/api/houses/:houseId/assets/:assetId/files",
     (req, res, next) => {
@@ -233,6 +237,10 @@ export function createApp({ directory, houses, root }) {
         description: z.string().trim().max(10000).optional(),
         date: z.union([date, z.literal("")]).optional(),
         owner: z.string().trim().max(200).optional(),
+        assigneeId: z.string().max(200).nullable().optional(),
+        completedById: z.string().max(200).nullable().optional(),
+        completedOn: calendarDate.optional(),
+        result: z.string().trim().max(10000).optional(),
         state: z.enum(["active", "hold", "verify"]).optional(),
         status: z.enum(["open", "done"]).optional(),
       })
@@ -240,6 +248,10 @@ export function createApp({ directory, houses, root }) {
       .parse(req.body);
     if (data.assetId && !store.asset(req.params.houseId, data.assetId))
       return res.status(404).json({ error: "Onderdeel niet gevonden." });
+    if (data.completedOn && data.completedOn > calendarToday())
+      return res.status(400).json({
+        error: "Uitgevoerd onderhoud kan niet in de toekomst liggen.",
+      });
     if (!store.updateTask(req.params.houseId, req.params.id, data))
       return res.status(404).json({ error: "Melding niet gevonden." });
     res.json({ ok: true });
@@ -309,6 +321,7 @@ export function createApp({ directory, houses, root }) {
       exportedAt: new Date().toISOString(),
       model,
       dossier: store.dossier(houseId),
+      management: store.management(houseId),
       files,
       appearance: await exportAppearance(directory, houseId),
       floorplan: plan,
@@ -327,6 +340,13 @@ export function createApp({ directory, houses, root }) {
     res.status(404).json({ error: "Niet gevonden." }),
   );
   app.use((error, _req, res, _next) => {
+    if (
+      error.status &&
+      Number.isInteger(error.status) &&
+      error.status >= 400 &&
+      error.status < 500
+    )
+      return res.status(error.status).json({ error: error.message });
     if (error instanceof z.ZodError)
       return res.status(400).json({
         error: "Controleer de ingevulde velden.",

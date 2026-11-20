@@ -43,6 +43,11 @@ import { defaultLightingSettings } from "./lighting";
 import { floorplanForView } from "./furnishings";
 import type { FurnishingView } from "./furnishings";
 import { assetIcon, kindName } from "./dossierDisplay";
+import {
+  resolveHouseId,
+  resolveHousePage,
+  housePageUrl,
+} from "./houseSelection";
 import type {
   HouseData,
   HouseAppearance,
@@ -92,7 +97,7 @@ function App() {
   const [appearance, setAppearance] = useState<HouseAppearance | null>(null);
   const [houseId, setHouseId] = useState("");
   const [houses, setHouses] = useState<
-    { id: string; name: string; address: string }[]
+    { id: string; name: string; address: string; city: string }[]
   >([]);
   const [data, setData] = useState<HouseData | null>(null);
   const [dossier, setDossier] = useState<Dossier>({
@@ -101,7 +106,9 @@ function App() {
     tasks: [],
   });
   const [selectedId, setSelectedId] = useState("");
-  const [page, setPage] = useState<Page>("dossier");
+  const [page, setPage] = useState<Page>(() =>
+    resolveHousePage(window.location.href),
+  );
   const [modal, setModal] = useState<Modal>(null);
   const [inspectorTab, setInspectorTab] = useState("details");
   const [placing, setPlacing] = useState(false);
@@ -126,19 +133,42 @@ function App() {
   const selected = dossier.assets.find((a) => a.id === selectedId);
   const api = `/api/houses/${houseId}`;
   const reportError = useCallback((message: string) => setError(message), []);
+  const activeHouse = useRef(houseId);
+  activeHouse.current = houseId;
   const refresh = useCallback(async () => {
-    if (houseId)
-      setDossier(await request<Dossier>(`/api/houses/${houseId}/dossier`));
+    if (houseId) {
+      const records = await request<Dossier>(`/api/houses/${houseId}/dossier`);
+      if (activeHouse.current === houseId) setDossier(records);
+    }
   }, [houseId]);
 
   useEffect(() => {
     request<typeof houses>("/api/houses")
       .then((items) => {
         setHouses(items);
-        setHouseId(items[0]?.id ?? "");
+        let stored: string | null = null;
+        try {
+          stored = localStorage.getItem("huisdossier:house");
+        } catch {
+          /* storage optional */
+        }
+        setHouseId(resolveHouseId(items, window.location.href, stored));
       })
       .catch((e) => setError(e.message));
   }, []);
+  useEffect(() => {
+    if (!houseId) return;
+    history.replaceState(
+      null,
+      "",
+      housePageUrl(window.location.href, houseId, page),
+    );
+    try {
+      localStorage.setItem("huisdossier:house", houseId);
+    } catch {
+      /* selection still works */
+    }
+  }, [houseId, page]);
   useEffect(() => {
     if (!houseId) return;
     try {
@@ -152,6 +182,10 @@ function App() {
     }
     let cancelled = false;
     setData(null);
+    setError("");
+    setNotice("");
+    setSelectedId("");
+    setMobileMenu(false);
     setAppearance(null);
     setFloorplan(null);
     setLighting(null);
@@ -508,17 +542,9 @@ function App() {
           <House size={19} />
           <div>
             <label htmlFor="house-select">Mijn woning</label>
-            <select
-              id="house-select"
-              value={houseId}
-              onChange={(e) => setHouseId(e.target.value)}
-            >
-              {houses.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.address}
-                </option>
-              ))}
-            </select>
+            <strong>
+              {houses.find((h) => h.id === houseId)?.address ?? "Woning laden…"}
+            </strong>
           </div>
         </div>
         <nav>
@@ -604,12 +630,34 @@ function App() {
           <span className="local-label">
             <LockKeyhole size={14} /> Eigen gebruik
           </span>
+          <label className="top-house-selector" htmlFor="house-select">
+            <span>
+              <House size={14} /> Woning
+            </span>
+            <select
+              id="house-select"
+              aria-label="Woning kiezen"
+              value={houseId}
+              onChange={(event) => {
+                setHouseId(event.target.value);
+                setPage("model");
+              }}
+            >
+              {houses.map((house) => (
+                <option key={house.id} value={house.id}>
+                  {house.address} · {house.city}
+                </option>
+              ))}
+            </select>
+          </label>
         </header>
         <div className="page-heading">
           <div>
             <div className="location-line">
               <MapPin size={15} />{" "}
-              {data ? `${data.house.postcode} ${data.house.city}` : "Utrecht"}
+              {data
+                ? `${data.house.postcode} ${data.house.city}`
+                : "Woning laden…"}
             </div>
             <h1>{data?.house.address ?? "Ons huis"}</h1>
             <p>Alles wat je huis je kan vertellen, op één plek.</p>
@@ -832,16 +880,23 @@ function App() {
                           {selected?.kind === "gebouw" && (
                             <dl className="facts">
                               <div>
-                                <dt>Bouwjaar volgens BAG</dt>
+                                <dt>Bouwjaar (registratie)</dt>
                                 <dd>{data.house.buildingYear ?? "Onbekend"}</dd>
                               </div>
                               <div>
                                 <dt>Gebruiksoppervlakte woning</dt>
-                                <dd>{data.house.area ?? "—"} m²</dd>
+                                <dd>
+                                  {data.house.area
+                                    ? `${data.house.area} m²`
+                                    : "Onbekend"}
+                                </dd>
                               </div>
                               <div>
                                 <dt>Geometrie</dt>
-                                <dd>Buitenzijde · LoD 2.2</dd>
+                                <dd>
+                                  Buitenzijde ·{" "}
+                                  {data.source.detailLevel ?? "LoD 2.2"}
+                                </dd>
                               </div>
                               <div>
                                 <dt>Interieur</dt>
@@ -1208,78 +1263,125 @@ function App() {
                     <div>
                       <h2>Waar komt het model vandaan?</h2>
                       <p>
-                        Open gebouwdata, gekoppeld aan het geverifieerde
-                        BAG-adres.
+                        Open gebouwdata, gekoppeld aan de gecontroleerde
+                        adreslocatie.
                       </p>
                     </div>
                     <Database size={25} />
                   </div>
-                  <div className="source-block">
-                    <span className="source-number">BAG</span>
-                    <div>
-                      <h3>Het adres en het pand</h3>
-                      <p>
-                        Het verblijfsobject van {data.house.address} is via de
-                        officiële BAG-relatie gekoppeld aan dit pand.{" "}
-                        {data.house.buildingUnitCount &&
-                        data.house.buildingUnitCount > 1
-                          ? `In dit pand zitten ${data.house.buildingUnitCount} verblijfsobjecten; de 3D-buitenzijde is gedeeld.`
-                          : "Het model toont de geregistreerde buitenzijde."}
-                      </p>
-                      <dl className="facts">
-                        <div>
-                          <dt>Verblijfsobject van de woning</dt>
-                          <dd className="identifier">{data.house.bagVboId}</dd>
-                        </div>
-                        <div>
-                          <dt>Pand</dt>
-                          <dd className="identifier">{data.house.bagPandId}</dd>
-                        </div>
-                        <div>
-                          <dt>Bouwjaar (registratie)</dt>
-                          <dd>{data.house.buildingYear}</dd>
-                        </div>
-                        <div>
-                          <dt>Gebruiksoppervlakte nummer 17</dt>
-                          <dd>{data.house.area} m²</dd>
-                        </div>
-                      </dl>
-                      <a
-                        href={data.source.urls[0]}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Bekijk BAG-bron <ExternalLink size={14} />
-                      </a>
+                  {data.house.registry ? (
+                    <div className="source-block">
+                      <span className="source-number">GRB</span>
+                      <div>
+                        <h3>Het adres en het gebouw</h3>
+                        <p>
+                          {data.house.registry.name}: de adreslocatie ligt in de
+                          gekozen gebouwcontour. Het objectnummer is ook in de
+                          hoogtebron gecontroleerd.
+                        </p>
+                        <dl className="facts">
+                          <div>
+                            <dt>Adreslocatie-ID</dt>
+                            <dd>{data.house.registry.addressId}</dd>
+                          </div>
+                          <div>
+                            <dt>Gebouw</dt>
+                            <dd>{data.house.registry.buildingId}</dd>
+                          </div>
+                          <div>
+                            <dt>Coördinatenstelsel</dt>
+                            <dd>{data.source.crs}</dd>
+                          </div>
+                        </dl>
+                        <a
+                          href={data.house.registry.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Bekijk adresbron <ExternalLink size={14} />
+                        </a>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="source-block">
+                      <span className="source-number">BAG</span>
+                      <div>
+                        <h3>Het adres en het pand</h3>
+                        <p>
+                          Het verblijfsobject van {data.house.address} is via de
+                          officiële BAG-relatie gekoppeld aan dit pand.{" "}
+                          {data.house.buildingUnitCount &&
+                          data.house.buildingUnitCount > 1
+                            ? `In dit pand zitten ${data.house.buildingUnitCount} verblijfsobjecten; de 3D-buitenzijde is gedeeld.`
+                            : "Het model toont de geregistreerde buitenzijde."}
+                        </p>
+                        <dl className="facts">
+                          <div>
+                            <dt>Verblijfsobject van de woning</dt>
+                            <dd className="identifier">
+                              {data.house.bagVboId}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Pand</dt>
+                            <dd className="identifier">
+                              {data.house.bagPandId}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Bouwjaar (registratie)</dt>
+                            <dd>{data.house.buildingYear}</dd>
+                          </div>
+                          <div>
+                            <dt>Gebruiksoppervlakte van de woning</dt>
+                            <dd>{data.house.area} m²</dd>
+                          </div>
+                        </dl>
+                        <a
+                          href={data.source.urls[0]}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Bekijk BAG-bron <ExternalLink size={14} />
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   <div className="source-block">
                     <span className="source-number">3D</span>
                     <div>
-                      <h3>3DBAG: de buitenzijde</h3>
+                      <h3>{data.source.title ?? "3DBAG"}: de buitenzijde</h3>
                       <p>
-                        Een gereconstrueerd model op basis van BAG en
-                        hoogtegegevens. Het is geen bouwkundige inmeting. Het
-                        bronmodel bevat geen materialen, ramen, deuren of
-                        binnenindeling. De aanvullende afwerking en het
-                        interieur hebben eigen bronnen.
+                        {data.source.description ?? (
+                          <>
+                            Een gereconstrueerd model op basis van BAG en
+                            hoogtegegevens. Het is geen bouwkundige inmeting.
+                            Het bronmodel bevat geen materialen, ramen, deuren
+                            of binnenindeling. De aanvullende afwerking en het
+                            interieur hebben eigen bronnen.
+                          </>
+                        )}
                       </p>
                       <dl className="facts">
                         <div>
                           <dt>Detailniveau</dt>
-                          <dd>LoD 2.2</dd>
+                          <dd>{data.source.detailLevel ?? "LoD 2.2"}</dd>
                         </div>
                         <div>
                           <dt>Hoogtebron</dt>
                           <dd>
-                            {String(
-                              data.buildings.find((b) => b.target)?.attributes
-                                .b3_pw_bron ?? "Onbekend",
-                            ).toUpperCase()}{" "}
-                            · opnamejaar{" "}
-                            {String(
-                              data.buildings.find((b) => b.target)?.attributes
-                                .b3_pw_datum ?? "onbekend",
+                            {data.source.heightSource ?? (
+                              <>
+                                {String(
+                                  data.buildings.find((b) => b.target)
+                                    ?.attributes.b3_pw_bron ?? "Onbekend",
+                                ).toUpperCase()}{" "}
+                                · opnamejaar{" "}
+                                {String(
+                                  data.buildings.find((b) => b.target)
+                                    ?.attributes.b3_pw_datum ?? "onbekend",
+                                )}
+                              </>
                             )}
                           </dd>
                         </div>
@@ -1289,21 +1391,17 @@ function App() {
                         </div>
                         <div>
                           <dt>Licentie</dt>
-                          <dd>CC BY 4.0</dd>
+                          <dd>{data.source.license}</dd>
                         </div>
                       </dl>
                       <a
-                        href={data.source.urls[2]}
+                        href={data.source.infoUrl ?? data.source.urls[2]}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Bekijk het oorspronkelijke 3D-model{" "}
-                        <ExternalLink size={14} />
+                        Bekijk de modelbron <ExternalLink size={14} />
                       </a>
-                      <p className="attribution">
-                        3DBAG door TU Delft 3D geoinformation en 3DGI. BAG via
-                        PDOK / Kadaster (Public Domain Mark 1.0).
-                      </p>
+                      <p className="attribution">{data.source.attribution}</p>
                     </div>
                   </div>
                   {floorplan && (

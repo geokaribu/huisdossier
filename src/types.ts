@@ -54,8 +54,15 @@ export interface HouseData {
     address: string;
     postcode: string;
     city: string;
-    bagVboId: string;
-    bagPandId: string;
+    bagVboId?: string;
+    bagPandId?: string;
+    country?: string;
+    registry?: {
+      name: string;
+      addressId: string;
+      buildingId: string;
+      url: string;
+    };
     rd: [number, number];
     buildingYear?: number;
     area?: number;
@@ -66,6 +73,13 @@ export interface HouseData {
     attribution: string;
     license: string;
     urls: string[];
+    title?: string;
+    credit?: string;
+    detailLevel?: string;
+    heightSource?: string;
+    description?: string;
+    infoUrl?: string;
+    crs?: string;
     [key: string]: unknown;
   };
   buildings: Building[];

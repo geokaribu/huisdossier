@@ -68,6 +68,10 @@ if (!config)
   throw new Error(
     "Onbekende woning. Voeg deze eerst toe aan config/houses.json.",
   );
+if (config.provider === "vlaanderen") {
+  await import("./import-flemish-house.mjs");
+  process.exit(0);
+}
 const bagBase = "https://api.pdok.nl/kadaster/bag/ogc/v2";
 const vboUrl = `${bagBase}/collections/verblijfsobject/items?identificatie=${config.vboId}&f=json`;
 const vboData = await json(vboUrl);

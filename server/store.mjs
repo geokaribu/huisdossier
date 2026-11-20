@@ -33,7 +33,7 @@ export function createStore(directory, houses) {
       house.id,
       "Het gebouw",
       "gebouw",
-      "De gereconstrueerde buitenzijde uit 3DBAG. Aanvullende afwerking en binnenindeling hebben eigen bronnen.",
+      "Het buitenmodel van deze woning uit open gebouwdata. Aanvullende afwerking en binnenindeling hebben eigen bronnen.",
       null,
     );
     add.run(
@@ -41,7 +41,7 @@ export function createStore(directory, houses) {
       house.id,
       "Het dak",
       "dak",
-      "Dakvlakken uit het 3DBAG-model. Materiaal, toestand en onderhoud nog aan te vullen.",
+      "Dakvlakken uit het gebouwmodel. Detailniveau, materiaal, toestand en onderhoud nog aan te vullen.",
       null,
     );
     add.run(
@@ -49,7 +49,7 @@ export function createStore(directory, houses) {
       house.id,
       "De gevel",
       "gevel",
-      "Gevelvlakken uit het 3DBAG-model. Ramen en deuren zijn nog niet afzonderlijk gemodelleerd.",
+      "Gevelvlakken uit het gebouwmodel. Ramen en deuren zijn nog niet afzonderlijk gemodelleerd.",
       null,
     );
     for (const { slug, name, description } of house.starterAssets ?? [])

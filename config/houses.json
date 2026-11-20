@@ -25,5 +25,16 @@
         "description": "Merk, type en exacte plek nog vast te leggen."
       }
     ]
+  },
+  {
+    "id": "balleistraat-57",
+    "name": "Huis in Affligem",
+    "provider": "vlaanderen",
+    "query": "Balleistraat 57 Affligem",
+    "address": "Balleistraat 57",
+    "postcode": "1790",
+    "city": "Affligem",
+    "country": "BE",
+    "rd": [130961.82, 176261.11]
   }
 ]

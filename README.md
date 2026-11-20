@@ -2,6 +2,10 @@
 
 Een lokaal huisdossier met een inspecteerbaar 3D-gebouwmodel, foto's, documenten en onderhoud per onderdeel. Eerste casus: Koekoekstraat 17, **3514 CS Utrecht**.
 
+Bovenaan kies je een woning. Elke woning heeft een eigen model, dossier, bestanden en onderhoud. De keuze blijft bij herladen bewaard en staat ook in de URL, bijvoorbeeld `/?house=balleistraat-57&page=model`. Een woningwissel opent het buitenmodel; een interieur wordt alleen getoond wanneer die woning een eigen plattegrond heeft.
+
+**Balleistraat 57, 1790 Affligem** gebruikt Vlaamse bronnen: de exacte adreslocatie uit de Vlaamse geolocatiedienst, een GRB-gebouwcontour en de overeenkomstige 3D GRB-hoogte op basis van DHMV II. `npm run import:house -- balleistraat-57` gebruikt via `provider: "vlaanderen"` de Vlaamse importer. Het objectnummer wordt in beide bronnen gecontroleerd. Het resultaat is een LoD 1-volumemodel met een vlak bovenvlak; dakvorm, geveldetails en interieur zijn nog niet gereconstrueerd. De hoogteopname is van 2014 en de contour heeft een eigen brondatum. Bronvermelding, coördinatenstelsel en beperkingen staan bij de woning onder **Bronnen & model**. Alleen buren met een bijpassende, positieve bronhoogte worden opgenomen; ontbrekende hoogten worden niet verzonnen.
+
 ## Starten
 
 Node.js **24 of nieuwer** is nodig (SQLite zit in Node). Alle frontendbibliotheken en het Inter-lettertype staan lokaal; het model is alvast geïmporteerd.

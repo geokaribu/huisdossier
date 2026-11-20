@@ -352,6 +352,12 @@ export function Viewer({
     const center = targetBox.getCenter(new THREE.Vector3());
     const size = targetBox.getSize(new THREE.Vector3());
     const span = Math.max(size.x, size.z, size.y, 10);
+    // Larger footprints require a more distant camera, particularly on narrow screens.
+    // Keep the target outside the context fog instead of washing out its own geometry.
+    if (scene.fog instanceof THREE.Fog) {
+      scene.fog.near = Math.max(65, span * 4);
+      scene.fog.far = Math.max(140, span * 7);
+    }
     const frame = (fromTop = false, fromFront = false, fromRoof = false) => {
       controls.target.copy(center).y = fromTop ? 0 : size.y * 0.36;
       const distance = span * (container.clientWidth < 500 ? 2.7 : 1.7);
@@ -823,7 +829,7 @@ export function Viewer({
           <span>
             {appearance && styled
               ? "Gevelafwerking · visuele reconstructie"
-              : "Gebouwmodel · 3DBAG LoD 2.2"}
+              : `Gebouwmodel · ${data.source.detailLevel ?? "3DBAG LoD 2.2"}`}
           </span>
           {appearance && (
             <div className="view-choice">
@@ -950,11 +956,11 @@ export function Viewer({
           )}
         </span>
         <a
-          href="https://docs.3dbag.nl/nl/copyright/"
+          href={data.source.infoUrl ?? "https://docs.3dbag.nl/nl/copyright/"}
           target="_blank"
           rel="noreferrer"
         >
-          3DBAG © TU Delft & 3DGI · CC BY 4.0
+          {data.source.credit ?? "3DBAG © TU Delft & 3DGI · CC BY 4.0"}
         </a>
       </div>
     </section>

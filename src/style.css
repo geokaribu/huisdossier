@@ -741,6 +741,67 @@ select {
   justify-content: space-between;
   gap: 16px;
 }
+.top-house-selector {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  width: min(340px, 36%);
+}
+.top-house-selector > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.top-house-selector select {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: white;
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.78rem;
+}
+.house-switch strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 550;
+}
+@media (max-width: 700px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto !important;
+    padding: 10px 0;
+    gap: 8px 12px;
+  }
+  .top-house-selector {
+    width: 100%;
+    flex-basis: 100%;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+  }
+  .top-house-selector select {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .sidebar.mobile-open {
+    top: 100px;
+  }
+  .breadcrumb > span,
+  .breadcrumb > svg {
+    display: none;
+  }
+}
+@media (min-width: 701px) and (max-width: 1050px) {
+  .breadcrumb > span,
+  .breadcrumb > svg {
+    display: none;
+  }
+}
 .dossier-detail {
   scroll-margin-top: 85px;
 }
@@ -1214,7 +1275,10 @@ select {
   text-align: right;
   margin: 0;
   color: var(--navy);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 65%;
 }
 .inspector-section {
   margin: 24px 0;

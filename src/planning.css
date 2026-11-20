@@ -35,8 +35,8 @@
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
   background: var(--paper);
   color: var(--navy);
   font: inherit;
@@ -79,7 +79,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #b56318;
+  background: var(--warning);
 }
 .planning-task {
   display: flex;
@@ -103,7 +103,7 @@
 }
 .planning-date span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .planning-task-body {
   min-width: 0;
@@ -132,7 +132,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-meta);
   min-height: 32px;
 }
 .planning-later {
@@ -140,7 +140,7 @@
   padding-top: 18px;
 }
 .planning-later summary {
-  font-size: 14px;
+  font-size: var(--font-body);
   cursor: pointer;
   font-weight: 500;
 }
@@ -179,7 +179,7 @@
 }
 .planning-empty {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-body);
   line-height: 1.7;
   padding: 16px 0;
 }
@@ -199,7 +199,7 @@
   margin-bottom: 12px;
 }
 .part-contact strong {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -236,7 +236,7 @@
   flex-shrink: 0;
 }
 .part-contact details {
-  font-size: 12px;
+  font-size: var(--font-meta);
   margin-top: 6px;
 }
 .part-contact summary {
@@ -250,7 +250,7 @@
   margin-top: 4px;
 }
 .part-contacts > .text-link {
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .spatial-inspector .part-contacts {
   margin-top: 16px;
@@ -261,6 +261,9 @@
   }
 }
 @media (max-width: 700px) {
+  .planning-page select {
+    font-size: 16px;
+  }
   .planning-page {
     gap: 20px;
   }
@@ -282,7 +285,7 @@
     flex-basis: 53px;
   }
   .planning-date strong {
-    font-size: 14px;
+    font-size: var(--font-body);
   }
   .planning-actions {
     gap: 6px 16px;

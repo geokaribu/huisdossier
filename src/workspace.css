@@ -1,11 +1,5 @@
 /* Geokari workspace: quiet navigation, place-linked information, one working surface. */
 :root {
-  --paper: #fafaf7;
-  --line: #dedfd9;
-  --muted: #59645f;
-  --text-subtle: #68716e;
-  --surface: #fff;
-  --selection: #fdf0df;
   --sidebar-width: 232px;
 }
 h1,
@@ -14,14 +8,16 @@ h3 {
   text-wrap: balance;
 }
 h1 {
-  font-size: 28px;
-  letter-spacing: -0.035em;
+  font-size: 30px;
+  letter-spacing: -0.03em;
 }
 h2 {
   font-size: 20px;
+  letter-spacing: -0.015em;
 }
 h3 {
   font-size: 16px;
+  letter-spacing: 0;
 }
 .sr-only {
   position: absolute;
@@ -40,7 +36,7 @@ h3 {
   left: 8px;
   z-index: 100;
   padding: 12px 20px;
-  background: white;
+  background: var(--surface);
   color: var(--navy);
   transform: translateY(-160%);
   border: 2px solid var(--navy);
@@ -76,7 +72,7 @@ h3 {
   font-size: 22px;
 }
 .brand small {
-  font-size: 12px;
+  font-size: var(--font-meta);
   letter-spacing: 0;
   margin-top: 4px;
 }
@@ -89,8 +85,8 @@ h3 {
   gap: 4px;
 }
 .navigation-label {
-  font-size: 12px;
-  color: #b4bfbe;
+  font-size: var(--font-meta);
+  color: var(--nav-muted);
   padding: 0 12px 4px;
 }
 .nav-link {
@@ -99,23 +95,23 @@ h3 {
   gap: 12px;
   font-size: 13px;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   border-left: 3px solid transparent;
 }
 .nav-link.active {
-  color: #fff;
-  background: #34424a;
+  color: var(--surface);
+  background: var(--nav-selection);
   border-left-color: var(--orange);
   font-weight: 500;
 }
 .nav-link.active > svg {
-  color: #ffb46a;
+  color: var(--nav-text);
 }
 .nav-count {
   background: transparent;
-  color: #d8dfdc;
+  color: var(--nav-text);
   padding: 0;
-  font-size: 12px;
+  font-size: var(--font-meta);
   font-variant-numeric: tabular-nums;
 }
 .sidebar-footer {
@@ -123,11 +119,11 @@ h3 {
   gap: 12px;
 }
 .sidebar-footer strong {
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .sidebar-footer span {
-  font-size: 11px;
-  color: #b4bfbe;
+  font-size: var(--font-meta);
+  color: var(--nav-muted);
   margin-top: 4px;
 }
 .navigation-close,
@@ -157,20 +153,20 @@ h3 {
   color: var(--muted);
 }
 .top-house-selector select {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
   padding: 10px 32px 10px 12px;
   min-height: 40px;
   width: auto;
   max-width: 100%;
   color: var(--navy);
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background-color: transparent;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background-color: var(--surface);
 }
 .top-house-selector select:hover {
-  background-color: #f0f0eb;
-  border-color: var(--line);
+  background-color: var(--surface-muted);
+  border-color: var(--control-hover);
 }
 .export-link {
   margin-left: auto;
@@ -180,7 +176,7 @@ h3 {
   min-height: 40px;
   padding: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-meta);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -203,18 +199,18 @@ h3 {
 .page-heading p {
   margin-top: 8px;
   max-width: 76ch;
-  font-size: 14px;
+  font-size: var(--font-body);
   color: var(--muted);
 }
 .page-heading > .button {
   flex-shrink: 0;
 }
 .button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: var(--font-body);
   gap: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
 }
 .icon-button {
   width: 36px;
@@ -222,7 +218,7 @@ h3 {
 }
 .subtle-label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .form-note {
   font-size: 13px;
@@ -231,7 +227,7 @@ h3 {
 }
 .content-panel {
   padding: 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-panel);
   min-height: 0;
 }
 .section-heading {
@@ -251,14 +247,14 @@ h3 {
   padding: 8px 12px;
   max-width: 320px;
   width: 320px;
-  background: white;
+  background: var(--surface);
 }
 .search-field input {
   font-size: 13px;
 }
 .search-field:focus-within,
 .directory-search:focus-within {
-  outline: 3px solid #3d7a9e;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 .search-field input:focus-visible,
@@ -304,7 +300,7 @@ h3 {
 }
 .dossier-stats span {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .dossier-workbench {
   display: grid;
@@ -320,7 +316,7 @@ h3 {
   flex-direction: column;
   gap: 0;
   margin: 0;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
@@ -332,9 +328,9 @@ h3 {
   align-items: center;
   gap: 8px;
   margin: 12px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
   color: var(--muted);
 }
 .directory-search input {
@@ -364,7 +360,7 @@ h3 {
 }
 .directory-group > summary > span {
   float: right;
-  font-size: 12px;
+  font-size: var(--font-meta);
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -382,22 +378,22 @@ h3 {
   overflow-wrap: anywhere;
 }
 .dossier-tile > svg {
-  color: #687670;
+  color: var(--text-subtle);
 }
 .dossier-tile > span {
   font-size: 11px;
   color: var(--muted);
 }
 .dossier-tile:hover {
-  background: #f5f5f0;
+  background: var(--surface-muted);
   border-color: transparent;
 }
 .dossier-tile.active {
   background: var(--selection);
-  border-color: #edcfab;
+  border-color: var(--selection-line);
 }
 .dossier-tile.active > svg {
-  color: #8b4d14;
+  color: var(--accent-ink);
 }
 .directory-add {
   border-top: 1px solid var(--line);
@@ -439,7 +435,7 @@ h3 {
   cursor: pointer;
 }
 .dossier-notes {
-  font-size: 14px;
+  font-size: var(--font-body);
   line-height: 1.75;
   max-width: 76ch;
   margin: 12px 0 0;
@@ -454,11 +450,11 @@ h3 {
   margin-bottom: 8px;
 }
 .dossier-column-heading h3 {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
 }
 .dossier-column-heading .text-link {
-  font-size: 12px;
+  font-size: var(--font-meta);
   min-height: 32px;
 }
 .document-links button {
@@ -469,7 +465,7 @@ h3 {
   font-size: 13px;
 }
 .document-links small {
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .document-links {
   margin-bottom: 8px;
@@ -480,7 +476,7 @@ h3 {
   align-items: end;
 }
 .dossier-filters label {
-  font-size: 12px;
+  font-size: var(--font-meta);
   gap: 4px;
 }
 .dossier-filters select {
@@ -490,13 +486,13 @@ h3 {
 }
 .dossier-filters > span {
   padding: 10px 0;
-  font-size: 12px;
+  font-size: var(--font-meta);
   font-variant-numeric: tabular-nums;
 }
 .reset-filters {
   display: block;
   margin: 0 0 16px;
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .library-view {
   display: flex;
@@ -510,12 +506,12 @@ h3 {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  font-size: 12px;
+  font-size: var(--font-meta);
   color: var(--muted);
   border-radius: 5px;
 }
 .library-view button[aria-pressed="true"] {
-  background: #eef0eb;
+  background: var(--surface-muted);
   color: var(--navy);
 }
 .file-library:has(.library-view) {
@@ -543,10 +539,10 @@ h3 {
   width: 56px;
   height: 64px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   overflow: hidden;
-  color: #68716e;
-  background: #f6f5f0;
+  color: var(--text-subtle);
+  background: var(--surface-muted);
   padding: 0;
 }
 .library-preview span {
@@ -563,7 +559,7 @@ h3 {
 .file-title {
   text-align: left;
   padding: 0;
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -578,10 +574,10 @@ h3 {
   gap: 4px 12px;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .historical-label {
-  color: #755932;
+  color: var(--warning);
 }
 .library-summary,
 .library-file .search-snippet {
@@ -631,7 +627,7 @@ h3 {
 }
 .gallery .library-preview img {
   object-fit: contain;
-  background: #f1f1ec;
+  background: var(--surface-muted);
 }
 .gallery .library-file-meta {
   gap: 4px 8px;
@@ -671,7 +667,7 @@ h3 {
   font-weight: 500;
 }
 .task-meta {
-  font-size: 12px;
+  font-size: var(--font-meta);
   color: var(--muted);
 }
 .task-check {
@@ -679,7 +675,7 @@ h3 {
   min-height: 36px;
   justify-content: center;
   align-items: center;
-  color: #68716e;
+  color: var(--text-subtle);
 }
 .task-details {
   margin-top: 8px;
@@ -688,7 +684,7 @@ h3 {
 }
 .task-details summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-meta);
   color: var(--muted);
   width: fit-content;
   padding: 4px 0;
@@ -703,12 +699,12 @@ h3 {
   line-height: 1.65;
 }
 .task-source {
-  font-size: 12px;
+  font-size: var(--font-meta);
   color: var(--muted);
 }
 .task-row .badge {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: var(--font-meta);
   border-radius: 4px;
 }
 .task-row > .icon-button {
@@ -752,8 +748,8 @@ h3 {
 }
 .model-settings .lighting-panel {
   margin: 0 0 0 auto;
-  border-radius: 6px;
-  background: white;
+  border-radius: var(--radius-control);
+  background: var(--surface);
 }
 .model-settings .lighting-panel > summary {
   padding: 10px 12px;
@@ -812,11 +808,11 @@ h3 {
   min-width: 180px;
   min-height: 44px;
   padding: 10px 32px 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background-color: white;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background-color: var(--surface);
   font: inherit;
-  color: var(--navy, #1f2b35);
+  color: var(--navy);
 }
 .spatial-hover {
   position: absolute;
@@ -825,11 +821,11 @@ h3 {
   max-width: calc(100% - 32px);
   z-index: 2;
   pointer-events: none;
-  background: var(--navy, #1f2b35);
-  color: white;
+  background: var(--navy);
+  color: var(--surface);
   padding: 9px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: var(--radius-control);
+  font-size: var(--font-meta);
 }
 .spatial-hover span {
   opacity: 0.8;
@@ -860,7 +856,7 @@ h3 {
   margin: 16px 0;
 }
 #spatial-part-title:focus {
-  outline: 2px solid var(--orange);
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
 .spatial-back {
@@ -900,7 +896,7 @@ h3 {
 }
 .inspector-tabs button {
   min-height: 44px;
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .part-description {
   font-size: 13px;
@@ -920,7 +916,7 @@ h3 {
 }
 .facts dt,
 .facts dd {
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .viewer-bottom {
   font-size: 11px;
@@ -929,7 +925,7 @@ h3 {
   font-size: 11px;
 }
 .model-caption {
-  font-size: 12px;
+  font-size: var(--font-meta);
   margin-top: 12px;
 }
 .interior-layout {
@@ -964,10 +960,10 @@ h3 {
   font-size: 13px;
 }
 .interior-rooms small {
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .interior-rooms .interior-room-row > .room-dossier-button {
-  font-size: 12px;
+  font-size: var(--font-meta);
   min-height: 32px;
 }
 .sources-layout {
@@ -979,7 +975,7 @@ h3 {
   margin-top: 24px;
 }
 .source-block p {
-  font-size: 14px;
+  font-size: var(--font-body);
   line-height: 1.7;
   max-width: 76ch;
 }
@@ -998,7 +994,7 @@ h3 {
   padding: 48px 24px;
 }
 .empty-icon {
-  background: #f1f2ed;
+  background: var(--surface-muted);
   color: var(--muted);
   width: 56px;
   height: 56px;
@@ -1007,7 +1003,7 @@ h3 {
 }
 .empty-state p {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 .dialog {
   overscroll-behavior: contain;
@@ -1015,7 +1011,7 @@ h3 {
 .dialog-heading {
   position: sticky;
   top: -24px;
-  background: #fdfcf9;
+  background: var(--paper);
   z-index: 2;
 }
 .dialog label {
@@ -1024,13 +1020,14 @@ h3 {
 .dialog input:not([type="checkbox"]),
 .dialog select,
 .dialog textarea {
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 .dialog .form-row {
   gap: 16px;
 }
 .page-footer {
   margin-top: 32px;
+  font-size: var(--font-meta);
 }
 @media (min-width: 1500px) {
   .dossier-workbench {
@@ -1053,7 +1050,7 @@ h3 {
   .nav-link {
     gap: 8px;
     padding: 8px;
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .dossier-workbench {
     grid-template-columns: 228px minmax(0, 1fr);
@@ -1102,11 +1099,11 @@ h3 {
     font-size: 13px;
   }
   .mobile-part-picker select {
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background-color: white;
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background-color: var(--surface);
     color: var(--navy);
-    font-size: 14px;
+    font-size: var(--font-body);
     width: 100%;
     min-height: 44px;
     padding: 10px 36px 10px 12px;
@@ -1144,6 +1141,11 @@ h3 {
   }
 }
 @media (max-width: 700px) {
+  .dialog input:not([type="checkbox"]),
+  .dialog select,
+  .dialog textarea {
+    font-size: 16px;
+  }
   .sidebar {
     display: none;
     inset: 0 auto 0 0;
@@ -1166,7 +1168,7 @@ h3 {
     display: block;
     position: fixed;
     inset: 0;
-    background: #16232f88;
+    background: var(--overlay);
     z-index: 50;
   }
   .navigation-group {
@@ -1174,7 +1176,7 @@ h3 {
   }
   .nav-link {
     min-height: 44px;
-    font-size: 14px;
+    font-size: var(--font-body);
     padding: 8px 12px;
   }
   .workspace {
@@ -1240,7 +1242,7 @@ h3 {
     font-size: 16px;
   }
   .dossier-overview p {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .dossier-stats {
     width: 100%;
@@ -1255,7 +1257,7 @@ h3 {
     font-size: 24px;
   }
   .dossier-stats span {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .directory-groups {
     max-height: 248px;
@@ -1264,7 +1266,7 @@ h3 {
     min-height: 56px;
   }
   .dossier-tile strong {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .dossier-tile > span {
     font-size: 11px;
@@ -1278,7 +1280,7 @@ h3 {
     justify-content: flex-end;
   }
   .dossier-detail .detail-actions .button {
-    font-size: 12px;
+    font-size: var(--font-meta);
     padding: 8px;
   }
   .content-panel {
@@ -1319,7 +1321,7 @@ h3 {
   }
   .library-view button {
     min-height: 36px;
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .library-file {
     grid-template-columns: 40px minmax(0, 1fr) 32px;
@@ -1338,7 +1340,7 @@ h3 {
     gap: 4px 8px;
   }
   .library-summary {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .library-items.gallery {
     grid-template-columns: minmax(0, 1fr);
@@ -1354,7 +1356,7 @@ h3 {
     gap: 4px;
   }
   .task-filter button {
-    font-size: 12px;
+    font-size: var(--font-meta);
     padding: 8px;
     min-height: 40px;
   }
@@ -1365,7 +1367,7 @@ h3 {
     padding: 16px 0;
   }
   .task-row h3 {
-    font-size: 14px;
+    font-size: var(--font-body);
     margin: 4px 0 8px;
   }
   .task-row > div {
@@ -1383,7 +1385,7 @@ h3 {
     width: 32px;
   }
   .task-meta {
-    font-size: 12px;
+    font-size: var(--font-meta);
     gap: 4px;
   }
   .compact .task-row {
@@ -1398,12 +1400,12 @@ h3 {
   }
   .furnishing-choice .segmented button {
     min-height: 36px;
-    font-size: 12px;
+    font-size: var(--font-meta);
     padding: 8px;
   }
   .model-settings .lighting-panel > summary {
     min-height: 44px;
-    font-size: 12px;
+    font-size: var(--font-meta);
     padding: 8px;
     gap: 8px;
   }
@@ -1425,7 +1427,7 @@ h3 {
     right: 12px;
   }
   .viewer-toolbar .segmented button {
-    font-size: 12px;
+    font-size: var(--font-meta);
     padding: 8px;
   }
   .model-label {
@@ -1438,11 +1440,11 @@ h3 {
     font-size: 11px;
   }
   .view-choice select {
-    font-size: 12px;
+    font-size: var(--font-meta);
     min-height: 36px;
   }
   .layers label {
-    font-size: 12px;
+    font-size: var(--font-meta);
     min-height: 32px;
     display: inline-flex;
     align-items: center;
@@ -1455,24 +1457,24 @@ h3 {
     grid-template-columns: minmax(0, 1fr);
   }
   .inspector-tabs button {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .interior-scene {
     height: 560px;
   }
   .interior-status {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .interior-hint {
     font-size: 11px;
   }
   .interior-modes button {
-    font-size: 12px;
+    font-size: var(--font-meta);
     min-height: 36px;
     padding: 8px;
   }
   .interior-door-controls button {
-    font-size: 12px;
+    font-size: var(--font-meta);
     min-height: 36px;
   }
   .interior-sidebar {
@@ -1482,7 +1484,7 @@ h3 {
     font-size: 13px;
   }
   .interior-rooms small {
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .dialog {
     padding: 20px;

@@ -66,12 +66,12 @@
   gap: 4px;
 }
 .management-attention strong {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 .management-attention small {
-  font-size: 12px;
+  font-size: var(--font-meta);
   color: var(--muted);
 }
 .people-list {
@@ -100,7 +100,7 @@
   flex-shrink: 0;
 }
 .person-row.archived .person-initial {
-  background: #f1f2ee;
+  background: var(--surface-muted);
   color: var(--muted);
 }
 .person-row > div:nth-child(2) {
@@ -125,7 +125,7 @@
 }
 .management-empty {
   padding: 24px 0;
-  font-size: 14px;
+  font-size: var(--font-body);
   color: var(--muted);
   line-height: 1.65;
   max-width: 80ch;
@@ -176,7 +176,7 @@
 .resident-checklist {
   padding-left: 20px;
   margin: 20px 0 24px;
-  font-size: 14px;
+  font-size: var(--font-body);
   line-height: 1.7;
   color: var(--muted);
 }
@@ -202,7 +202,7 @@
   overflow-wrap: anywhere;
 }
 .activity-list time {
-  font-size: 12px;
+  font-size: var(--font-meta);
   color: var(--muted);
 }
 .capture-layout {
@@ -231,24 +231,24 @@
   text-align: left;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  background: white;
+  border-radius: var(--radius-control);
+  background: var(--surface);
 }
 .entry-kind button strong {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
 }
 .entry-kind button span {
   grid-column: 2;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-meta);
 }
 .entry-kind button[aria-pressed="true"] {
-  border-color: #cc8847;
+  border-color: var(--selection-line);
   background: var(--selection);
 }
 .entry-kind button:hover {
-  border-color: #9da8a0;
+  border-color: var(--control-hover);
   color: var(--navy);
 }
 .capture-help {
@@ -280,7 +280,7 @@
   display: grid;
   gap: 8px;
   color: var(--navy);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 500;
   margin: 0;
 }
@@ -290,11 +290,11 @@
   width: 100%;
   padding: 10px 12px;
   min-height: 44px;
-  border: 1px solid #cbd0c7;
-  border-radius: 6px;
-  background-color: white;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background-color: var(--surface);
   color: var(--navy);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 400;
 }
 .resident-form select {
@@ -302,16 +302,16 @@
 }
 .resident-form input[type="file"] {
   padding: 12px;
-  background: #f7f7f1;
+  background: var(--surface-muted);
   font-size: 13px;
 }
 .resident-form input[type="file"]::file-selector-button {
   padding: 8px 12px;
   margin-right: 12px;
-  border: 1px solid #cbd0c7;
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   color: var(--navy);
-  background: white;
+  background: var(--surface);
   cursor: pointer;
 }
 .resident-form textarea {
@@ -319,7 +319,7 @@
   line-height: 1.65;
 }
 .resident-form small {
-  font-size: 12px;
+  font-size: var(--font-meta);
   font-weight: 400;
   color: var(--muted);
   line-height: 1.6;
@@ -354,15 +354,15 @@
   font-size: 20px;
 }
 .entry-success p {
-  font-size: 14px;
+  font-size: var(--font-body);
   color: var(--muted);
   line-height: 1.7;
   max-width: 64ch;
 }
 .alert.success {
-  border: 1px solid #bccebf;
-  background: #f0f6f0;
-  color: #225337;
+  border: 1px solid var(--success-line);
+  background: var(--success-soft);
+  color: var(--success);
 }
 .external-person {
   margin: 0 0 20px;
@@ -395,6 +395,11 @@
   }
 }
 @media (max-width: 700px) {
+  .resident-form input:not([type="checkbox"]),
+  .resident-form select,
+  .resident-form textarea {
+    font-size: 16px;
+  }
   .management-page {
     gap: 20px;
   }
@@ -450,7 +455,7 @@
   }
   .entry-kind button span {
     grid-column: 1;
-    font-size: 12px;
+    font-size: var(--font-meta);
   }
   .entry-kind button strong {
     font-size: 13px;

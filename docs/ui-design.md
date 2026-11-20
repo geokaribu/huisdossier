@@ -79,9 +79,10 @@ Gecontroleerd op 20 november 2026; code in `spatialSelection.ts`, `Viewer.tsx`, 
 | Hoofdkleur / tekst | Navy `#1F2B35`                                                |
 | Primaire actie     | Oranje `#F8891E`, met navy tekst                              |
 | Woningweergave     | Crème `#F6F2E7`                                               |
-| Werkruimte         | `#FAFAF7`, witte inhoudsvlakken                               |
-| Secundaire tekst   | `#59645F`                                                     |
-| Scheiding          | `#DEDFD9`                                                     |
+| Werkruimte         | `#F7F8F7`, witte inhoudsvlakken `#FFFFFF`                     |
+| Secundaire tekst   | `#52616B`; metadata `#5F6D76`                                 |
+| Tekstacties        | Inktblauw `#304E60`, onderstreept                             |
+| Scheiding          | `#DCE1E3`; invoerranden `#7E8A91`                             |
 | Lettertype         | Lokaal Inter, hoofdzakelijk 400/500, 600 voor beperkte nadruk |
 | Iconen             | Lucide; navigatie 18 px, tekstacties 16 px                    |
 | Ritme              | 4/8 px; paginamarge 32 px desktop, 24 px tablet, 16 px mobiel |
@@ -89,6 +90,40 @@ Gecontroleerd op 20 november 2026; code in `spatialSelection.ts`, `Viewer.tsx`, 
 Navy tekst op oranje heeft ongeveer 5,90:1 contrast. Wit op dit oranje heeft ongeveer 2,45:1 en wordt niet als knoptekst gebruikt. Deze waarden zijn opnieuw berekend uit relatieve luminantie; de oudere contrasttabel in de merknotitie is geen betrouwbare meetbron.
 
 Selectie in de navigatie gebruikt een rustige navy tint met een kleine oranje markering. Oranje is vooral voor de primaire actie. Getallen krijgen tabulaire cijfers. Inhoud krijgt meer ruimte dan navigatie. Kaders scheiden functionele werkvlakken; niet ieder gegeven krijgt een eigen kaart.
+
+### Kleuranalyse en verfijning, 20 november 2026
+
+De richting blijft een zorgvuldig, rustig en persoonlijk woningdossier. De visuele wereld is bouwtekening en dossierpapier: navy voor houvast, neutrale werkvlakken voor langdurig gebruik, crème rond de woningweergave en een kleine oranje markering bij de actieve keuze. De echte woning, foto's en 3D-details dragen de rijke kleur. Dit is een gerichte verfijning van Geokari, geen vervanging van logo, lettertype of ruimtelijke materialen.
+
+De audit vond verspreide kleurdefinities in vier stylesheets, veel bijna gelijke grijsgroene metadatakleuren, bruine tekstacties die op lange lijsten te veel nadruk kregen, zwakke invoerranden en één amberkleur voor meerdere onderhoudsstatussen. De kleurwaarden zaten bovendien zowel in de basisstijl als de werkruimtestijl. De oplossing gebruikt één palet in `src/design-tokens.css`, met vaste rollen voor tekst, oppervlakken, interactie en status. 151 bestaande kleurwaarden zijn in de eerste stap naar deze rollen vertaald; de overige vaste interfacekleuren zijn daarna eveneens gecentraliseerd. Gespecialiseerde 3D-bronkleuren zijn niet opnieuw ingekleurd.
+
+| Combinatie / rol                         | Gemeten contrast | Toepassing                                                                         |
+| ---------------------------------------- | ---------------- | ---------------------------------------------------------------------------------- |
+| Navy `#1F2B35` op wit                    | 14,43:1          | Hoofdtekst en titels                                                               |
+| Secundair `#52616B` op wit               | 6,40:1           | Ondersteunende tekst                                                               |
+| Metadata `#5F6D76` op wit / crème        | 5,34:1 / 4,77:1  | Bronvermelding, datums en voettekst                                                |
+| Tekstactie `#304E60` op wit              | 8,81:1           | Links met onderstreping; hover wordt navy                                          |
+| Navy op Geokari-oranje                   | 5,90:1           | Hoofdactie; witte tekst op dit oranje haalt 2,45:1 en wordt hiervoor niet gebruikt |
+| Invoerrand `#7E8A91` op wit / werkruimte | 3,54:1 / 3,33:1  | Velden, keuzelijsten en zoekbalken                                                 |
+| Selectierand `#A4601B` op selectievlak   | 4,49:1           | Herkenbare gekozen invoersoort / onderdeel, geen kleine tekstkleur                 |
+
+De verhoudingen zijn berekend uit sRGB-luminantie, vóór afronding getoetst. [W3C tekstcontrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) vraagt voor gewone tekst minimaal 4,5:1; [niet-tekstcontrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html) behandelt essentiële besturings- en toestandskenmerken met 3:1. Een scheidingslijn is iets anders dan een invoerrand: rustige lijnen tussen inhoudsvlakken hoeven geen formulierfunctie te suggereren.
+
+De kleurrollen zijn ook functioneel doorgetrokken: **Open** krijgt warm amber, **Wacht op** een neutrale tint, **Controleren** gedempt blauw en **Afgerond** groen. De tekst blijft de betekenis noemen. Zoek- en formulierfocus gebruikt navy op lichte vlakken; in de donkere navigatie krijgt toetsenbordfocus oranje. Checkboxes en lichtschuiven gebruiken navy voor de bedienbare indicator. Hoofdknoppen hebben een vaste hover-/druktoestand; gewone tekstacties concurreren minder met die knoppen.
+
+De typografie behoudt Inter: paginatitels 30 px op desktop en 26 px op mobiel, gewone hoofdknoppen 14 px en 44 px hoog, metadata overwegend 12 px. Kleine koppen krijgen geen negatieve letterspatiëring. Mobiele invoer en planningkeuzes gebruiken 16 px tekst. Controle- en paneelradii en de belangrijkste tekstmaten hebben gedeelde tokens. Hiermee blijft het ritme gelijk tussen dossier, invoer, beheer en planning.
+
+Gerichte reviewlocaties, inmiddels verholpen:
+
+```text
+src/style.css:1532 - voettekst had zwakke en afwijkende grijsgroene tekstkleuren; gebruikt nu de gedeelde tekstrollen
+src/style.css:2092 - bruine tekstacties bepaalden lange onderhoudslijsten; gebruikt nu onderstreept inktblauw met een eigen hover
+src/workspace.css:155 - woningkeuze was pas bij hover afgebakend; gebruikt nu een herkenbare keuzelijstrand
+src/management.css:287 - formuliergrenzen waren circa 1,6:1; gebruikt nu de controlerand van 3,54:1 op wit
+src/style.css:1414 - wachtend en te controleren werk deelden amber; hebben nu afzonderlijke kleurrollen met dezelfde tekstlabels
+```
+
+De eerste computed-style-scan op negen Koekoekstraat-pagina's markeerde 34 verschijningen onder de tekstgrens, verdeeld over 14 unieke voor-/achtergrondcombinaties. Na de verfijning markeert dezelfde scan geen combinaties onder de toepasselijke tekstgrens en geen gemeten invoerranden onder 3:1. Dit is een scan van zichtbare DOM-tekst met effen achtergronden, inclusief hoofd- en metadatatekst; geen certificering van de hele app. Canvasinhoud, beeldtekst, alle mogelijke gebruikersinhoud, disabled controls en volledige schermlezerbediening vallen buiten die uitspraak. Bronbeelden en ruimtelijke nauwkeurigheid blijven afzonderlijke onderwerpen.
 
 ## Kritische review en oplossingen
 
@@ -119,6 +154,7 @@ Selectie in de navigatie gebruikt een rustige navy tint met een kleine oranje ma
 
 ## Code en onderhoud
 
+- `src/design-tokens.css`: gedeeld Geokari-palet, semantische statussen, focus, tekstmaten en radii; vóór de componentstijlen geladen. Wijzig een kleurrol hier en controleer de combinaties opnieuw; voeg geen nieuwe lokale grijskleur toe voor hetzelfde doel.
 - `src/WorkspaceChrome.tsx`: navigatiegroepen, woningselector, paginatitels en contextacties; één bron voor de pagina-informatie.
 - `src/DossierHome.tsx`: gegroepeerde onderdelen, mobiele selector en gekoppelde dossierinhoud.
 - `src/FileLibrary.tsx`: gedeelde bestandslijst/galerij voor bibliotheek en inspectiepaneel. De hoofdweergave bewaart de gekozen lijst/galerij tijdens asynchroon zoeken.
@@ -133,6 +169,7 @@ De lokale productcontext en merkbestanden bepalen wat deze app is. Externe richt
 - [W3C APG: modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/): focus binnen een modal houden, Escape aanbieden en focus teruggeven. Toegepast op het mobiele navigatiepaneel; bestaande invoervensters gebruiken native `dialog`.
 - [Carbon: empty states](https://www.carbondesignsystem.com/building-blocks/core/patterns/empty-states): leg in de lege context uit wat er ontbreekt en welke stap beschikbaar is. Toegepast op zoekresultaten en een nog ontbrekend interieur.
 - [Vercel Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines/blob/main/command.md): semantische links, toegankelijke namen, zichtbare focus, URL-staat en overloopcontrole.
+- [GOV.UK Design System: colour](https://design-system.service.gov.uk/styles/colour/): functionele kleurrollen om tekst, randen, focus en feedback voorspelbaar toe te passen. De Geokari-kleuren blijven de eigen merkbasis; de GOV.UK-paletwaarden zijn niet overgenomen.
 
 De herwerking gebruikt de werkwijze van **unslop**, door [Damir Sokolovsky](https://heydamir.design/unslop), CC BY 4.0, naast de frontend-design- en web-design-guidelines-skills. De UI en CSS zijn voor dit project geschreven.
 

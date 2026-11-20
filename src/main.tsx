@@ -72,6 +72,7 @@ import { PartContacts } from "./PartContacts";
 import { MaintenanceReminders } from "./MaintenanceReminders";
 import { formatCost, parseCost } from "./planning";
 import type { HousePage } from "./houseSelection";
+import "./design-tokens.css";
 import "./style.css";
 import "./workspace.css";
 import "./management.css";
@@ -557,7 +558,7 @@ function App() {
               )}
             </div>
             <span
-              className={`badge ${task.status === "done" ? "green" : "amber"}`}
+              className={`badge ${task.status === "done" ? "green" : task.state === "hold" ? "neutral" : task.state === "verify" ? "info" : "amber"}`}
             >
               {task.status === "done"
                 ? "Afgerond"

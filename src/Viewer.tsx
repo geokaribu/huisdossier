@@ -17,6 +17,12 @@ import { createLightingRig, contextBuildings } from "./lightingScene";
 import type { LightingRig } from "./lightingScene";
 import { exteriorShell } from "./exteriorShell";
 import { contextCutaway } from "./contextCutaway";
+import {
+  spatialAsset,
+  visibleSpatialHit,
+  SpatialTap,
+  selectionOutline,
+} from "./spatialSelection";
 import type {
   HouseData,
   Asset,
@@ -91,8 +97,9 @@ export function Viewer({
   const north = useRef<HTMLDivElement>(null);
   const api = useRef<ViewerApi | null>(null);
   const sceneView = useRef<{ camera: number[]; target: number[] } | null>(null);
-  const callbacks = useRef({ onSelect, onPlace, placing });
-  callbacks.current = { onSelect, onPlace, placing };
+  const callbacks = useRef({ onSelect, onPlace, placing, assets });
+  callbacks.current = { onSelect, onPlace, placing, assets };
+  const [hovered, setHovered] = useState("");
   const context = lightSettings.neighbors;
   const rig = useRef<LightingRig | null>(null);
   const lightState = useRef({ lighting, lightSettings });
@@ -278,6 +285,7 @@ export function Viewer({
     }
     scene.add(buildings);
     const neighbors = contextBuildings(data, origin);
+    neighbors.userData.isTarget = false;
     buildings.add(neighbors);
     const details = appearance
       ? facadeDetails(appearance, origin, target.surfaces, textures?.roofMap)
@@ -316,6 +324,17 @@ export function Viewer({
     details.traverse((o) => {
       if (o instanceof THREE.Mesh) detailMeshes.push(o);
     });
+    let outline = new THREE.Group();
+    scene.add(outline);
+    const clearOutline = () => {
+      scene.remove(outline);
+      outline.traverse((object) => {
+        if (object instanceof THREE.LineSegments) {
+          object.geometry.dispose();
+          (object.material as THREE.Material).dispose();
+        }
+      });
+    };
     const revealHouse = contextCutaway(neighbors, () => [
       ...meshes.filter((m) => m.visible),
       ...(details.visible ? detailMeshes : []),
@@ -566,12 +585,11 @@ export function Viewer({
                 )))
           );
           const material = mesh.material as THREE.MeshStandardMaterial;
-          const match =
-            current?.kind === "dak"
-              ? mesh.userData.surfaceType === "RoofSurface"
-              : current?.kind === "gevel"
-                ? mesh.userData.surfaceType === "WallSurface"
-                : false;
+          const match = Boolean(
+            current &&
+            current.id !== `${data.house.id}:building` &&
+            spatialAsset(mesh, data.house.id, currentAssets)?.id === current.id,
+          );
           material.wireframe = wireframe;
           const textured = Boolean(
             showStyle && appearance && mesh.userData.isTarget,
@@ -611,6 +629,14 @@ export function Viewer({
           edges.visible = !showStyle || !appearance;
         });
         details.visible = Boolean(showStyle && appearance && !wireframe);
+        clearOutline();
+        outline = selectionOutline(
+          [...meshes, ...detailMeshes],
+          data.house.id,
+          currentAssets,
+          current?.id ?? "",
+        );
+        scene.add(outline);
         grid.visible = showContext && !lightState.current.lightSettings.enabled;
         cleanGroup(pins);
         currentAssets
@@ -640,48 +666,77 @@ export function Viewer({
     };
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
-    let down = [0, 0];
+    const tap = new SpatialTap();
     const pointerDown = (event: PointerEvent) => {
-      down = [event.clientX, event.clientY];
+      tap.down(event);
     };
-    const click = (event: PointerEvent) => {
-      if (Math.hypot(event.clientX - down[0], event.clientY - down[1]) > 5)
-        return;
+    const hitsAt = (event: PointerEvent) => {
       const bounds = renderer.domElement.getBoundingClientRect();
       mouse.set(
         ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
         -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
       );
       raycaster.setFromCamera(mouse, camera);
-      const pin = raycaster.intersectObjects(pins.children)[0];
+      return visibleSpatialHit(
+        raycaster.intersectObjects([buildings, details], true),
+      );
+    };
+    const click = (event: PointerEvent) => {
+      if (!tap.up(event)) return;
+      const hit = hitsAt(event);
+      const pin = visibleSpatialHit(raycaster.intersectObjects(pins.children));
       if (pin && !callbacks.current.placing) {
         callbacks.current.onSelect(pin.object.userData.assetId);
         return;
       }
-      const detailMeshes: THREE.Object3D[] = [];
-      if (details.visible)
-        details.traverse((object) => {
-          if (object instanceof THREE.Mesh) detailMeshes.push(object);
-        });
-      const hits = raycaster.intersectObjects([
-        ...meshes.filter((m) => m.visible && m.parent?.visible),
-        ...detailMeshes,
-      ]);
-      const hit = hits[0];
-      if (!hit?.object.userData.isTarget) return;
+      if (!hit) return;
+      const asset = spatialAsset(
+        hit.object,
+        data.house.id,
+        callbacks.current.assets,
+      );
+      if (!asset) return;
       if (callbacks.current.placing)
         callbacks.current.onPlace([
           +(hit.point.x + origin[0]).toFixed(3),
           +(-hit.point.z + origin[1]).toFixed(3),
           +(hit.point.y + origin[2]).toFixed(3),
         ]);
-      else
-        callbacks.current.onSelect(
-          `${data.house.id}:${hit.object.userData.surfaceType === "RoofSurface" ? "roof" : "facade"}`,
-        );
+      else callbacks.current.onSelect(asset.id);
     };
+    let hoverName = "";
+    const pointerMove = (event: PointerEvent) => {
+      tap.move(event);
+      if (
+        event.buttons ||
+        event.pointerType === "touch" ||
+        callbacks.current.placing
+      )
+        return;
+      const hit = hitsAt(event);
+      const pin = visibleSpatialHit(raycaster.intersectObjects(pins.children));
+      const asset = spatialAsset(
+        pin?.object ?? hit?.object ?? scene,
+        data.house.id,
+        callbacks.current.assets,
+      );
+      const next = asset?.name ?? "";
+      renderer.domElement.style.cursor = next ? "pointer" : "grab";
+      if (next !== hoverName) {
+        hoverName = next;
+        setHovered(next);
+      }
+    };
+    const pointerLeave = () => {
+      hoverName = "";
+      setHovered("");
+    };
+    const pointerCancel = (event: PointerEvent) => tap.cancel(event);
     renderer.domElement.addEventListener("pointerdown", pointerDown);
     renderer.domElement.addEventListener("pointerup", click);
+    renderer.domElement.addEventListener("pointermove", pointerMove);
+    renderer.domElement.addEventListener("pointercancel", pointerCancel);
+    renderer.domElement.addEventListener("pointerleave", pointerLeave);
     const onLost = (event: Event) => {
       event.preventDefault();
       onError(
@@ -712,6 +767,10 @@ export function Viewer({
       api.current = null;
       renderer.domElement.removeEventListener("pointerdown", pointerDown);
       renderer.domElement.removeEventListener("pointerup", click);
+      renderer.domElement.removeEventListener("pointermove", pointerMove);
+      renderer.domElement.removeEventListener("pointercancel", pointerCancel);
+      renderer.domElement.removeEventListener("pointerleave", pointerLeave);
+      clearOutline();
       renderer.domElement.removeEventListener("webglcontextlost", onLost);
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
@@ -786,6 +845,11 @@ export function Viewer({
         </div>
       </div>
       <div className="scene" ref={host} />
+      {hovered && !placing && (
+        <div className="spatial-hover" aria-hidden="true">
+          {hovered} <span>· klik voor informatie</span>
+        </div>
+      )}
       {failed && (
         <div className="viewer-failed">
           <Box size={32} />

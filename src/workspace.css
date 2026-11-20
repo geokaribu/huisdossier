@@ -795,6 +795,97 @@ h3 {
   border-radius: 8px;
   min-height: 560px;
 }
+.spatial-part-picker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.spatial-part-picker label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.spatial-part-picker select {
+  width: auto;
+  max-width: 100%;
+  min-width: 180px;
+  min-height: 44px;
+  padding: 10px 32px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background-color: white;
+  font: inherit;
+  color: var(--navy, #1f2b35);
+}
+.spatial-hover {
+  position: absolute;
+  right: 16px;
+  top: 76px;
+  max-width: calc(100% - 32px);
+  z-index: 2;
+  pointer-events: none;
+  background: var(--navy, #1f2b35);
+  color: white;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.spatial-hover span {
+  opacity: 0.8;
+}
+.spatial-dossier-link {
+  margin-bottom: 20px;
+}
+.spatial-preview {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+.spatial-preview h3 {
+  font-size: 13px;
+  margin: 14px 0 10px;
+}
+.spatial-preview > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.spatial-preview .task-row {
+  padding: 12px 0;
+}
+.spatial-add-actions {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+#spatial-part-title:focus {
+  outline: 2px solid var(--orange);
+  outline-offset: 4px;
+}
+.spatial-back {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .spatial-part-picker {
+    align-items: stretch;
+    gap: 8px;
+  }
+  .spatial-part-picker select {
+    width: 100%;
+  }
+  .spatial-back {
+    display: block;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .inspector-foot {
+    flex-wrap: wrap;
+  }
+  #spatial-inspector {
+    scroll-margin-top: 16px;
+  }
+}
 .viewer {
   min-height: clamp(540px, 68vh, 760px);
 }

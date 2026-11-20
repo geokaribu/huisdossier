@@ -24,6 +24,10 @@ Een Node-proces serveert de lokale API en de webinterface. React/TypeScript verz
 
 De gegevensrelatie is `woning → onderdeel → bestanden / onderhoud`. Een onderdeel heeft een vast ID en optioneel een RD/NAP-positie. Een ruimteonderdeel kan met een vaste `room_id` aan de plattegrond worden gekoppeld. De viewer bezit geen dossierinhoud. Daarmee kan een later GLB- of splatmodel dezelfde dossierkoppelingen gebruiken.
 
+`src/spatialSelection.ts` vertaalt ruimtelijke selectie naar die vaste dossieridentiteit. Een zichtbare doelroof verwijst naar `<huis-id>:roof`, een gevel naar `:facade` en overige gebouwvlakken naar `:building`. Een expliciete `assetId` of gekoppelde `roomId` op een object/voorouder krijgt voorrang; onbekende expliciete koppelingen worden niet naar een willekeurig ander onderdeel terugvertaald. De buitenviewer gebruikt dit voor bronvlakken, verfijnde geometrie en markeringen. Selectieranden hebben eigen buffers en veranderen de brongeometrie/materialen niet.
+
+Klikken houdt rekening met onzichtbare voorouders en afgeknipte vlakken. Een zichtbaar buurvolume blokkeert selectie van het huis erachter; een weggesneden buur doet dat niet. De volledige pointerbeweging wordt gevolgd: slepen, terug slepen naar het begin, rechts klikken, annuleren en tweevingerzoomen openen geen dossier. In het interieuroverzicht wordt het eerste zichtbare raakpunt aan de bestaande kamerpolygonen en dossierkamer-ID's gekoppeld; tijdens rondlopen blijft slepen uitsluitend kijkbediening. De klikbare kleine plattegrond heeft ook toetsenbordbediening. Dit creëert geen ontbrekende kamers of nieuwe dossiers.
+
 De importer controleert het BAG-verblijfsobject, volgt de officiële pandrelatie en haalt dat exacte pand op bij 3DBAG. Bij een onduidelijke meervoudige pandrelatie stopt de import. CityJSON-oppervlakken behouden hun semantiek; RD/NAP-coördinaten worden in de viewer lokaal rond het huis verschoven om precisieverlies te voorkomen. Concave vlakken en gaten worden via vlakprojectie en Earcut getrianguleerd.
 
 ## Grenzen en vervolgstappen

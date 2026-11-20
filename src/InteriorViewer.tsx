@@ -38,6 +38,7 @@ import {
 import type { DoorState } from "./walkthrough";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings";
 import { architectureGeometry } from "./planArchitecture";
+import { SpatialTap, visibleSpatialHit } from "./spatialSelection";
 import { wallSanitary } from "./sanitary";
 import { stairsFixture } from "./stairs";
 import {
@@ -146,6 +147,8 @@ export function InteriorViewer({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<InteriorApi | null>(null);
+  const selectionCallbacks = useRef({ onDossier, dossierRooms });
+  selectionCallbacks.current = { onDossier, dossierRooms };
   const updateLighting = useRef<(() => void) | null>(null);
   const lightState = useRef({ lighting, lightSettings });
   lightState.current = { lighting, lightSettings };
@@ -804,9 +807,30 @@ export function InteriorViewer({
       keys.clear();
       dragged = false;
     };
+    const tap = new SpatialTap();
+    const roomRay = new THREE.Raycaster();
+    const roomPointer = new THREE.Vector2();
+    const roomAt = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      roomPointer.set(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+      roomRay.setFromCamera(roomPointer, camera);
+      const hit = visibleSpatialHit(
+        roomRay.intersectObjects(scene.children, true),
+      );
+      if (!hit) return;
+      return plan.rooms.find(
+        (room) =>
+          selectionCallbacks.current.dossierRooms.includes(room.id) &&
+          insidePolygon([hit.point.x, hit.point.z], room.polygon),
+      );
+    };
     let lastX = 0,
       lastY = 0;
     const down = (e: PointerEvent) => {
+      tap.down(e);
       if (!walk) return;
       dragged = true;
       lastX = e.clientX;
@@ -814,6 +838,9 @@ export function InteriorViewer({
       canvas.setPointerCapture(e.pointerId);
     };
     const move = (e: PointerEvent) => {
+      tap.move(e);
+      if (!walk && !e.buttons && e.pointerType !== "touch")
+        canvas.style.cursor = roomAt(e) ? "pointer" : "grab";
       if (!walk || !dragged) return;
       yaw -= (e.clientX - lastX) * 0.004;
       pitch = Math.max(
@@ -824,13 +851,21 @@ export function InteriorViewer({
       lastY = e.clientY;
       look();
     };
-    const up = () => {
+    const up = (e: PointerEvent) => {
       dragged = false;
+      if (tap.up(e) && !walk) {
+        const room = roomAt(e);
+        if (room) selectionCallbacks.current.onDossier?.(room.id);
+      }
+    };
+    const cancel = (e: PointerEvent) => {
+      dragged = false;
+      tap.cancel(e);
     };
     canvas.addEventListener("pointerdown", down);
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
-    canvas.addEventListener("pointercancel", up);
+    canvas.addEventListener("pointercancel", cancel);
     window.addEventListener("keydown", keydown);
     window.addEventListener("keyup", keyup);
     window.addEventListener("blur", clear);
@@ -906,7 +941,7 @@ export function InteriorViewer({
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up);
-      canvas.removeEventListener("pointercancel", up);
+      canvas.removeEventListener("pointercancel", cancel);
       controls.dispose();
       rig?.dispose();
       updateLighting.current = null;
@@ -1026,7 +1061,7 @@ export function InteriorViewer({
         <div className="interior-hint">
           {walking
             ? "W A S D / pijltjes = lopen · slepen = kijken · Esc = overzicht"
-            : "Sleep om te draaien · scroll om te zoomen · kies een kamer om binnen te kijken"}
+            : "Klik op een ruimte voor het dossier · sleep om te draaien · scroll om te zoomen"}
         </div>
         {walking && (
           <div className="walk-pad" aria-label="Loopbediening">
@@ -1050,8 +1085,8 @@ export function InteriorViewer({
         <svg
           className="interior-map"
           viewBox={`${bounds[0] - 0.25} ${bounds[1] - 0.25} ${bounds[2] - bounds[0] + 0.5} ${bounds[3] - bounds[1] + 0.5}`}
-          role="img"
-          aria-label="Plattegrond met je huidige positie"
+          role="group"
+          aria-label="Plattegrond: kies een ruimte of open het ruimtedossier"
         >
           {plan.rooms.map((room) => (
             <polygon
@@ -1060,6 +1095,37 @@ export function InteriorViewer({
               fill={room.color}
               stroke="#fdfcf9"
               strokeWidth=".06"
+              role="button"
+              tabIndex={0}
+              aria-label={
+                dossierRooms.includes(room.id)
+                  ? `Open dossier ${room.name}`
+                  : `Bekijk ${room.name}`
+              }
+              onClick={() =>
+                dossierRooms.includes(room.id)
+                  ? onDossier?.(room.id)
+                  : api.current?.room(
+                      room.center,
+                      room.viewYaw,
+                      room.viewPitch,
+                      room.viewFov,
+                    )
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  if (dossierRooms.includes(room.id)) onDossier?.(room.id);
+                  else
+                    api.current?.room(
+                      room.center,
+                      room.viewYaw,
+                      room.viewPitch,
+                      room.viewFov,
+                    );
+                }
+              }}
+              style={{ cursor: "pointer" }}
             />
           ))}
           {plan.walls.map((wall, i) => {
@@ -1067,7 +1133,7 @@ export function InteriorViewer({
               dz = wall.b[1] - wall.a[1],
               length = Math.hypot(dx, dz);
             return (
-              <g key={i}>
+              <g key={i} pointerEvents="none">
                 {wallSolids(wall, doors).map(([a, b], n) => (
                   <line
                     key={n}
@@ -1094,6 +1160,7 @@ export function InteriorViewer({
             );
           })}
           <circle
+            pointerEvents="none"
             cx={position[0]}
             cy={position[1]}
             r=".19"

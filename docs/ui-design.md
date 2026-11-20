@@ -41,6 +41,37 @@ Op desktop staat de gegroepeerde onderdelenlijst naast de geselecteerde inhoud. 
 
 De URL bewaart woning, pagina en gekozen onderdeel. De bestands- en onderhoudspagina bewaren ook zoekterm en relevante filters. Component-ID's uit een ander huis worden geweigerd. Een woningwissel wist de vorige selectie en opent het eigen buitenmodel. De terugknop herstelt de eerdere pagina en selectie.
 
+## Ruimtelijke selectie als dossieringang
+
+Een dak of gevel aanklikken houdt de buitenweergave open en selecteert het bijbehorende informatiepaneel. Oranje randen maken de selectie ook op de verfijnde geometrie zichtbaar. Een aanwijzer toont de naam vóór het klikken. Het overzicht toont notities, previews van maximaal drie gekoppelde bestanden en drie onderhouds-/historieregels; de tabs bevatten de volledige gekoppelde lijsten. **Volledig dossier bekijken** opent dezelfde vaste onderdeel-ID op de dossierpagina. Nieuwe bestanden/meldingen uit het paneel horen standaard bij dat geselecteerde onderdeel.
+
+Op schermen tot 1000 px krijgt de paneeltitel na een modelklik focus en komt het paneel in beeld. **Terug naar 3D** gaat terug naar de viewer. De native onderdeelselector is een gelijkwaardige bediening zonder nauwkeurig aanwijzen. Interieur: een korte klik op een gekoppelde ruimte in het open overzicht of op de kleine plattegrond opent het ruimtedossier. De bestaande kamerknoppen blijven de ingang om rond te lopen; slepen in loopstand opent geen dossier.
+
+Dit is selectie van het bestaande gezamenlijke dak-/geveldossier en van gekoppelde ruimtes. Afzonderlijke dakvlakken, gevelzijden, elk raam of ieder meubel zijn geen automatisch aangemaakte dossierobjecten. Dezelfde semantische koppeling kan later expliciete object-ID's gebruiken; de renderer verzint die inhoud niet.
+
+Voor deze aanvulling:
+
+```mermaid
+flowchart LR
+  K[Klik bronvlak] --> T[Onderdeel selecteren]
+  T --> C[Aantallen en tabs]
+  R[Kamer kiezen] --> L[Rondlopen]
+  L --> D[Aparte Dossier-knop]
+```
+
+Gecontroleerde nieuwe bediening:
+
+```mermaid
+flowchart LR
+  K[Klik zichtbaar onderdeel of kies uit lijst] --> S[Vaste dossier-ID en selectierand]
+  S --> I[Notities, bestanden en onderhoud in paneel]
+  I --> V[Volledig dossier van hetzelfde onderdeel]
+  I --> A[Bestand of melding bij dit onderdeel toevoegen]
+  R[Klik gekoppelde ruimte of plattegrond] --> D[Ruimtedossier]
+```
+
+Gecontroleerd op 20 november 2026; code in `spatialSelection.ts`, `Viewer.tsx`, `InteriorViewer.tsx` en `main.tsx`. Details van de browserproeven staan in [verificatie](verification.md).
+
 ## Vormgeving
 
 | Rol                | Waarde                                                        |

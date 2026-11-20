@@ -18,6 +18,7 @@ export { facadeTransform, planToExterior } from "./houseFrame.ts";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings.ts";
 import { loadArtworkTextures } from "./framedArtwork.ts";
 import { hingedDoor } from "./hingedDoor.ts";
+import { insidePolygon } from "./walkthrough.ts";
 import {
   architectureGeometry,
   filledSlabGeometry,
@@ -678,7 +679,7 @@ export function rearExterior(
         ? pavingTexture(room.paving.size, room.paving.color)
         : null;
     if (map) textures.push(map);
-    floor(
+    const paving = floor(
       group,
       room.polygon,
       0,
@@ -690,6 +691,7 @@ export function rearExterior(
       }),
       "terrace-paving",
     );
+    paving.userData.roomId = room.id;
   }
   for (const [i, w] of plan.walls.entries())
     if (w.outsideRoomId === r.outsideRoomId || w.climber) {
@@ -709,7 +711,11 @@ export function rearExterior(
         "terrace-boundary",
         w.thickness,
       );
-      if (w.climber) group.add(climbingPlants(w, i));
+      if (w.climber) {
+        const plants = climbingPlants(w, i);
+        plants.userData.roomId = r.outsideRoomId;
+        group.add(plants);
+      }
     }
   for (const w of plan.walls)
     if (w.coatings?.length) {
@@ -749,10 +755,18 @@ export function rearExterior(
     mesh.position.y = batch.lo;
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.userData.role = batch.role;
+    if (batch.role === "terrace-boundary")
+      mesh.userData.roomId = r.outsideRoomId;
     group.add(mesh);
   }
-  for (const item of plan.decorations ?? [])
-    group.add(terraceObject(item, false, artworkMaps));
+  for (const item of plan.decorations ?? []) {
+    const object = terraceObject(item, false, artworkMaps);
+    const room = plan.rooms.find((room) =>
+      insidePolygon(item.center, room.polygon),
+    );
+    if (room) object.userData.roomId = room.id;
+    group.add(object);
+  }
   mark(group);
   group.traverse((o) => {
     if (o.userData.role?.includes("roof"))

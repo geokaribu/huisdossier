@@ -38,7 +38,7 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 - Documenten doorzoeken op inhoud, categorie en onderdeel; Markdown, tekst en geëxtraheerde documenttekst lokaal lezen en PDF-originelen bekijken. Nieuwe tekstuploads worden direct doorzoekbaar. Andere bestandsformaten houden hun originele download.
 - Klussen zonder verplichte datum vastleggen, een eigenaar kiezen, wachten of eerst controleren aangeven en de gegevens later bewerken. Bron en peildatum blijven bij geïmporteerde acties zichtbaar.
 - Het echte 3DBAG-pand draaien, zoomen, van boven bekijken, als draadmodel tonen en met/zonder omgeving inspecteren.
-- Dak- en gevelvlakken aanklikken; onderdelen ook via de lijst kiezen.
+- Dak- en gevelvlakken aanklikken: selectierand en informatiepaneel met notities, gekoppelde bestanden en onderhoud; vanuit hetzelfde paneel toevoegen of het volledige dossier openen. Onderdelen zijn ook via een native selector te kiezen. In het interieuroverzicht en de kleine plattegrond opent een klik op een gekoppelde ruimte direct het ruimtedossier.
 - Eigen onderdelen aanmaken en bewerken; een plek op de buitenzijde markeren. Posities gebruiken RD + NAP, onafhankelijk van de viewer.
 - Foto's en documenten toevoegen, terugvinden, bekijken en downloaden (25 MB per bestand).
 - Onderhoud of een melding aan een onderdeel koppelen, dateren, afvinken en heropenen.

@@ -356,6 +356,18 @@ function App() {
     setPlacing(false);
     setInspectorTab("details");
   };
+  const inspectSpatial = (id: string) => {
+    if (!dossier.assets.some((asset) => asset.id === id)) return;
+    select(id);
+    requestAnimationFrame(() => {
+      const heading = document.getElementById("spatial-part-title");
+      heading?.focus({ preventScroll: true });
+      if (window.matchMedia("(max-width: 1000px)").matches)
+        document
+          .getElementById("spatial-inspector")
+          ?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+  };
   const openDossier = (id: string) => {
     select(id);
     setPage("dossier");
@@ -799,6 +811,22 @@ function App() {
               ))}
             {page === "model" && (
               <>
+                <div className="spatial-part-picker">
+                  <label htmlFor="spatial-part">
+                    Kies een onderdeel of klik het aan in 3D
+                  </label>
+                  <select
+                    id="spatial-part"
+                    value={selectedId}
+                    onChange={(event) => select(event.target.value)}
+                  >
+                    {dossier.assets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="model-layout">
                   <Suspense
                     fallback={
@@ -820,13 +848,14 @@ function App() {
                       onInterior={() => setPage("interior")}
                       assets={dossier.assets}
                       selected={selected}
-                      onSelect={select}
+                      onSelect={inspectSpatial}
                       placing={placing}
                       onPlace={place}
                       onError={reportError}
                     />
                   </Suspense>
                   <aside
+                    id="spatial-inspector"
                     className="inspector"
                     aria-label="Geselecteerd onderdeel"
                   >
@@ -838,7 +867,9 @@ function App() {
                         <span className="subtle-label">
                           {kindName[selected?.kind ?? "gebouw"]}
                         </span>
-                        <h2>{selected?.name}</h2>
+                        <h2 id="spatial-part-title" tabIndex={-1}>
+                          {selected?.name}
+                        </h2>
                       </div>
                       <button
                         className="icon-button"
@@ -870,6 +901,12 @@ function App() {
                       ))}
                     </div>
                     <div className="inspector-body">
+                      <button
+                        className="button secondary full spatial-dossier-link"
+                        onClick={() => openDossier(selectedId)}
+                      >
+                        <FolderOpen size={16} /> Volledig dossier bekijken
+                      </button>
                       {inspectorTab === "details" && (
                         <>
                           <details
@@ -939,26 +976,73 @@ function App() {
                               </div>
                             </div>
                           )}
-                          <div className="inspector-section">
-                            <h3>Bij dit onderdeel</h3>
-                            <button
-                              className="info-row"
-                              onClick={() => setInspectorTab("files")}
-                            >
-                              <FolderOpen size={17} />
-                              <span>Foto’s & documenten</span>
-                              <strong>{relatedFiles.length}</strong>
-                              <ChevronRight size={15} />
-                            </button>
-                            <button
-                              className="info-row"
-                              onClick={() => setInspectorTab("tasks")}
-                            >
-                              <Wrench size={17} />
-                              <span>Onderhoud & meldingen</span>
-                              <strong>{relatedTasks.length}</strong>
-                              <ChevronRight size={15} />
-                            </button>
+                          <div className="spatial-preview">
+                            {relatedFiles.length > 0 && (
+                              <>
+                                <h3>
+                                  Foto’s & documenten ({relatedFiles.length})
+                                </h3>
+                                <FileLibrary
+                                  files={relatedFiles.slice(0, 3)}
+                                  assets={dossier.assets}
+                                  compact
+                                  snippets={[]}
+                                  onDocument={setReaderId}
+                                  onPhoto={setLightbox}
+                                />
+                                {relatedFiles.length > 3 && (
+                                  <button
+                                    className="text-link"
+                                    onClick={() => setInspectorTab("files")}
+                                  >
+                                    Alle {relatedFiles.length} bestanden
+                                    bekijken →
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            {!relatedFiles.length && (
+                              <>
+                                <h3>Foto’s & documenten</h3>
+                                <p>Nog geen bestanden bij dit onderdeel.</p>
+                              </>
+                            )}
+                            <h3>
+                              Onderhoud & historie ({relatedTasks.length})
+                            </h3>
+                            {relatedTasks.length ? (
+                              <TaskList
+                                tasks={relatedTasks.slice(0, 3)}
+                                compact
+                              />
+                            ) : (
+                              <p>
+                                Nog geen meldingen of uitgevoerd werk bij dit
+                                onderdeel.
+                              </p>
+                            )}
+                            {relatedTasks.length > 3 && (
+                              <button
+                                className="text-link"
+                                onClick={() => setInspectorTab("tasks")}
+                              >
+                                Alle {relatedTasks.length} meldingen bekijken →
+                              </button>
+                            )}
+                            <div className="spatial-add-actions">
+                              <button
+                                className="button secondary full"
+                                onClick={() => openModal("upload")}
+                              >
+                                <Upload size={15} /> Bestand toevoegen
+                              </button>
+                              <button
+                                className="button secondary full"
+                                onClick={() => openModal("task")}
+                              >
+                                <Plus size={15} /> Melding toevoegen
+                              </button>
+                            </div>
                           </div>
                           <button
                             className="button full secondary"
@@ -1051,6 +1135,17 @@ function App() {
                     <div className="inspector-foot">
                       <Info size={15} />
                       <span>Je dossier groeit met wat je toevoegt.</span>
+                      <button
+                        className="text-link spatial-back"
+                        onClick={() =>
+                          document.querySelector(".viewer")?.scrollIntoView({
+                            block: "start",
+                            behavior: "instant",
+                          })
+                        }
+                      >
+                        Terug naar 3D ↑
+                      </button>
                     </div>
                   </aside>
                 </div>

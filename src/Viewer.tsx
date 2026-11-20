@@ -10,8 +10,6 @@ import {
   Box,
   Scan,
   MapPin,
-  House,
-  PanelsTopLeft,
   Footprints,
 } from "lucide-react";
 import { triangulateSurface } from "./geometry";
@@ -754,8 +752,9 @@ export function Viewer({
       aria-label="Huis verkennen"
     >
       <div className="viewer-toolbar">
-        <div className="segmented" aria-label="Weergave">
+        <div className="segmented" role="group" aria-label="Weergave">
           <button
+            aria-pressed={!top}
             className={!top ? "active" : ""}
             onClick={() => {
               setTop(false);
@@ -765,6 +764,7 @@ export function Viewer({
             <Box size={16} /> 3D-model
           </button>
           <button
+            aria-pressed={top}
             className={top ? "active" : ""}
             onClick={() => {
               setTop(true);
@@ -775,32 +775,6 @@ export function Viewer({
           </button>
         </div>
         <div className="viewer-actions">
-          {appearance?.roof && (
-            <button
-              className="icon-button photo-button"
-              title="Bekijk het dak van dichtbij"
-              aria-label="Bekijk het dak van dichtbij"
-              onClick={() => {
-                setTop(false);
-                api.current?.view("roof");
-              }}
-            >
-              <PanelsTopLeft size={18} />
-            </button>
-          )}
-          {appearance && (
-            <button
-              className="icon-button photo-button"
-              title="Bekijk de voorgevel"
-              aria-label="Bekijk de voorgevel"
-              onClick={() => {
-                setTop(false);
-                api.current?.view("front");
-              }}
-            >
-              <House size={18} />
-            </button>
-          )}
           <button
             className="icon-button photo-button"
             title="Bewaar afbeelding van het model"

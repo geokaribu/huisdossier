@@ -1041,11 +1041,10 @@ export function InteriorViewer({
       </section>
       <aside className="interior-sidebar">
         <div className="interior-intro">
-          <span className="eyebrow">BINNEN KIJKEN</span>
-          <h2>Je huis, van binnen</h2>
+          <h2>Ruimtes</h2>
           <p>
-            Kies een ruimte en loop door je huis. De openingen verbinden de
-            kamers met de hal.
+            Kies een kamer om binnen te kijken. Bij Dossier vind je de
+            informatie over die ruimte.
           </p>
         </div>
         <svg

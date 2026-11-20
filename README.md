@@ -4,6 +4,8 @@ Een lokaal huisdossier met een inspecteerbaar 3D-gebouwmodel, foto's, documenten
 
 Bovenaan kies je een woning. Elke woning heeft een eigen model, dossier, bestanden en onderhoud. De keuze blijft bij herladen bewaard en staat ook in de URL, bijvoorbeeld `/?house=balleistraat-57&page=model`. Een woningwissel opent het buitenmodel; een interieur wordt alleen getoond wanneer die woning een eigen plattegrond heeft.
 
+De werkruimte groepeert dossier, documenten en onderhoud; buiten- en binnenweergave staan onder Woning verkennen. Onderdelen kies je in een gegroepeerde lijst op desktop of een compacte selector op mobiel. De URL bewaart ook de gekozen plek en zoekfilters. Zie [structuur, ontwerpkeuzes en UI-review](docs/ui-design.md).
+
 **Balleistraat 57, 1790 Affligem** gebruikt Vlaamse bronnen: de exacte adreslocatie uit de Vlaamse geolocatiedienst, een GRB-gebouwcontour en de overeenkomstige 3D GRB-hoogte op basis van DHMV II. `npm run import:house -- balleistraat-57` gebruikt via `provider: "vlaanderen"` de Vlaamse importer. Het objectnummer wordt in beide bronnen gecontroleerd. Het resultaat is een LoD 1-volumemodel met een vlak bovenvlak; dakvorm, geveldetails en interieur zijn nog niet gereconstrueerd. De hoogteopname is van 2014 en de contour heeft een eigen brondatum. Bronvermelding, coördinatenstelsel en beperkingen staan bij de woning onder **Bronnen & model**. Alleen buren met een bijpassende, positieve bronhoogte worden opgenomen; ontbrekende hoogten worden niet verzonnen.
 
 ## Starten

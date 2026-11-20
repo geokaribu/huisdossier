@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  House,
   FolderOpen,
   Wrench,
   Database,
@@ -17,9 +16,7 @@ import {
   Download,
   MapPin,
   ChevronRight,
-  LockKeyhole,
   Box,
-  FileText,
   Upload,
   X,
   Check,
@@ -30,7 +27,6 @@ import {
   Search,
   ExternalLink,
   Info,
-  Menu,
   LoaderCircle,
   Footprints,
 } from "lucide-react";
@@ -47,6 +43,8 @@ import {
   resolveHouseId,
   resolveHousePage,
   housePageUrl,
+  readWorkspaceSelection,
+  workspaceSelectionUrl,
 } from "./houseSelection";
 import type {
   HouseData,
@@ -58,7 +56,15 @@ import type {
   Floorplan,
   LightingEnvironment,
 } from "./types";
+import {
+  WorkspaceNavigation,
+  WorkspaceHeader,
+  WorkspacePageHeading,
+  pageInfo,
+} from "./WorkspaceChrome";
+import { FileLibrary } from "./FileLibrary";
 import "./style.css";
+import "./workspace.css";
 const Viewer = lazy(() =>
   import("./Viewer").then((module) => ({ default: module.Viewer })),
 );
@@ -80,10 +86,6 @@ const formatDate = (date: string) =>
         month: "short",
         year: "numeric",
       });
-const fileSize = (n: number) =>
-  n < 1024 * 1024
-    ? `${Math.max(1, Math.round(n / 1024))} kB`
-    : `${(n / 1024 / 1024).toFixed(1)} MB`;
 function App() {
   const [lighting, setLighting] = useState<LightingEnvironment | null>(null);
   const [lightSettings, setLightSettings] = useState(defaultLightingSettings);
@@ -106,7 +108,7 @@ function App() {
     tasks: [],
   });
   const [selectedId, setSelectedId] = useState("");
-  const [page, setPage] = useState<Page>(() =>
+  const [page, setPageState] = useState<Page>(() =>
     resolveHousePage(window.location.href),
   );
   const [modal, setModal] = useState<Modal>(null);
@@ -123,6 +125,7 @@ function App() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [scope, setScope] = useState("");
   const [category, setCategory] = useState("");
+  const [libraryView, setLibraryView] = useState<"list" | "gallery">("list");
   const [searchHits, setSearchHits] = useState<
     { id: string; snippet: string }[] | null
   >(null);
@@ -135,6 +138,46 @@ function App() {
   const reportError = useCallback((message: string) => setError(message), []);
   const activeHouse = useRef(houseId);
   activeHouse.current = houseId;
+  const setPage = (next: Page) => {
+    if (next !== page && houseId)
+      history.pushState(
+        null,
+        "",
+        housePageUrl(window.location.href, houseId, next),
+      );
+    setPageState(next);
+    setMobileMenu(false);
+  };
+  useEffect(() => {
+    if (!houses.length) return;
+    const restore = () => {
+      setHouseId(resolveHouseId(houses, window.location.href, null));
+      setPageState(resolveHousePage(window.location.href));
+      setMobileMenu(false);
+      const route = readWorkspaceSelection(
+        window.location.href,
+        dossier.assets,
+      );
+      setSelectedId(route.part || `${houseId}:building`);
+      setQuery(route.query);
+      setScope(route.scope);
+      setCategory(route.category);
+      setTaskFilter(route.status);
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [houses, dossier.assets, houseId]);
+  useEffect(() => {
+    if (!mobileMenu) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenu(false);
+        document.querySelector<HTMLButtonElement>(".mobile-toggle")?.focus();
+      }
+    };
+    window.addEventListener("keydown", dismiss);
+    return () => window.removeEventListener("keydown", dismiss);
+  }, [mobileMenu]);
   const refresh = useCallback(async () => {
     if (houseId) {
       const records = await request<Dossier>(`/api/houses/${houseId}/dossier`);
@@ -157,18 +200,33 @@ function App() {
       .catch((e) => setError(e.message));
   }, []);
   useEffect(() => {
-    if (!houseId) return;
+    if (!houseId || data?.house.id !== houseId) return;
     history.replaceState(
       null,
       "",
-      housePageUrl(window.location.href, houseId, page),
+      workspaceSelectionUrl(window.location.href, houseId, page, {
+        part: selectedId,
+        scope,
+        category,
+        query,
+        status: taskFilter,
+      }),
     );
     try {
       localStorage.setItem("huisdossier:house", houseId);
     } catch {
       /* selection still works */
     }
-  }, [houseId, page]);
+  }, [
+    houseId,
+    data?.house.id,
+    page,
+    selectedId,
+    scope,
+    category,
+    query,
+    taskFilter,
+  ]);
   useEffect(() => {
     if (!houseId) return;
     try {
@@ -198,6 +256,7 @@ function App() {
     setQuery("");
     setScope("");
     setCategory("");
+    setLibraryView("list");
     setSearchHits(null);
     setInitialRoom(undefined);
     Promise.all([
@@ -219,7 +278,15 @@ function App() {
           }));
           document.title = `${model.house.address} · Geokari Huisdossier`;
           setDossier(records);
-          setSelectedId(`${houseId}:building`);
+          const route = readWorkspaceSelection(
+            window.location.href,
+            records.assets,
+          );
+          setSelectedId(route.part || `${houseId}:building`);
+          setQuery(route.query);
+          setScope(route.scope);
+          setCategory(route.category);
+          setTaskFilter(route.status);
         }
       })
       .catch((e) => {
@@ -265,7 +332,9 @@ function App() {
   }, [notice]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [page]);
+    document.title = `${pageInfo[page].title}${data ? ` · ${data.house.address}` : ""} · Geokari`;
+    document.getElementById("page-title")?.focus({ preventScroll: true });
+  }, [page, data]);
 
   const select = (id: string) => {
     setSelectedId(id);
@@ -276,14 +345,16 @@ function App() {
     select(id);
     setPage("dossier");
     setMobileMenu(false);
-    requestAnimationFrame(() =>
-      document.getElementById("dossier-detail")?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-        block: "start",
-      }),
-    );
+    if (window.matchMedia("(max-width: 850px)").matches)
+      requestAnimationFrame(() =>
+        document.getElementById("dossier-detail")?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "instant"
+            : "smooth",
+          block: "start",
+        }),
+      );
   };
   const showFiles = (assetId = "") => {
     setScope(assetId);
@@ -375,7 +446,7 @@ function App() {
             </button>
             <div>
               <h3>{task.title}</h3>
-              {task.description && <p>{task.description}</p>}
+
               <span className="task-meta">
                 {dossier.assets.find((a) => a.id === task.assetId)?.name}{" "}
                 <span>·</span>{" "}
@@ -384,21 +455,31 @@ function App() {
                   : formatDate(task.date)}
                 {task.owner && <> · {task.owner}</>}
               </span>
-              {task.source && (
-                <div className="task-source">
-                  {task.sourceId &&
-                  dossier.attachments.some((f) => f.id === task.sourceId) ? (
-                    <button
-                      className="text-link"
-                      onClick={() => setReaderId(task.sourceId!)}
-                    >
-                      Bekijk bron
-                    </button>
-                  ) : (
-                    <span>Bron: {task.source}</span>
+              {(task.description || task.source) && (
+                <details className="task-details">
+                  <summary>Toelichting{task.source ? " & bron" : ""}</summary>
+                  {task.description && <p>{task.description}</p>}
+                  {task.source && (
+                    <div className="task-source">
+                      {task.sourceId &&
+                      dossier.attachments.some(
+                        (f) => f.id === task.sourceId,
+                      ) ? (
+                        <button
+                          className="text-link"
+                          onClick={() => setReaderId(task.sourceId!)}
+                        >
+                          Bekijk bron
+                        </button>
+                      ) : (
+                        <span>Bron: {task.source}</span>
+                      )}
+                      {task.sourceDate && (
+                        <span> · {formatDate(task.sourceDate)}</span>
+                      )}
+                    </div>
                   )}
-                  {task.sourceDate && <span> · {task.sourceDate}</span>}
-                </div>
+                </details>
               )}
             </div>
             <span
@@ -422,81 +503,6 @@ function App() {
             >
               <Pencil size={16} />
             </button>
-          </article>
-        ))}
-      </div>
-    );
-  }
-  function Files({
-    files,
-    compact = false,
-  }: {
-    files: Attachment[];
-    compact?: boolean;
-  }) {
-    return (
-      <div className={compact ? "file-grid compact" : "file-grid"}>
-        {files.map((file) => (
-          <article className="file-card" key={file.id}>
-            {file.type.startsWith("image/") &&
-            [
-              "image/png",
-              "image/jpeg",
-              "image/webp",
-              "image/gif",
-              "image/avif",
-            ].includes(file.type) ? (
-              <button
-                className="image-preview"
-                onClick={() => setLightbox(file)}
-                aria-label={`Bekijk ${file.name}`}
-              >
-                <img src={file.url} alt={file.name} loading="lazy" />
-              </button>
-            ) : (
-              <button
-                className="file-preview"
-                onClick={() => setReaderId(file.id)}
-                aria-label={`Lees ${file.name}`}
-              >
-                <FileText size={30} strokeWidth={1.2} />
-                <span>
-                  {file.name.split(".").pop()?.toUpperCase().slice(0, 8)}
-                </span>
-              </button>
-            )}
-            <div className="file-info">
-              <strong title={file.name}>{file.name}</strong>
-              <span>
-                {fileSize(file.size)} · {formatDate(file.createdAt)}
-              </span>
-              {!compact && (
-                <span>
-                  {dossier.assets.find((a) => a.id === file.assetId)?.name}
-                </span>
-              )}
-              {file.category && (
-                <span className="file-category">
-                  {categoryName[file.category] ?? file.category}
-                  {file.historical ? " · historisch" : ""}
-                </span>
-              )}
-              {file.summary && <p className="file-summary">{file.summary}</p>}
-              {searchHits?.find((h) => h.id === file.id)?.snippet && (
-                <p className="search-snippet">
-                  {searchHits.find((h) => h.id === file.id)!.snippet}
-                </p>
-              )}
-              <button
-                className="text-link"
-                onClick={() => setReaderId(file.id)}
-              >
-                Open dossierstuk →
-              </button>
-              <a href={`${file.url}?download=1`} download>
-                <Download size={14} /> Download
-              </a>
-            </div>
           </article>
         ))}
       </div>
@@ -528,156 +534,62 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside
-        className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}
-        aria-label="Hoofdnavigatie"
+      <a className="skip-link" href="#workspace-content">
+        Naar de inhoud
+      </a>
+      <WorkspaceNavigation
+        houseId={houseId}
+        page={page}
+        count={openTasks.length}
+        mobile={mobileMenu}
+        onClose={() => setMobileMenu(false)}
+        onNavigate={(next) => {
+          setPage(next);
+          setQuery("");
+          setScope("");
+          setCategory("");
+        }}
+      />
+      <main
+        className="workspace"
+        id="workspace-content"
+        tabIndex={-1}
+        inert={mobileMenu}
       >
-        <a className="brand" href="/" aria-label="Geokari Huisdossier">
-          <img src="/brand/geokari.png" alt="" />
-          <span>
-            GeoKari<small>Huisdossier</small>
-          </span>
-        </a>
-        <div className="house-switch">
-          <House size={19} />
-          <div>
-            <label htmlFor="house-select">Mijn woning</label>
-            <strong>
-              {houses.find((h) => h.id === houseId)?.address ?? "Woning laden…"}
-            </strong>
-          </div>
-        </div>
-        <nav>
-          {(
-            [
-              { id: "dossier", label: "Mijn huisdossier", Icon: House },
-              { id: "model", label: "Huis bekijken", Icon: Box },
-              { id: "interior", label: "Binnen kijken", Icon: Footprints },
-              { id: "files", label: "Foto’s & documenten", Icon: FolderOpen },
-              { id: "tasks", label: "Onderhoud", Icon: Wrench },
-              { id: "sources", label: "Bronnen & model", Icon: Database },
-            ] as const
-          ).map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              className={page === id ? "nav-link active" : "nav-link"}
-              onClick={() => {
-                setPage(id);
-                window.scrollTo({ top: 0, behavior: "instant" });
-                setQuery("");
-                setScope("");
-                setCategory("");
-                setMobileMenu(false);
-              }}
-              aria-current={page === id ? "page" : undefined}
-            >
-              <Icon size={19} />
-              <span>{label}</span>
-              {id === "tasks" && openTasks.length > 0 && (
-                <span className="nav-count">{openTasks.length}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="parts-heading">
-          <h2>Onderdelen</h2>
-          <button
-            className="icon-button"
-            aria-label="Onderdeel toevoegen"
-            title="Onderdeel toevoegen"
-            onClick={() => openModal("asset")}
-          >
-            <Plus size={17} />
-          </button>
-        </div>
-        <div className="parts-list">
-          {dossier.assets.map((asset) => (
-            <button
-              key={asset.id}
-              className={selectedId === asset.id ? "part active" : "part"}
-              onClick={() => {
-                openDossier(asset.id);
-              }}
-            >
-              {assetIcon(asset.kind, 16)}
-              <span>{asset.name}</span>
-              {asset.position && <MapPin size={12} className="part-pin" />}
-            </button>
-          ))}
-        </div>
-        <div className="sidebar-footer">
-          <LockKeyhole size={17} />
-          <div>
-            <strong>Voor onszelf</strong>
-            <span>Lokaal op deze computer</span>
-          </div>
-        </div>
-      </aside>
-      <main className="workspace">
-        <header className="topbar">
-          <button
-            className="icon-button mobile-toggle"
-            aria-label="Open navigatie"
-            onClick={() => setMobileMenu(!mobileMenu)}
-          >
-            <Menu size={21} />
-          </button>
-          <div className="breadcrumb">
-            <span>Mijn huisdossier</span>
-            <ChevronRight size={14} />
-            <strong>{data?.house.name ?? "Ons huis"}</strong>
-          </div>
-          <span className="local-label">
-            <LockKeyhole size={14} /> Eigen gebruik
-          </span>
-          <label className="top-house-selector" htmlFor="house-select">
-            <span>
-              <House size={14} /> Woning
-            </span>
-            <select
-              id="house-select"
-              aria-label="Woning kiezen"
-              value={houseId}
-              onChange={(event) => {
-                setHouseId(event.target.value);
-                setPage("model");
-              }}
-            >
-              {houses.map((house) => (
-                <option key={house.id} value={house.id}>
-                  {house.address} · {house.city}
-                </option>
-              ))}
-            </select>
-          </label>
-        </header>
-        <div className="page-heading">
-          <div>
-            <div className="location-line">
-              <MapPin size={15} />{" "}
-              {data
-                ? `${data.house.postcode} ${data.house.city}`
-                : "Woning laden…"}
-            </div>
-            <h1>{data?.house.address ?? "Ons huis"}</h1>
-            <p>Alles wat je huis je kan vertellen, op één plek.</p>
-          </div>
-          <div className="heading-actions">
-            <a
-              className="button secondary"
-              href={houseId ? `${api}/export` : undefined}
-            >
-              <Download size={16} /> Exporteer dossier
-            </a>
-            <button
-              className="button primary"
-              onClick={() => openModal(page === "tasks" ? "task" : "upload")}
-            >
-              <Plus size={18} />
-              {page === "tasks" ? "Melding toevoegen" : "Bestand toevoegen"}
-            </button>
-          </div>
-        </div>
+        <WorkspaceHeader
+          houses={houses}
+          houseId={houseId}
+          mobile={mobileMenu}
+          onMenu={() => setMobileMenu(!mobileMenu)}
+          onExport={houseId ? `${api}/export` : "#"}
+          onHouse={(id) => {
+            history.pushState(
+              null,
+              "",
+              workspaceSelectionUrl(window.location.href, id, "model", {
+                part: "",
+                scope: "",
+                category: "",
+                query: "",
+                status: "open",
+              }),
+            );
+            setHouseId(id);
+            setPageState("model");
+          }}
+        />
+        <WorkspacePageHeading
+          page={page}
+          onAdd={() =>
+            openModal(
+              page === "tasks"
+                ? "task"
+                : page === "dossier"
+                  ? "asset"
+                  : "upload",
+            )
+          }
+        />
         {error && (
           <div className="alert error" role="alert">
             <Info size={18} />
@@ -708,34 +620,40 @@ function App() {
             <h2>Je huis wordt klaargezet</h2>
             <p>
               {error
-                ? "Controleer of het model is geïmporteerd met npm run import:house."
+                ? "Het woningmodel kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen."
                 : "Gebouwmodel en dossier laden…"}
             </p>
           </div>
         ) : (
           <>
             {(page === "model" || page === "interior") && (
-              <LightingControls
-                data={data}
-                profile={lighting}
-                settings={lightSettings}
-                onChange={setLightSettings}
-                onProfile={setLighting}
-                interiorAvailable={Boolean(floorplan && appearance?.rear)}
-              />
-            )}
-            {floorplan && (page === "model" || page === "interior") && (
-              <FurnishingChoice
-                value={furnishingView}
-                onChange={(view) => {
-                  setFurnishingView(view);
-                  try {
-                    localStorage.setItem(`huisdossier:view:${houseId}`, view);
-                  } catch {
-                    /* The view still works when browser storage is disabled. */
-                  }
-                }}
-              />
+              <div className="model-settings">
+                {" "}
+                {floorplan && (
+                  <FurnishingChoice
+                    value={furnishingView}
+                    onChange={(view) => {
+                      setFurnishingView(view);
+                      try {
+                        localStorage.setItem(
+                          `huisdossier:view:${houseId}`,
+                          view,
+                        );
+                      } catch {
+                        /* The view still works when browser storage is disabled. */
+                      }
+                    }}
+                  />
+                )}
+                <LightingControls
+                  data={data}
+                  profile={lighting}
+                  settings={lightSettings}
+                  onChange={setLightSettings}
+                  onProfile={setLighting}
+                  interiorAvailable={Boolean(floorplan && appearance?.rear)}
+                />
+              </div>
             )}
             {page === "dossier" && (
               <DossierHome
@@ -753,6 +671,7 @@ function App() {
                   setEditingTask(null);
                   openModal("task");
                 }}
+                onAdd={() => openModal("asset")}
                 onEdit={() => openModal("edit")}
                 onDocument={setReaderId}
                 onInterior={(id) => {
@@ -852,7 +771,7 @@ function App() {
                     </div>
                     <div
                       className="inspector-tabs"
-                      role="tablist"
+                      role="group"
                       aria-label="Onderdeelinformatie"
                     >
                       {[
@@ -861,8 +780,7 @@ function App() {
                         ["tasks", `Onderhoud (${relatedTasks.length})`],
                       ].map(([id, label]) => (
                         <button
-                          role="tab"
-                          aria-selected={inspectorTab === id}
+                          aria-pressed={inspectorTab === id}
                           key={id}
                           onClick={() => setInspectorTab(id)}
                           className={inspectorTab === id ? "active" : ""}
@@ -871,12 +789,19 @@ function App() {
                         </button>
                       ))}
                     </div>
-                    <div className="inspector-body" role="tabpanel">
+                    <div className="inspector-body">
                       {inspectorTab === "details" && (
                         <>
-                          <p className="part-description">
-                            {selected?.description}
-                          </p>
+                          <details
+                            className="part-description-collapsed"
+                            key={selectedId}
+                            open={(selected?.description?.length ?? 0) < 300}
+                          >
+                            <summary>Notities over dit onderdeel</summary>
+                            <p className="part-description">
+                              {selected?.description}
+                            </p>
+                          </details>
                           {selected?.kind === "gebouw" && (
                             <dl className="facts">
                               <div>
@@ -995,7 +920,14 @@ function App() {
                       )}
                       {inspectorTab === "files" &&
                         (relatedFiles.length ? (
-                          <Files files={relatedFiles} compact />
+                          <FileLibrary
+                            files={relatedFiles}
+                            assets={dossier.assets}
+                            compact
+                            snippets={[]}
+                            onDocument={setReaderId}
+                            onPhoto={setLightbox}
+                          />
                         ) : (
                           <Empty
                             icon={<FolderOpen size={28} />}
@@ -1099,17 +1031,14 @@ function App() {
                 <div className="section-heading">
                   <div>
                     <h2>
-                      Foto’s & documenten{" "}
+                      Bestanden van deze woning{" "}
                       <span>{dossier.attachments.length}</span>
                     </h2>
-                    <p>
-                      Handleidingen, foto’s en facturen, gekoppeld aan je huis.
-                    </p>
                   </div>
                   <SearchField
                     value={query}
                     onChange={setQuery}
-                    placeholder="Zoek ook in de inhoud"
+                    placeholder="Zoek in bestanden en inhoud…"
                   />
                 </div>
                 <div className="dossier-filters">
@@ -1155,6 +1084,18 @@ function App() {
                       : `${filteredFiles.length} stukken`}
                   </span>
                 </div>
+                {(scope || category || query) && (
+                  <button
+                    className="text-link reset-filters"
+                    onClick={() => {
+                      setScope("");
+                      setCategory("");
+                      setQuery("");
+                    }}
+                  >
+                    Wis zoekterm en filters
+                  </button>
+                )}
                 {searchError && (
                   <p className="alert error" role="alert">
                     Zoeken mislukt: {searchError}
@@ -1163,22 +1104,38 @@ function App() {
                 {searching ? (
                   <p className="form-note">Documenten doorzoeken…</p>
                 ) : filteredFiles.length ? (
-                  <Files files={filteredFiles} />
+                  <FileLibrary
+                    files={filteredFiles}
+                    view={libraryView}
+                    onViewChange={setLibraryView}
+                    assets={dossier.assets}
+                    snippets={searchHits ?? []}
+                    onDocument={setReaderId}
+                    onPhoto={setLightbox}
+                  />
                 ) : (
                   <Empty
                     icon={<FolderOpen size={36} />}
                     title={
-                      query
-                        ? "Geen bestanden gevonden"
-                        : "Je eerste stukje huiskennis"
+                      query || scope || category
+                        ? "Geen bestanden binnen deze selectie"
+                        : "Voeg je eerste bestand toe"
                     }
                     text={
-                      query
-                        ? "Probeer een andere zoekterm."
+                      query || scope || category
+                        ? "Wis de filters of probeer een andere zoekterm."
                         : "Voeg bijvoorbeeld een foto van de elektriciteitskast of de handleiding van de oven toe."
                     }
-                    action={query ? undefined : "Bestand toevoegen"}
-                    onAction={() => openModal("upload")}
+                    action={
+                      query || scope || category
+                        ? "Filters wissen"
+                        : "Bestand toevoegen"
+                    }
+                    onAction={() =>
+                      query || scope || category
+                        ? (setScope(""), setCategory(""), setQuery(""))
+                        : openModal("upload")
+                    }
                   />
                 )}
               </section>
@@ -1187,13 +1144,14 @@ function App() {
               <section className="content-panel">
                 <div className="section-heading">
                   <div>
-                    <h2>Onderhoud & meldingen</h2>
-                    <p>Wat aandacht vraagt en wat er al is gedaan.</p>
+                    <h2>
+                      Opvolging <span>{openTasks.length} open</span>
+                    </h2>
                   </div>
                   <SearchField
                     value={query}
                     onChange={setQuery}
-                    placeholder="Zoek in onderhoud"
+                    placeholder="Zoek in onderhoud…"
                   />
                 </div>
                 <div className="dossier-filters">
@@ -1239,19 +1197,25 @@ function App() {
                   <Empty
                     icon={<Wrench size={36} />}
                     title={
-                      query
-                        ? "Geen meldingen gevonden"
+                      query || scope
+                        ? "Geen meldingen binnen deze selectie"
                         : taskFilter === "done"
                           ? "Nog geen uitgevoerd onderhoud"
-                          : "Alles begint met een melding"
+                          : "Geen open meldingen in deze weergave"
                     }
                     text={
-                      query
-                        ? "Probeer een andere zoekterm."
-                        : "Noteer wat je opmerkt, koppel het aan een onderdeel en houd de opvolging bij."
+                      query || scope
+                        ? "Wis de filters of probeer een andere zoekterm."
+                        : "Je kunt een melding toevoegen of de uitgevoerde werkzaamheden bekijken."
                     }
-                    action="Melding toevoegen"
-                    onAction={() => openModal("task")}
+                    action={
+                      query || scope ? "Filters wissen" : "Melding toevoegen"
+                    }
+                    onAction={() =>
+                      query || scope
+                        ? (setScope(""), setQuery(""))
+                        : openModal("task")
+                    }
                   />
                 )}
               </section>
@@ -1411,8 +1375,11 @@ function App() {
                       </span>
                       <div>
                         <h3>Plattegrond: één woonlaag</h3>
-                        <p>{floorplan.source}</p>
-                        <p>{floorplan.description}</p>
+                        <details className="source-detail">
+                          <summary>Herkomst, maten en aannames</summary>
+                          <p>{floorplan.source}</p>
+                          <p>{floorplan.description}</p>
+                        </details>
                         <button
                           className="button secondary"
                           onClick={() => setPage("interior")}
@@ -1427,7 +1394,10 @@ function App() {
                       <span className="source-number">Foto</span>
                       <div>
                         <h3>{appearance.label}</h3>
-                        <p>{appearance.description}</p>
+                        <details className="source-detail">
+                          <summary>Hoe de afwerking is opgebouwd</summary>
+                          <p>{appearance.description}</p>
+                        </details>
                         <a
                           href={appearance.front.texture}
                           target="_blank"
@@ -1481,8 +1451,10 @@ function App() {
                 </div>
                 <aside className="next-step-panel">
                   <Box size={31} strokeWidth={1.3} />
-                  <h2>Van gebouw naar jullie huis</h2>
-                  <p>De volgende laag komt van jullie eigen materiaal.</p>
+                  <h2>Het model aanvullen</h2>
+                  <p>
+                    Eigen materiaal helpt om de woning verder uit te werken.
+                  </p>
                   <ul>
                     <li>
                       {floorplan
@@ -1500,8 +1472,7 @@ function App() {
                     <Upload size={16} /> Voeg materiaal toe
                   </button>
                   <p className="small-note">
-                    Je uploads en meldingen blijven lokaal. Ze worden niet naar
-                    GitHub verstuurd.
+                    Bestanden en meldingen blijven lokaal op deze computer.
                   </p>
                 </aside>
               </section>
@@ -1866,6 +1837,8 @@ function SearchField({
       <Search size={17} />
       <input
         type="search"
+        name="search"
+        autoComplete="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

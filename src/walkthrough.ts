@@ -1,6 +1,37 @@
 import type { Floorplan, PlanPoint, PlanWall } from "./types";
 export type DoorState = Record<string, boolean>;
 
+/** Open leaf segments shared by walking collisions and the floor-plan drawing. */
+export function openDoorLeaves(
+  wall: PlanWall,
+  doors: DoorState = {},
+): [PlanPoint, PlanPoint][] {
+  const length = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
+  const ux = (wall.b[0] - wall.a[0]) / length,
+    uz = (wall.b[1] - wall.a[1]) / length;
+  const leaves: [PlanPoint, PlanPoint][] = [];
+  for (const opening of wall.openings) {
+    const j = opening.joinery;
+    if (!j || !(doors[j.id] ?? j.defaultOpen)) continue;
+    const angle = (j.openAngle * Math.PI) / 180,
+      leaf = (opening.width - j.fixedLeft) / 2;
+    for (const [offset, sign] of [
+      [opening.offset + j.fixedLeft, 1],
+      [opening.offset + opening.width, -1],
+    ]) {
+      const a: PlanPoint = [wall.a[0] + ux * offset, wall.a[1] + uz * offset];
+      leaves.push([
+        a,
+        [
+          a[0] + leaf * (sign * ux * Math.cos(angle) + uz * Math.sin(angle)),
+          a[1] + leaf * (sign * uz * Math.cos(angle) - ux * Math.sin(angle)),
+        ],
+      ]);
+    }
+  }
+  return leaves;
+}
+
 function distanceToSegment(p: PlanPoint, a: PlanPoint, b: PlanPoint) {
   const dx = b[0] - a[0],
     dz = b[1] - a[1],
@@ -79,23 +110,8 @@ export function canStand(
       )
         return false;
     }
-    for (const opening of wall.openings) {
-      const j = opening.joinery;
-      if (!j || !(doors[j.id] ?? j.defaultOpen)) continue;
-      const angle = (j.openAngle * Math.PI) / 180,
-        leaf = (opening.width - j.fixedLeft) / 2;
-      for (const [offset, sign] of [
-        [opening.offset + j.fixedLeft, 1],
-        [opening.offset + opening.width, -1],
-      ]) {
-        const a: PlanPoint = [wall.a[0] + ux * offset, wall.a[1] + uz * offset];
-        const b: PlanPoint = [
-          a[0] + leaf * (sign * ux * Math.cos(angle) + uz * Math.sin(angle)),
-          a[1] + leaf * (sign * uz * Math.cos(angle) - ux * Math.sin(angle)),
-        ];
-        if (distanceToSegment(p, a, b) < radius + 0.035) return false;
-      }
-    }
+    for (const [a, b] of openDoorLeaves(wall, doors))
+      if (distanceToSegment(p, a, b) < radius + 0.035) return false;
   }
   for (const item of plan.decorations ?? []) {
     if (item.solid === false || (item.base ?? 0) > 1.8) continue;

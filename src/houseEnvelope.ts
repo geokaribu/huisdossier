@@ -579,7 +579,7 @@ export function rearExterior(
     );
   }
   for (const [i, w] of plan.walls.entries())
-    if (w.climber) {
+    if (w.outsideRoomId === r.outsideRoomId || w.climber) {
       const map =
         withTextures && w.finish ? wallFinish(w.finish.texture) : null;
       if (map) textures.push(map);
@@ -595,7 +595,7 @@ export function rearExterior(
         }),
         "terrace-boundary",
       );
-      group.add(climbingPlants(w, i));
+      if (w.climber) group.add(climbingPlants(w, i));
     }
   for (const item of plan.decorations ?? []) group.add(terraceObject(item));
   mark(group);

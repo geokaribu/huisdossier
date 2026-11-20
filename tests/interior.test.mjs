@@ -164,6 +164,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
       {
         ...plan.walls[0],
         finish: { color: "#eeeecc", texture: "stucco" },
+        outsideRoomId: "patio",
         coatings: [
           {
             side: "positive",
@@ -195,6 +196,14 @@ test("private floor plans remain isolated per house and are retained in a dossie
         rotation: -Math.PI / 2,
         solid: true,
       },
+      ...["barbecue", "storage-cabinet", "hanging-planter"].map((kind, i) => ({
+        id: `garden-${i}`,
+        kind,
+        center: [5, 3],
+        size: [0.6, 0.4],
+        height: 0.8,
+        solid: false,
+      })),
     ],
   };
   await writeFile(path.join(folder, "plan.json"), JSON.stringify(savedPlan));

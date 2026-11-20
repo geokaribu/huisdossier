@@ -93,6 +93,15 @@ const plan = {
   decorations: [],
   walls: [
     {
+      a: [4, -9],
+      b: [4, -7],
+      thickness: 0.12,
+      height: 2.64,
+      outsideRoomId: "outside",
+      finish: { color: "#deddd2", texture: "stucco" },
+      openings: [],
+    },
+    {
       a: [0, -7],
       b: [4, -7],
       thickness: 0.2,
@@ -165,6 +174,10 @@ test("one explicit registration maps the same floor plan onto RD/NAP without cha
     }
   });
   assert.ok(meshes.some((m) => m.userData.role === "extension-roof"));
+  assert.ok(
+    meshes.some((m) => m.userData.role === "terrace-boundary"),
+    "bare patio walls remain part of the exterior without climbing plants",
+  );
   assert.ok(
     result.group
       .getObjectsByProperty("type", "Group")

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { GlazedJoinery, PlanDecoration, PlanWall } from "./types";
 import { interiorFurniture } from "./interiorFurniture.ts";
 import { utilityNiche } from "./utilityNiche.ts";
+import { gardenFurniture } from "./gardenFurniture.ts";
 
 function box(
   parent: THREE.Object3D,
@@ -310,6 +311,8 @@ export function climbingPlants(wall: PlanWall, index: number) {
 
 /** Reusable objects, parameterized by private positions, sizes and colours. */
 export function terraceObject(item: PlanDecoration) {
+  if (["barbecue", "storage-cabinet", "hanging-planter"].includes(item.kind))
+    return gardenFurniture(item);
   if (item.kind === "utility-niche") return utilityNiche(item);
   if (["sofa", "armchair", "coffee-table", "indoor-plant"].includes(item.kind))
     return interiorFurniture(item);

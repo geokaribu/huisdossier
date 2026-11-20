@@ -59,6 +59,7 @@ const schema = z.object({
           a: point,
           b: point,
           thickness: z.number().min(0.04).max(1),
+          outsideRoomId: z.string().min(1).optional(),
           height: z.number().positive().max(5).optional(),
           finish: z
             .object({ color, texture: z.enum(["stucco", "brick"]) })
@@ -189,6 +190,9 @@ const schema = z.object({
           "coffee-table",
           "indoor-plant",
           "utility-niche",
+          "barbecue",
+          "storage-cabinet",
+          "hanging-planter",
         ]),
         center: point,
         size: positiveSize,

@@ -13,7 +13,13 @@ import {
   DoorOpen,
 } from "lucide-react";
 import type { Floorplan, PlanPoint, PlanWall } from "./types";
-import { canStand, insidePolygon, moveInside } from "./walkthrough";
+import {
+  canStand,
+  insidePolygon,
+  moveInside,
+  wallSolids,
+  openDoorLeaves,
+} from "./walkthrough";
 import type { DoorState } from "./walkthrough";
 import { wallCoatings } from "./wallCoatings";
 import {
@@ -868,17 +874,37 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
               strokeWidth=".06"
             />
           ))}
-          {plan.walls.map((wall, i) => (
-            <line
-              key={i}
-              x1={wall.a[0]}
-              y1={wall.a[1]}
-              x2={wall.b[0]}
-              y2={wall.b[1]}
-              stroke="#37434b"
-              strokeWidth=".055"
-            />
-          ))}
+          {plan.walls.map((wall, i) => {
+            const dx = wall.b[0] - wall.a[0],
+              dz = wall.b[1] - wall.a[1],
+              length = Math.hypot(dx, dz);
+            return (
+              <g key={i}>
+                {wallSolids(wall, doors).map(([a, b], n) => (
+                  <line
+                    key={n}
+                    x1={wall.a[0] + (dx * a) / length}
+                    y1={wall.a[1] + (dz * a) / length}
+                    x2={wall.a[0] + (dx * b) / length}
+                    y2={wall.a[1] + (dz * b) / length}
+                    stroke="#37434b"
+                    strokeWidth=".055"
+                  />
+                ))}
+                {openDoorLeaves(wall, doors).map(([a, b], n) => (
+                  <line
+                    key={`leaf-${n}`}
+                    x1={a[0]}
+                    y1={a[1]}
+                    x2={b[0]}
+                    y2={b[1]}
+                    stroke="#526371"
+                    strokeWidth=".045"
+                  />
+                ))}
+              </g>
+            );
+          })}
           <circle
             cx={position[0]}
             cy={position[1]}

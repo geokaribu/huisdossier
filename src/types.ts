@@ -171,7 +171,10 @@ export interface PlanDecoration {
     | "armchair"
     | "coffee-table"
     | "indoor-plant"
-    | "utility-niche";
+    | "utility-niche"
+    | "barbecue"
+    | "storage-cabinet"
+    | "hanging-planter";
   center: PlanPoint;
   size: PlanPoint;
   height: number;
@@ -182,6 +185,7 @@ export interface PlanDecoration {
   solid?: boolean;
 }
 export interface PlanWall {
+  outsideRoomId?: string;
   a: PlanPoint;
   b: PlanPoint;
   thickness: number;

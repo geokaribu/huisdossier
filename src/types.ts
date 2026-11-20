@@ -93,6 +93,19 @@ export interface HouseAppearance {
     dormerInset: number;
     dormerBottom: number;
     awningWidth?: number;
+    recess?: {
+      width: number;
+      bottomT: number;
+      topT: number;
+      depth: number;
+      railingHeight: number;
+    };
+    windows?: {
+      across: number;
+      width: number;
+      bottomT: number;
+      topT: number;
+    }[];
   };
 }
 

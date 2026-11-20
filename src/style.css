@@ -1651,10 +1651,20 @@ select {
     left: 12px;
     right: 12px;
     top: 13px;
+    flex-wrap: wrap;
   }
   .segmented button {
-    font-size: 0.72rem;
-    padding: 8px;
+    font-size: 0.66rem;
+    padding: 8px 6px;
+    gap: 4px;
+  }
+  .viewer-actions {
+    gap: 4px;
+    margin-left: auto;
+  }
+  .viewer-actions .photo-button {
+    width: 30px;
+    height: 36px;
   }
   .model-label {
     top: 78px;
@@ -1793,6 +1803,15 @@ select {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+@media (max-width: 360px) {
+  .model-label {
+    top: 118px;
+  }
+  .viewer-toolbar .viewer-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
   }
 }
 

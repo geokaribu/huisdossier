@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { HouseAppearance, Point, Surface } from "./types";
+import { recessedRoof } from "./roof.ts";
 
 export function frontFrame(profile: HouseAppearance) {
   const { left, right } = profile.front;
@@ -194,8 +195,34 @@ export function facadeDetails(
     dark,
   );
   // Small brackets follow the cornice visible in the supplied front photos.
-  for (let x = 0.2; x < width; x += 0.54)
-    box(point(x, profile.front.top - 0.15, 0.1), 0.065, 0.19, 0.29, metal);
+  for (let x = 0.2; x < width; x += 0.54) {
+    if (profile.roof?.recess) {
+      const start = point(x, profile.front.top - 0.06, 0.19),
+        end = point(x, profile.front.top - 0.36, 0.015);
+      const from = new THREE.Vector3(
+          start[0] - origin[0],
+          start[2] - origin[2],
+          -(start[1] - origin[1]),
+        ),
+        to = new THREE.Vector3(
+          end[0] - origin[0],
+          end[2] - origin[2],
+          -(end[1] - origin[1]),
+        );
+      const support = new THREE.Mesh(
+        new THREE.BoxGeometry(0.065, from.distanceTo(to), 0.07),
+        metal,
+      );
+      support.position.copy(from).add(to).multiplyScalar(0.5);
+      support.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        to.sub(from).normalize(),
+      );
+      support.castShadow = true;
+      group.add(support);
+    } else
+      box(point(x, profile.front.top - 0.15, 0.1), 0.065, 0.19, 0.29, metal);
+  }
   // A thin rainwater pipe is visible at the left edge of the front.
   const pipe = new THREE.Mesh(
     new THREE.CylinderGeometry(
@@ -221,7 +248,9 @@ export function facadeDetails(
     profile.dormerSurface === undefined
       ? undefined
       : surfaces[profile.dormerSurface];
-  if (profile.roof) {
+  if (profile.roof?.recess) {
+    group.add(recessedRoof(profile, origin, roofMap));
+  } else if (profile.roof) {
     const r = profile.roof;
     const roofMaterial = new THREE.MeshStandardMaterial({
       color: "#ffffff",

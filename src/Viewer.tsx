@@ -11,6 +11,7 @@ import {
   Scan,
   MapPin,
   House,
+  PanelsTopLeft,
 } from "lucide-react";
 import { triangulateSurface } from "./geometry";
 import type { HouseData, Asset, Point, HouseAppearance } from "./types";
@@ -35,7 +36,7 @@ interface Props {
   onError: (message: string) => void;
 }
 interface ViewerApi {
-  frame: (top?: boolean, front?: boolean) => void;
+  frame: (top?: boolean, front?: boolean, roof?: boolean) => void;
   zoom: (factor: number) => void;
   photo: () => void;
   update: (
@@ -85,6 +86,7 @@ export function Viewer({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor("#F6F2E7");
     renderer.shadowMap.enabled = true;
+    renderer.localClippingEnabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -185,6 +187,15 @@ export function Viewer({
           else projectMaterial(geometry, appearance, origin, roof);
         }
         const styleColor = building.target && appearance ? "#ffffff" : color;
+        const styleClip =
+          front && appearance
+            ? [
+                new THREE.Plane(
+                  new THREE.Vector3(0, -1, 0),
+                  appearance.front.top - origin[2],
+                ),
+              ]
+            : null;
         const material = new THREE.MeshStandardMaterial({
           color: styleColor,
           map: styleMap,
@@ -192,6 +203,8 @@ export function Viewer({
           metalness: roof && appearance ? 0.12 : 0,
           side: THREE.DoubleSide,
           flatShading: true,
+          clippingPlanes: styleClip,
+          clipShadows: true,
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
@@ -204,6 +217,7 @@ export function Viewer({
           styleMap,
           styleColor,
           surfaceIndex,
+          styleClip,
         };
         group.add(mesh);
         meshes.push(mesh);
@@ -257,11 +271,40 @@ export function Viewer({
     const center = targetBox.getCenter(new THREE.Vector3());
     const size = targetBox.getSize(new THREE.Vector3());
     const span = Math.max(size.x, size.z, size.y, 10);
-    const frame = (fromTop = false, fromFront = false) => {
+    const frame = (fromTop = false, fromFront = false, fromRoof = false) => {
       controls.target.copy(center).y = fromTop ? 0 : size.y * 0.36;
       const distance = span * (container.clientWidth < 500 ? 3.4 : 2.6);
       if (appearance && !fromTop) {
         const { u, normal, width } = frontFrame(appearance);
+        if (fromRoof && appearance.roof) {
+          const rise = appearance.roof.top - appearance.front.top;
+          const aspect = container.clientWidth / container.clientHeight;
+          const distance =
+            Math.max(
+              width /
+                (2 *
+                  Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+                  aspect),
+              rise / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))),
+            ) * 1.4;
+          controls.target.set(
+            appearance.front.left[0] + (u[0] * width) / 2 - origin[0],
+            appearance.front.top + rise * 0.5 - origin[2],
+            -(appearance.front.left[1] + (u[1] * width) / 2 - origin[1]),
+          );
+          camera.position
+            .copy(controls.target)
+            .add(
+              new THREE.Vector3(
+                normal[0] * distance + u[0] * 0.4,
+                -0.35,
+                -normal[1] * distance - u[1] * 0.4,
+              ),
+            );
+          controls.minDistance = 2;
+          controls.update();
+          return;
+        }
         if (fromFront) {
           const height = size.y;
           controls.target.set(
@@ -372,6 +415,11 @@ export function Viewer({
             showStyle && appearance && mesh.userData.isTarget,
           );
           const map = textured ? mesh.userData.styleMap : null;
+          const clip = textured && !wireframe ? mesh.userData.styleClip : null;
+          if (material.clippingPlanes !== clip) {
+            material.clippingPlanes = clip;
+            material.needsUpdate = true;
+          }
           if (material.map !== map) {
             material.map = map;
             material.needsUpdate = true;
@@ -535,6 +583,19 @@ export function Viewer({
           </button>
         </div>
         <div className="viewer-actions">
+          {appearance?.roof && (
+            <button
+              className="icon-button photo-button"
+              title="Bekijk het dak van dichtbij"
+              aria-label="Bekijk het dak van dichtbij"
+              onClick={() => {
+                setTop(false);
+                api.current?.frame(false, false, true);
+              }}
+            >
+              <PanelsTopLeft size={18} />
+            </button>
+          )}
           {appearance && (
             <button
               className="icon-button photo-button"

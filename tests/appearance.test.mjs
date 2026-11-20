@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import * as THREE from "three";
 import { createApp } from "../server/app.mjs";
 import { isFrontSurface, projectFront } from "../src/appearance.ts";
+import { recessedRoof } from "../src/roof.ts";
 
 const profile = {
   version: 1,
@@ -29,7 +30,58 @@ const profile = {
     texture: "front-facade.png",
   },
   materials: { wall: "#ffffff", roof: "#889999", plinth: "#555555" },
+  roof: {
+    hiddenSurfaceIndices: [],
+    top: 9.4,
+    inset: 1.5,
+    dormerWidth: 1.36,
+    dormerInset: 0.4,
+    dormerBottom: 6.5,
+    awningWidth: 1.3,
+    recess: {
+      width: 1.36,
+      bottomT: 0.14,
+      topT: 0.86,
+      depth: 1.6,
+      railingHeight: 0.96,
+    },
+    windows: [
+      { across: 0.3, width: 0.8, bottomT: 0.43, topT: 0.81 },
+      { across: 2.9, width: 0.8, bottomT: 0.43, topT: 0.81 },
+    ],
+  },
 };
+test("photo-derived roof has two glazed holes and a genuine recess behind the zinc plane", () => {
+  const roof = recessedRoof(profile, [0, 0, 0]);
+  roof.updateMatrixWorld(true);
+  const ray = new THREE.Raycaster();
+  const rolesAt = (x, t) => {
+    ray.set(new THREE.Vector3(x, 6 + 3.4 * t, 1), new THREE.Vector3(0, 0, -1));
+    return ray
+      .intersectObject(roof, true)
+      .map((hit) => hit.object.userData.role);
+  };
+  for (const x of [0.7, 3.3]) {
+    const roles = rolesAt(x, 0.62);
+    assert.ok(roles.includes("roof-window-glass"));
+    assert.ok(!roles.includes("roof-slope"));
+  }
+  const middle = rolesAt(2, 0.55);
+  assert.ok(middle.includes("balcony-back"));
+  assert.ok(!middle.includes("roof-slope"));
+  assert.ok(rolesAt(0.12, 0.3).includes("roof-slope"));
+  roof.traverse((object) => {
+    if (object instanceof THREE.Mesh) {
+      assert.ok(
+        [...object.geometry.getAttribute("position").array].every(
+          Number.isFinite,
+        ),
+      );
+      assert.equal(object.userData.surfaceType, "RoofSurface");
+      object.geometry.dispose();
+    }
+  });
+});
 test("one facade projection remains continuous across separate wall surfaces and excludes side walls", () => {
   const front = {
     type: "WallSurface",

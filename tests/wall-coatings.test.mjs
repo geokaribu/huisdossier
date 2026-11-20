@@ -3,6 +3,62 @@ import assert from "node:assert/strict";
 import * as THREE from "three";
 import { wallCoatings } from "../src/wallCoatings.ts";
 
+test("wallpaper scale stays continuous across wall pieces on either face", () => {
+  const texture = new THREE.Texture();
+  for (const side of ["positive", "negative"]) {
+    const wall = {
+      a: [0, 0],
+      b: [4, 0],
+      thickness: 0.1,
+      openings: [],
+      coatings: [
+        {
+          side,
+          from: 0,
+          to: 4,
+          color: "#ffffff",
+          pattern: {
+            texture: "wallpaper.png",
+            tileSize: [1.4, 1.4],
+            attribution: "Synthetic",
+            generated: true,
+          },
+        },
+      ],
+    };
+    for (const [from, to] of [
+      [0, 1.3],
+      [1.3, 4],
+    ]) {
+      const group = wallCoatings(
+        wall,
+        from,
+        to,
+        1,
+        2.6,
+        new Map([["wallpaper.png", texture]]),
+      );
+      group.updateMatrixWorld(true);
+      group.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        assert.equal(o.material.map, texture);
+        const pos = o.geometry.getAttribute("position"),
+          uv = o.geometry.getAttribute("uv");
+        for (let i = 0; i < pos.count; i++) {
+          const p = new THREE.Vector3()
+            .fromBufferAttribute(pos, i)
+            .applyMatrix4(o.matrix);
+          assert.ok(Math.abs(uv.getX(i) * 1.4 - p.x) < 1e-6);
+          assert.ok(Math.abs(uv.getY(i) * 1.4 - p.y) < 1e-6);
+        }
+        o.geometry.dispose();
+        o.material.dispose();
+      });
+    }
+  }
+  texture.dispose();
+});
+
 test("wall paint keeps separate faces, clips the dado and leaves doorways empty", () => {
   const wall = {
     a: [1, 2],

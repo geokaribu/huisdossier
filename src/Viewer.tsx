@@ -270,7 +270,7 @@ export function Viewer({
       details.add(flatRoofDetails(appearance, origin, target.surfaces));
     const rear =
       appearance?.rear && floorplan
-        ? rearExterior(appearance, origin, floorplan)
+        ? rearExterior(appearance, origin, floorplan, true, () => invalidate())
         : null;
     if (rear) details.add(rear.group);
     scene.add(details);

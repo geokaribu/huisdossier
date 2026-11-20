@@ -171,6 +171,12 @@ test("private floor plans remain isolated per house and are retained in a dossie
             from: 0,
             to: 5,
             color: "#eee9df",
+            pattern: {
+              texture: "wallpaper.png",
+              tileSize: [1.4, 1.4],
+              attribution: "Synthetic wallpaper",
+              generated: true,
+            },
             lower: { color: "#a04e36", height: 1.18, railColor: "#89432f" },
           },
         ],
@@ -207,6 +213,10 @@ test("private floor plans remain isolated per house and are retained in a dossie
     ],
   };
   await writeFile(path.join(folder, "plan.json"), JSON.stringify(savedPlan));
+  await writeFile(
+    path.join(folder, "wallpaper.png"),
+    "synthetic-pattern-bytes",
+  );
   const { app, store } = createApp({
     directory,
     houses: [
@@ -221,7 +231,25 @@ test("private floor plans remain isolated per house and are retained in a dossie
   try {
     const response = await fetch(`${base}/koekoekstraat-17/floorplan`);
     assert.equal(response.headers.get("cache-control"), "no-store");
-    assert.deepEqual(await response.json(), savedPlan);
+    const servedPlan = structuredClone(savedPlan);
+    servedPlan.walls[0].coatings[0].pattern.texture =
+      "/api/houses/koekoekstraat-17/floorplan/textures/wallpaper.png";
+    assert.deepEqual(await response.json(), servedPlan);
+    assert.equal(
+      await (
+        await fetch(`${base}/koekoekstraat-17/floorplan/textures/wallpaper.png`)
+      ).text(),
+      "synthetic-pattern-bytes",
+    );
+    assert.equal(
+      (await fetch(`${base}/other/floorplan/textures/wallpaper.png`)).status,
+      404,
+    );
+    assert.equal(
+      (await fetch(`${base}/koekoekstraat-17/floorplan/textures/plan.json`))
+        .status,
+      404,
+    );
     assert.equal(await (await fetch(`${base}/other/floorplan`)).json(), null);
     assert.equal((await fetch(`${base}/missing/floorplan`)).status, 404);
     assert.equal(
@@ -232,6 +260,12 @@ test("private floor plans remain isolated per house and are retained in a dossie
       await fetch(`${base}/koekoekstraat-17/export`)
     ).json();
     assert.deepEqual(exported.floorplan, savedPlan);
+    assert.deepEqual(exported.floorplanFiles, [
+      {
+        name: "wallpaper.png",
+        base64: Buffer.from("synthetic-pattern-bytes").toString("base64"),
+      },
+    ]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     store.close();

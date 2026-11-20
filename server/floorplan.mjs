@@ -71,6 +71,16 @@ const schema = z.object({
                 from: z.number().nonnegative(),
                 to: z.number().positive(),
                 color,
+                pattern: z
+                  .object({
+                    texture: z
+                      .string()
+                      .regex(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/),
+                    tileSize: positiveSize,
+                    attribution: z.string(),
+                    generated: z.boolean(),
+                  })
+                  .optional(),
                 lower: z
                   .object({
                     color,
@@ -193,6 +203,19 @@ const schema = z.object({
           "barbecue",
           "storage-cabinet",
           "hanging-planter",
+          "bookcase",
+          "dining-table",
+          "dining-chair",
+          "fridge",
+          "curtain",
+          "footstool",
+          "pendant",
+          "picture-frame",
+          "kitchen-run",
+          "kitchen-cabinet",
+          "wall-shelf",
+          "range-cooker",
+          "recliner",
         ]),
         center: point,
         size: positiveSize,
@@ -222,4 +245,53 @@ export async function readFloorplan(directory, houseId) {
     if (error.code === "ENOENT") return null;
     throw error;
   }
+}
+
+export function floorplanTextureNames(plan) {
+  return [
+    ...new Set(
+      (plan?.walls ?? []).flatMap((w) =>
+        (w.coatings ?? []).flatMap((c) =>
+          c.pattern ? [c.pattern.texture] : [],
+        ),
+      ),
+    ),
+  ];
+}
+
+export function clientFloorplan(plan, houseId) {
+  if (!plan) return null;
+  return {
+    ...plan,
+    walls: plan.walls.map((w) => ({
+      ...w,
+      ...(w.coatings
+        ? {
+            coatings: w.coatings.map((c) => ({
+              ...c,
+              ...(c.pattern
+                ? {
+                    pattern: {
+                      ...c.pattern,
+                      texture: `/api/houses/${houseId}/floorplan/textures/${c.pattern.texture}`,
+                    },
+                  }
+                : {}),
+            })),
+          }
+        : {}),
+    })),
+  };
+}
+
+export async function exportFloorplanFiles(directory, houseId) {
+  const plan = await readFloorplan(directory, houseId);
+  return Promise.all(
+    floorplanTextureNames(plan).map(async (name) => ({
+      name,
+      base64: (
+        await readFile(path.join(directory, "floorplans", houseId, name))
+      ).toString("base64"),
+    })),
+  );
 }

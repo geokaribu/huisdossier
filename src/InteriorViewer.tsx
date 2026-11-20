@@ -21,7 +21,7 @@ import {
   openDoorLeaves,
 } from "./walkthrough";
 import type { DoorState } from "./walkthrough";
-import { wallCoatings } from "./wallCoatings";
+import { wallCoatings, loadCoatingTextures } from "./wallCoatings";
 import {
   glazedDoors,
   pavingTexture,
@@ -171,6 +171,8 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
     const wood = floorTexture(),
       tile = floorTexture(true);
     const privateTextures: THREE.Texture[] = [];
+    const paintMaps = loadCoatingTextures(plan, invalidate);
+    privateTextures.push(...paintMaps.values());
     let doorState: DoorState = Object.fromEntries(
       plan.walls.flatMap((w) =>
         w.openings.flatMap((o) =>
@@ -322,7 +324,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
         angle,
       );
       if (wall.coatings?.length)
-        scene.add(wallCoatings(wall, from, to, bottom, top));
+        scene.add(wallCoatings(wall, from, to, bottom, top, paintMaps));
       if (wall.finish) {
         const positions = piece.geometry.getAttribute("position"),
           uv = [];

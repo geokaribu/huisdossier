@@ -7,6 +7,7 @@ import type {
   Surface,
 } from "./types";
 import { frontFrame } from "./appearance.ts";
+import { wallCoatings, loadCoatingTextures } from "./wallCoatings.ts";
 import {
   glazedDoors,
   terraceObject,
@@ -447,9 +448,14 @@ export function rearExterior(
   origin: Point,
   plan: Floorplan,
   withTextures = true,
+  onLoad: () => void = () => {},
 ) {
   const group = new THREE.Group(),
     textures: THREE.Texture[] = [];
+  const paintMaps = withTextures
+    ? loadCoatingTextures(plan, onLoad)
+    : new Map<string, THREE.Texture>();
+  textures.push(...paintMaps.values());
   group.applyMatrix4(planToExterior(profile, origin));
   const r = profile.rear!,
     height = plan.ceilingHeight,
@@ -465,7 +471,13 @@ export function rearExterior(
     side: THREE.DoubleSide,
   });
   const inner = new THREE.MeshStandardMaterial({
-    color: "#d5c4a7",
+    color:
+      plan.rooms.find(
+        (room) =>
+          !room.outside &&
+          room.floorColor &&
+          room.polygon.some((p) => p[1] < r.shellStartZ),
+      )?.floorColor ?? "#d5c4a7",
     roughness: 0.92,
     side: THREE.DoubleSide,
   });
@@ -596,6 +608,20 @@ export function rearExterior(
         "terrace-boundary",
       );
       if (w.climber) group.add(climbingPlants(w, i));
+    }
+  for (const w of plan.walls)
+    if (w.coatings?.length) {
+      const dz = w.b[1] - w.a[1],
+        length = Math.hypot(w.b[0] - w.a[0], dz);
+      if (Math.min(w.a[1], w.b[1]) > r.shellStartZ) continue;
+      const cross =
+        Math.abs(dz) < 1e-8
+          ? 0
+          : Math.max(0, Math.min(1, (r.shellStartZ - w.a[1]) / dz)) * length;
+      const start = w.a[1] <= r.shellStartZ ? 0 : cross,
+        end = w.b[1] <= r.shellStartZ ? length : cross;
+      if (w !== portal)
+        group.add(wallCoatings(w, start, end, 0, height, paintMaps));
     }
   for (const item of plan.decorations ?? []) group.add(terraceObject(item));
   mark(group);

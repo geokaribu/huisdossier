@@ -174,7 +174,20 @@ export interface PlanDecoration {
     | "utility-niche"
     | "barbecue"
     | "storage-cabinet"
-    | "hanging-planter";
+    | "hanging-planter"
+    | "bookcase"
+    | "dining-table"
+    | "dining-chair"
+    | "fridge"
+    | "curtain"
+    | "footstool"
+    | "pendant"
+    | "picture-frame"
+    | "kitchen-run"
+    | "kitchen-cabinet"
+    | "wall-shelf"
+    | "range-cooker"
+    | "recliner";
   center: PlanPoint;
   size: PlanPoint;
   height: number;
@@ -206,6 +219,12 @@ export interface PlanWall {
     to: number;
     color: string;
     lower?: { color: string; height: number; railColor: string };
+    pattern?: {
+      texture: string;
+      tileSize: PlanPoint;
+      attribution: string;
+      generated: boolean;
+    };
   }[];
   climber?: { top: number; coverage: number; trellis: boolean };
 }

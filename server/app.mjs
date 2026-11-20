@@ -6,7 +6,12 @@ import { mkdirSync } from "node:fs";
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createStore } from "./store.mjs";
-import { readFloorplan } from "./floorplan.mjs";
+import {
+  readFloorplan,
+  clientFloorplan,
+  floorplanTextureNames,
+  exportFloorplanFiles,
+} from "./floorplan.mjs";
 import {
   appearanceDirectory,
   readAppearance,
@@ -72,8 +77,21 @@ export function createApp({ directory, houses, root }) {
     res.json(store.dossier(req.params.houseId)),
   );
   app.get("/api/houses/:houseId/floorplan", async (req, res) =>
-    res.json(await readFloorplan(directory, req.params.houseId)),
+    res.json(
+      clientFloorplan(
+        await readFloorplan(directory, req.params.houseId),
+        req.params.houseId,
+      ),
+    ),
   );
+  app.get("/api/houses/:houseId/floorplan/textures/:file", async (req, res) => {
+    const plan = await readFloorplan(directory, req.params.houseId);
+    if (!floorplanTextureNames(plan).includes(req.params.file))
+      return res.status(404).json({ error: "Textuur niet gevonden." });
+    res.sendFile(
+      path.join(directory, "floorplans", req.params.houseId, req.params.file),
+    );
+  });
   app.post("/api/houses/:houseId/assets", (req, res) => {
     const data = assetSchema.parse(req.body);
     const id = store.addAsset(req.params.houseId, data);
@@ -219,6 +237,7 @@ export function createApp({ directory, houses, root }) {
       files,
       appearance: await exportAppearance(directory, houseId),
       floorplan: await readFloorplan(directory, houseId),
+      floorplanFiles: await exportFloorplanFiles(directory, houseId),
     });
   });
   // Preserve API 404 semantics rather than serving the SPA for a mistyped endpoint.

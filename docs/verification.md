@@ -2,13 +2,15 @@
 
 Gecontroleerd op 20 november 2026, lokaal op Windows met Node 24.
 
-- `npm test`: veertien tests geslaagd. Bewaren na heropenen, bestandsinhoud, volledige export, huisisolatie, ongeldige invoer, BAG-geometrie, doorlopende gevel-UV's, luchtfoto-UV's, loopbotsingen, doorgangen en privéprofielen gecontroleerd. Extra controles: vaste glaspanelen, open/gesloten deurvleugels, gedraaide meubelcontouren en behoud van terrasparameters in API/export.
+- `npm test`: vijftien tests geslaagd. Bewaren na heropenen, bestandsinhoud, volledige export, huisisolatie, ongeldige invoer, BAG-geometrie, doorlopende gevel-UV's, luchtfoto-UV's, loopbotsingen, doorgangen en privéprofielen gecontroleerd. Extra controles: vaste glaspanelen, open/gesloten deurvleugels, gedraaide meubelcontouren en behoud van terrasparameters in API/export.
 - `npm run build`: TypeScript en productiebuild geslaagd. De 3D-viewer wordt apart geladen; de standaard bundelgroottewaarschuwing voor Three.js is bekend (ongeveer 150 kB gzip).
 - Browser, productieversie op aparte testdatabase: onderdeel maken, melding maken/uitvoeren, foto en document uploaden, foto openen, export downloaden, herladen en data terugvinden geslaagd.
 - Interactieve geometrie: gevel aanklikken, dak kiezen, punt vastleggen, bovenaanzicht, omgeving en draadmodel gecontroleerd.
 - Desktop en 390 px breed: geen horizontale pagina-overloop; navigatie en broninformatie werken. Geen browserconsolefouten tijdens deze controles.
 
 Testgegevens blijven buiten de eigen runtimegegevens en buiten Git. Er is geen publieke server/publicatie, fotorealistische scan of ingemeten binnenruimte opgeleverd.
+
+Woonkamer/keuken: vijftien tests slagen, inclusief doorlopende behang-UV's op beide wandzijden. De API-test controleert de afgeschermde textuurroute, isolatie tussen huizen, onbereikbare profielbestanden en behoud van originele textuurbytes in de export. De echte wallpaper-export is aanvullend via SHA-256 met het lokale bestand vergeleken. Zithoek, eettafel en keuken op desktop bekeken; kamerkeuze op 390 px geeft geen pagina-overloop of consolefouten. Alle negen beginpunten blijven vrij; een rastercontrole met geopende deuren bereikt ze vanuit de hal. Behang, meubelmaten en materialen blijven visuele benaderingen van de bewonersfoto's.
 
 Wandafwerking: veertien tests geslaagd, inclusief een raycastcontrole op afzonderlijke wandzijden, onder-/bovenkleur en vrijgehouden deuropeningen. Wandkleuren en sierlijst blijven behouden in API en export. Gang en straatslaapkamer zijn visueel gecontroleerd op desktop en 390 px; geen consolefouten of horizontale overloop. Verfkleuren en lijsthoogte zijn uit bewonersfoto's benaderd.
 

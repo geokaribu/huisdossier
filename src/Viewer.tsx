@@ -12,9 +12,22 @@ import {
   MapPin,
   House,
   PanelsTopLeft,
+  Footprints,
 } from "lucide-react";
 import { triangulateSurface } from "./geometry";
-import type { HouseData, Asset, Point, HouseAppearance } from "./types";
+import type {
+  HouseData,
+  Asset,
+  Point,
+  HouseAppearance,
+  Floorplan,
+} from "./types";
+import {
+  frontRelief,
+  flatRoofDetails,
+  rearExterior,
+  planToExterior,
+} from "./houseEnvelope";
 import {
   facadeDetails,
   frontFrame,
@@ -28,6 +41,8 @@ import {
 interface Props {
   data: HouseData;
   appearance: HouseAppearance | null;
+  floorplan: Floorplan | null;
+  onInterior: () => void;
   assets: Asset[];
   selected: Asset | undefined;
   onSelect: (id: string) => void;
@@ -35,10 +50,12 @@ interface Props {
   onPlace: (point: Point) => void;
   onError: (message: string) => void;
 }
+type ExteriorView = "overview" | "front" | "rear" | "roof" | "top";
 interface ViewerApi {
   frame: (top?: boolean, front?: boolean, roof?: boolean) => void;
   zoom: (factor: number) => void;
   photo: () => void;
+  view: (side: ExteriorView) => void;
   update: (
     context: boolean,
     wire: boolean,
@@ -51,6 +68,8 @@ interface ViewerApi {
 export function Viewer({
   data,
   appearance,
+  floorplan,
+  onInterior,
   assets,
   selected,
   onSelect,
@@ -68,6 +87,7 @@ export function Viewer({
   const [top, setTop] = useState(false);
   const [failed, setFailed] = useState(false);
   const [styled, setStyled] = useState(true);
+  const [view, setView] = useState<ExteriorView>("overview");
 
   useEffect(() => {
     if (!host.current) return;
@@ -242,7 +262,19 @@ export function Viewer({
     const details = appearance
       ? facadeDetails(appearance, origin, target.surfaces, textures?.roofMap)
       : new THREE.Group();
+    if (appearance?.frontOpenings?.length)
+      details.add(
+        frontRelief(appearance, origin, facadeMap, textures?.stuccoMap ?? null),
+      );
+    if (appearance?.flatRoof)
+      details.add(flatRoofDetails(appearance, origin, target.surfaces));
+    const rear =
+      appearance?.rear && floorplan
+        ? rearExterior(appearance, origin, floorplan)
+        : null;
+    if (rear) details.add(rear.group);
     scene.add(details);
+    targetBox.expandByObject(details);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(250, 250),
       new THREE.MeshStandardMaterial({ color: "#eee9dc", roughness: 1 }),
@@ -260,6 +292,8 @@ export function Viewer({
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = -0.04;
+    ring.visible = false;
+    grid.visible = false;
     scene.add(ring);
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 400);
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -273,7 +307,18 @@ export function Viewer({
     const span = Math.max(size.x, size.z, size.y, 10);
     const frame = (fromTop = false, fromFront = false, fromRoof = false) => {
       controls.target.copy(center).y = fromTop ? 0 : size.y * 0.36;
-      const distance = span * (container.clientWidth < 500 ? 3.4 : 2.6);
+      const distance = span * (container.clientWidth < 500 ? 2.7 : 1.7);
+      if (fromTop) {
+        const aspect = container.clientWidth / container.clientHeight,
+          tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        const fit =
+          Math.max(size.x / (2 * tan * aspect), size.z / (2 * tan)) * 1.18 +
+          size.y / 2;
+        controls.target.copy(center);
+        camera.position.copy(center).add(new THREE.Vector3(0, fit, 0.001));
+        controls.update();
+        return;
+      }
       if (appearance && !fromTop) {
         const { u, normal, width } = frontFrame(appearance);
         if (fromRoof && appearance.roof) {
@@ -347,7 +392,48 @@ export function Viewer({
         );
       controls.update();
     };
-    frame(false, Boolean(appearance));
+    const viewSide = (side: ExteriorView) => {
+      setView(side);
+      setTop(false);
+      if (side === "top") {
+        setTop(true);
+        frame(true);
+        return;
+      }
+      if (side === "rear" && appearance?.rear && floorplan) {
+        const point =
+          floorplan.rooms.find((r) => r.id === appearance.rear?.outsideRoomId)
+            ?.center ?? floorplan.spawn;
+        const rearPoint = new THREE.Vector3(
+          point[0],
+          1.4,
+          point[1],
+        ).applyMatrix4(planToExterior(appearance, origin));
+        const { u, normal, width } = frontFrame(appearance),
+          aspect = container.clientWidth / container.clientHeight;
+        const distance =
+          Math.max(
+            width /
+              (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * aspect),
+            4.0 / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))),
+          ) * 1.35;
+        controls.target.copy(rearPoint);
+        camera.position
+          .copy(rearPoint)
+          .add(
+            new THREE.Vector3(
+              -normal[0] * distance + u[0] * distance * 0.3,
+              distance * 0.9,
+              normal[1] * distance - u[1] * distance * 0.3,
+            ),
+          );
+        controls.minDistance = 2;
+        controls.update();
+        return;
+      }
+      frame(false, side === "front", side === "roof");
+    };
+    frame(false, false);
     let animationFrame = 0;
     const requestRender = () => {
       if (animationFrame) return;
@@ -375,6 +461,7 @@ export function Viewer({
       group.clear();
     };
     api.current = {
+      view: viewSide,
       frame,
       zoom(factor) {
         camera.position
@@ -399,9 +486,16 @@ export function Viewer({
             showStyle &&
             !wireframe &&
             mesh.userData.isTarget &&
-            appearance?.roof?.hiddenSurfaceIndices.includes(
+            (appearance?.roof?.hiddenSurfaceIndices.includes(
               mesh.userData.surfaceIndex,
-            )
+            ) ||
+              appearance?.hiddenSurfaceIndices?.includes(
+                mesh.userData.surfaceIndex,
+              ) ||
+              (rear &&
+                appearance?.rear?.hiddenSurfaceIndices.includes(
+                  mesh.userData.surfaceIndex,
+                )))
           );
           const material = mesh.material as THREE.MeshStandardMaterial;
           const match =
@@ -442,6 +536,7 @@ export function Viewer({
           edges.visible = !showStyle || !appearance;
         });
         details.visible = Boolean(showStyle && appearance && !wireframe);
+        grid.visible = showContext;
         cleanGroup(pins);
         currentAssets
           .filter((a) => a.position)
@@ -550,9 +645,10 @@ export function Viewer({
       aerialMap?.dispose();
       textures?.stuccoMap.dispose();
       textures?.roofMap.dispose();
+      rear?.textures.forEach((t) => t.dispose());
       renderer.domElement.remove();
     };
-  }, [data, appearance, onError]);
+  }, [data, appearance, floorplan, onError]);
   useEffect(() => {
     api.current?.update(context, wire, selected, assets, styled);
   }, [context, wire, selected, assets, data, appearance, styled]);
@@ -567,7 +663,7 @@ export function Viewer({
             className={!top ? "active" : ""}
             onClick={() => {
               setTop(false);
-              api.current?.frame(false);
+              api.current?.view("overview");
             }}
           >
             <Box size={16} /> 3D-model
@@ -576,7 +672,7 @@ export function Viewer({
             className={top ? "active" : ""}
             onClick={() => {
               setTop(true);
-              api.current?.frame(true);
+              api.current?.view("top");
             }}
           >
             <Scan size={16} /> Bovenaanzicht
@@ -590,7 +686,7 @@ export function Viewer({
               aria-label="Bekijk het dak van dichtbij"
               onClick={() => {
                 setTop(false);
-                api.current?.frame(false, false, true);
+                api.current?.view("roof");
               }}
             >
               <PanelsTopLeft size={18} />
@@ -603,7 +699,7 @@ export function Viewer({
               aria-label="Bekijk de voorgevel"
               onClick={() => {
                 setTop(false);
-                api.current?.frame(false, true);
+                api.current?.view("front");
               }}
             >
               <House size={18} />
@@ -639,6 +735,30 @@ export function Viewer({
               ? "Gevelafwerking · visuele reconstructie"
               : "Gebouwmodel · 3DBAG LoD 2.2"}
           </span>
+          {appearance && (
+            <div className="view-choice">
+              <select
+                aria-label="Kies aanzicht"
+                value={view}
+                onChange={(event) =>
+                  api.current?.view(event.target.value as ExteriorView)
+                }
+              >
+                <option value="overview">Het hele huis</option>
+                <option value="front">Voorkant</option>
+                <option value="top">Bovenkant</option>
+                {rearAvailable(floorplan, appearance) && (
+                  <option value="rear">Achterkant en terras</option>
+                )}
+                <option value="roof">Dak van dichtbij</option>
+              </select>
+              {view === "rear" && floorplan && (
+                <button onClick={onInterior}>
+                  <Footprints size={14} /> Binnen kijken
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="compass" aria-label="Noordrichting" ref={north}>
@@ -743,4 +863,11 @@ export function Viewer({
       </div>
     </section>
   );
+}
+
+function rearAvailable(
+  plan: Floorplan | null,
+  appearance: HouseAppearance | null,
+) {
+  return Boolean(plan && appearance?.rear);
 }

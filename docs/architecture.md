@@ -27,3 +27,7 @@ De importer controleert het BAG-verblijfsobject, volgt de officiële pandrelatie
 5. Back-upherstel via export, versiegeschiedenis en overdracht uitwerken voordat data op een gedeelde server komt.
 
 Er is geen geclaimde meetnauwkeurigheid. Een punt dat een bewoner aanwijst is een markering, geen inmeting. Open-data-opnamedatum, ophaaldatum en privé-onderhoudsdatum worden afzonderlijk bewaard.
+
+De aanvullende buitenlaag koppelt de bestaande woonlaag nu bij benadering aan de straatgevel. `houseEnvelope.ts` gebruikt de expliciete private schaal/ankerregistratie voor de achterbouw, pui en het terras. De foto-interpretatie van de woonkamer gebruikt dezelfde objecten binnen en buiten. Oorspronkelijke bronvlakken worden alleen in de afwerkingsstand verborgen; openbare geometrie en vaste dossier-ID's blijven behouden.
+
+De eerdere PDOK-daktextuur is vervangen door een Utrechtse WMS-uitsnede op de oorspronkelijke 25 mm pixelresolutie (actuele laag: opname 8 april 2026). De aanvraag bewaart exact RD-bereik en pixelafmetingen. De live servicemetadata is leidend voor de opnamedatum; de catalogusbeschrijving van de actuele laag liep bij ophalen nog achter. Aerial-profielen bewaren optioneel bronresolutie, opnamedatum, metadata-URL, licentie en toelichting, zonder die velden te verliezen bij API/export. Dakobjecten blijven afzonderlijke visuele interpretaties.

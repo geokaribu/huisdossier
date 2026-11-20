@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { GlazedJoinery, PlanDecoration, PlanWall } from "./types";
+import { interiorFurniture } from "./interiorFurniture.ts";
 
 function box(
   parent: THREE.Object3D,
@@ -97,7 +98,7 @@ export function glazedDoors(
       [height - 0.045, 0.09],
     ])
       box(parent, (from + to) / 2, y, 0, to - from, h, 0.065, paint);
-    box(
+    const pane = box(
       parent,
       (from + to) / 2,
       (height + 0.13) / 2,
@@ -107,6 +108,7 @@ export function glazedDoors(
       0.012,
       glass,
     );
+    pane.castShadow = false;
     if (handles) {
       const x = from < 0 ? from + 0.12 : to - 0.12;
       for (const z of [-0.065, 0.065]) {
@@ -307,6 +309,8 @@ export function climbingPlants(wall: PlanWall, index: number) {
 
 /** Reusable objects, parameterized by private positions, sizes and colours. */
 export function terraceObject(item: PlanDecoration) {
+  if (["sofa", "armchair", "coffee-table", "indoor-plant"].includes(item.kind))
+    return interiorFurniture(item);
   const group = new THREE.Group();
   group.position.set(item.center[0], item.base ?? 0, item.center[1]);
   group.rotation.y = item.rotation ?? 0;

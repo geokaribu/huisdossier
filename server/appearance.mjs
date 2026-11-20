@@ -12,6 +12,57 @@ const schema = z
     description: z.string(),
     attribution: z.string(),
     generated: z.boolean(),
+    hiddenSurfaceIndices: z.array(z.number().int().nonnegative()).optional(),
+    frontOpenings: z
+      .array(
+        z.object({
+          id: z.string(),
+          kind: z.enum(["window", "door"]),
+          x: z.number().nonnegative(),
+          width: z.number().positive(),
+          bottom: z.number().nonnegative(),
+          height: z.number().positive(),
+          split: z.number().positive(),
+          tilt: z.number().min(0).max(0.5).optional(),
+        }),
+      )
+      .max(30)
+      .optional(),
+    rear: z
+      .object({
+        portalId: z.string().min(1),
+        outsideRoomId: z.string().min(1),
+        anchor: point,
+        scale: z.tuple([
+          z.number().positive().max(2),
+          z.number().positive().max(2),
+        ]),
+        shellStartZ: z.number().finite(),
+        roofThickness: z.number().positive().max(0.8),
+        junctionTop: z.number().positive(),
+        hiddenSurfaceIndices: z.array(z.number().int().nonnegative()),
+        attribution: z.string(),
+      })
+      .optional(),
+    flatRoof: z
+      .object({
+        surface: z.number().int().nonnegative(),
+        edgeHeight: z.number().positive().max(0.5),
+        fixtures: z
+          .array(
+            z.object({
+              id: z.string(),
+              kind: z.enum(["vent", "rooflight"]),
+              across: z.number().nonnegative(),
+              depth: z.number().positive(),
+              width: z.number().positive(),
+              length: z.number().positive(),
+              height: z.number().positive().max(2),
+            }),
+          )
+          .max(30),
+      })
+      .optional(),
     aerial: z
       .object({
         texture: filename,
@@ -24,6 +75,14 @@ const schema = z
         attribution: z.string(),
         url: z.string().url(),
         fetchedAt: z.string(),
+        nativeResolutionMetres: z.number().positive().optional(),
+        captureDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        sourceUrl: z.string().url().optional(),
+        license: z.string().optional(),
+        metadataNote: z.string().optional(),
       })
       .refine(
         (a) => a.bbox[2] > a.bbox[0] && a.bbox[3] > a.bbox[1],
@@ -84,11 +143,24 @@ const schema = z
     "Ongeldige gevelafmetingen",
   )
   .superRefine((p, ctx) => {
-    if (!p.roof) return;
     const width = Math.hypot(
       p.front.right[0] - p.front.left[0],
       p.front.right[1] - p.front.left[1],
     );
+    const openingHeight = p.front.top - p.front.bottom;
+    for (const opening of p.frontOpenings ?? [])
+      if (
+        opening.x + opening.width > width ||
+        opening.bottom + opening.height > openingHeight ||
+        opening.split <= opening.bottom ||
+        opening.split >= opening.bottom + opening.height
+      )
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Gevelopening valt buiten de gevel of heeft een ongeldige tussendorpel",
+        });
+    if (!p.roof) return;
     if (p.roof.top <= p.front.top)
       ctx.addIssue({ code: "custom", message: "Dak ligt onder de goot" });
     const recess = p.roof.recess;

@@ -69,12 +69,52 @@ export interface HouseAppearance {
   description: string;
   attribution: string;
   generated: boolean;
+  hiddenSurfaceIndices?: number[];
+  frontOpenings?: {
+    id: string;
+    kind: "window" | "door";
+    x: number;
+    width: number;
+    bottom: number;
+    height: number;
+    split: number;
+    tilt?: number;
+  }[];
+  rear?: {
+    portalId: string;
+    outsideRoomId: string;
+    anchor: [number, number];
+    scale: [number, number];
+    shellStartZ: number;
+    roofThickness: number;
+    junctionTop: number;
+    hiddenSurfaceIndices: number[];
+    attribution: string;
+  };
+  flatRoof?: {
+    surface: number;
+    edgeHeight: number;
+    fixtures: {
+      id: string;
+      kind: "vent" | "rooflight";
+      across: number;
+      depth: number;
+      width: number;
+      length: number;
+      height: number;
+    }[];
+  };
   aerial?: {
     texture: string;
     bbox: [number, number, number, number];
     attribution: string;
     url: string;
     fetchedAt: string;
+    nativeResolutionMetres?: number;
+    captureDate?: string;
+    sourceUrl?: string;
+    license?: string;
+    metadataNote?: string;
   };
   front: {
     left: [number, number];
@@ -121,7 +161,16 @@ export interface GlazedJoinery {
 }
 export interface PlanDecoration {
   id: string;
-  kind: "patio-table" | "patio-chair" | "plant-shelf" | "planter" | "rain-pipe";
+  kind:
+    | "patio-table"
+    | "patio-chair"
+    | "plant-shelf"
+    | "planter"
+    | "rain-pipe"
+    | "sofa"
+    | "armchair"
+    | "coffee-table"
+    | "indoor-plant";
   center: PlanPoint;
   size: PlanPoint;
   height: number;

@@ -538,6 +538,8 @@ function App() {
                     <Viewer
                       data={data}
                       appearance={appearance}
+                      floorplan={floorplan}
+                      onInterior={() => setPage("interior")}
                       assets={dossier.assets}
                       selected={selected}
                       onSelect={select}
@@ -1054,6 +1056,24 @@ function App() {
                               {appearance.aerial.attribution}. Opgehaald op{" "}
                               {formatDate(appearance.aerial.fetchedAt)}. De foto
                               is op de bovenzijde van het dak geprojecteerd.
+                              {appearance.aerial.nativeResolutionMetres &&
+                                ` Bronresolutie: ${Number((appearance.aerial.nativeResolutionMetres * 100).toFixed(2)).toLocaleString("nl-NL")} cm per pixel.`}
+                              {appearance.aerial.captureDate &&
+                                ` Opname: ${formatDate(appearance.aerial.captureDate)}.`}
+                              {appearance.aerial.license &&
+                                ` ${appearance.aerial.license}.`}
+                              {appearance.aerial.sourceUrl && (
+                                <>
+                                  {" "}
+                                  <a
+                                    href={appearance.aerial.sourceUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Bronmetadata
+                                  </a>
+                                </>
+                              )}
                             </small>
                           </p>
                         )}

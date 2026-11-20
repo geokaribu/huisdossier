@@ -10,6 +10,8 @@ Aanvulling 20 november 2026: de gebruiker heeft twee gevelbeelden aangeleverd. E
 
 ## Structuur
 
+Een trapfixture kan een optioneel `base`-niveau hebben. `stairs.ts` maakt dan een verhoogde vlucht met treden, stootborden en trapbomen; de loopcontrole gebruikt dezelfde onderzijde voor stahoogte. Zonder `base` blijft de bestaande grondtrap behouden. Een lege trapnis behoudt betimmering en plank, met botsingen tegen zijwanden, achterwand en de lage schuinte; de bruikbare hoge zijde blijft toegankelijk. Een schuine lijn voor een bovenliggend bouwdeel mag niet automatisch als uitsparing in de vloer- of woningcontour worden overgenomen.
+
 Optionele sanitairprofielen gebruiken `mounting: "wall"` en `rotation` voor hangtoiletten en wandfonteinen; dezelfde rotatie bepaalt hun loopcontour. `built-in`-objecten beschrijven vaste betimmering en koven. Kamerafwerking kan een eigen tegelmaat/voegkleur en plintkleur per wandzijde krijgen. Deze opties blijven behouden in API, export en de oningerichte weergave; alle plaatsingen en fotoafgeleide kleuren blijven privéprofieldata.
 
 Wandaansluitingen worden opgebouwd door `planArchitecture.ts`: doorsneden per hoogte, verenigde polygonen, begrensde verstekken en alleen zichtbare grensvlakken. Interieur en achterbouw delen deze constructie. De vloer heeft een doorlopende onderlaag onder de kamerafwerkingen; plinten houden openingen vrij. Zie [3D quality](3d-quality.md) voor het modelcontract en de verificatie.

@@ -158,6 +158,14 @@ test("private floor plans remain isolated per house and are retained in a dossie
         mounting: "wall",
         rotation: Math.PI,
       },
+      {
+        kind: "stairs",
+        center: [4, 3],
+        size: [0.8, 1.5],
+        height: 1.4,
+        base: 1.2,
+        rotation: Math.PI / 2,
+      },
     ],
     rooms: [
       {

@@ -25,6 +25,7 @@ import type { DoorState } from "./walkthrough";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings";
 import { architectureGeometry } from "./planArchitecture";
 import { wallSanitary } from "./sanitary";
+import { stairsFixture } from "./stairs";
 import {
   glazedDoors,
   pavingTexture,
@@ -570,16 +571,7 @@ export function InteriorViewer({
           );
         }
       } else if (f.kind === "stairs") {
-        for (let i = 0; i < 9; i++)
-          box(
-            x,
-            (h * (i + 1)) / 18,
-            z + d / 2 - ((i + 0.5) * d) / 9,
-            w,
-            (h * (i + 1)) / 9,
-            d / 9,
-            trim,
-          );
+        scene.add(stairsFixture(f, trim));
       } else if (f.kind === "sink" || f.kind === "basin") {
         box(x, h - 0.04, z, w, 0.08, d, porcelain);
         box(x, h + 0.005, z, w * 0.72, 0.02, d * 0.65, metal);

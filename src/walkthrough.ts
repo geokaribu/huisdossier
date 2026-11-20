@@ -1,4 +1,5 @@
 import type { Floorplan, PlanPoint, PlanWall } from "./types";
+import { stairUnderside } from "./stairs.ts";
 export type DoorState = Record<string, boolean>;
 
 /** Open leaf segments shared by walking collisions and the floor-plan drawing. */
@@ -124,6 +125,24 @@ export function canStand(
     } else {
       const x = Math.cos(angle) * dx - Math.sin(angle) * dz,
         z = Math.sin(angle) * dx + Math.cos(angle) * dz;
+      if (item.kind === "utility-niche" && item.contents === false) {
+        const [w, d] = item.size;
+        if (Math.abs(x) > w / 2 + radius || Math.abs(z) > d / 2 + radius)
+          continue;
+        if (
+          Math.abs(z + d / 2) < radius + 0.02 ||
+          Math.abs(Math.abs(x) - w / 2) < radius + 0.025
+        )
+          return false;
+        const soffit =
+          (item.base ?? 0) +
+          item.height -
+          item.height *
+            0.52 *
+            Math.max(0, Math.min(1, (x + radius + w / 2) / w));
+        if (soffit < 1.78) return false;
+        continue;
+      }
       if (
         Math.hypot(
           Math.max(Math.abs(x) - item.size[0] / 2, 0),
@@ -145,7 +164,13 @@ export function canStand(
       Math.abs(Math.sin(angle) * x + Math.cos(angle) * z) - f.size[1] / 2,
       0,
     );
-    if (Math.hypot(dx, dz) < radius) return false;
+    if (Math.hypot(dx, dz) < radius) {
+      if (f.kind === "stairs" && (f.base ?? 0) > 0) {
+        const localZ = Math.sin(angle) * x + Math.cos(angle) * z;
+        if (stairUnderside(f, localZ + radius) >= 1.78) continue;
+      }
+      return false;
+    }
   }
   return true;
 }

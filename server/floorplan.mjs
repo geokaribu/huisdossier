@@ -189,6 +189,7 @@ const schema = z.object({
         fixed: z.boolean().optional(),
         mounting: z.literal("wall").optional(),
         rotation: z.number().finite().optional(),
+        base: z.number().nonnegative().max(3).optional(),
       }),
     )
     .max(100),

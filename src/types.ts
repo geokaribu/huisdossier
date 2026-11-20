@@ -288,6 +288,7 @@ export interface Floorplan {
     fixed?: boolean;
     mounting?: "wall";
     rotation?: number;
+    base?: number;
   }[];
   decorations?: PlanDecoration[];
 }

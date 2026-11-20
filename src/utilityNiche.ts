@@ -51,6 +51,16 @@ export function utilityNiche(item: PlanDecoration) {
     );
   slope.rotation.z = -Math.atan2(drop, w);
   box(
+    w / 2,
+    (h - drop) / 2,
+    0,
+    0.045,
+    h - drop,
+    d,
+    white,
+    "utility-low-side-wall",
+  );
+  box(
     -w * 0.31,
     h * 0.77,
     -0.025,
@@ -64,7 +74,7 @@ export function utilityNiche(item: PlanDecoration) {
   if (item.contents === false) return group;
   const aw = w * 0.38,
     ah = h * 0.34,
-    ad = d * 0.88,
+    ad = Math.min(0.62, d * 0.88),
     front = ad / 2;
   const washerX = -w * 0.285,
     darkX = w * 0.105;
@@ -123,7 +133,7 @@ export function utilityNiche(item: PlanDecoration) {
     white,
     "washer-door-handle",
   );
-  box(darkX, ah / 2, 0, aw, ah, ad, dark, "dark-appliance");
+  box(darkX, ah / 2, 0, aw, ah, ad, dark, "dishwasher");
   box(
     darkX,
     ah * 0.94,

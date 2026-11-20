@@ -97,6 +97,27 @@ export interface HouseAppearance {
 }
 
 export type PlanPoint = [number, number];
+export interface GlazedJoinery {
+  id: string;
+  label: string;
+  fixedLeft: number;
+  insideColor: string;
+  outsideColor: string;
+  openAngle: number;
+  defaultOpen: boolean;
+}
+export interface PlanDecoration {
+  id: string;
+  kind: "patio-table" | "patio-chair" | "plant-shelf" | "planter" | "rain-pipe";
+  center: PlanPoint;
+  size: PlanPoint;
+  height: number;
+  rotation?: number;
+  base?: number;
+  color?: string;
+  plant?: "flowers" | "shrub";
+  solid?: boolean;
+}
 export interface PlanWall {
   a: PlanPoint;
   b: PlanPoint;
@@ -108,7 +129,10 @@ export interface PlanWall {
     sill: number;
     height: number;
     kind: "door" | "window";
+    joinery?: GlazedJoinery;
   }[];
+  finish?: { color: string; texture: "stucco" | "brick" };
+  climber?: { top: number; coverage: number; trellis: boolean };
 }
 export interface Floorplan {
   version: 1;
@@ -129,6 +153,9 @@ export interface Floorplan {
     outside?: boolean;
     shared?: boolean;
     floor?: "wood" | "tile";
+    paving?: { size: number; color: string };
+    viewYaw?: number;
+    viewPitch?: number;
   }[];
   walls: PlanWall[];
   fixtures: {
@@ -145,4 +172,5 @@ export interface Floorplan {
     size: PlanPoint;
     height: number;
   }[];
+  decorations?: PlanDecoration[];
 }

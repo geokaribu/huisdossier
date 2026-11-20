@@ -8,15 +8,25 @@ import {
   ArrowUp,
   Box,
   Footprints,
-  Map,
+  Map as MapIcon,
   RotateCcw,
+  DoorOpen,
 } from "lucide-react";
 import type { Floorplan, PlanPoint, PlanWall } from "./types";
 import { canStand, insidePolygon, moveInside } from "./walkthrough";
+import type { DoorState } from "./walkthrough";
+import {
+  glazedDoors,
+  pavingTexture,
+  wallFinish,
+  climbingPlants,
+  terraceObject,
+} from "./terrace";
 
 interface InteriorApi {
   walk: (enabled: boolean) => void;
-  room: (point: PlanPoint) => void;
+  room: (point: PlanPoint, yaw?: number, pitch?: number) => void;
+  door: (id: string, open: boolean) => void;
   reset: (top?: boolean) => void;
 }
 
@@ -74,6 +84,13 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
   const [walking, setWalking] = useState(false);
   const [position, setPosition] = useState<PlanPoint>(plan.spawn);
   const [failed, setFailed] = useState(false);
+  const joinery = plan.walls.flatMap((w) =>
+    w.openings.flatMap((o) => (o.joinery ? [o.joinery] : [])),
+  );
+  const [doors, setDoors] = useState<DoorState>(() =>
+    Object.fromEntries(joinery.map((j) => [j.id, j.defaultOpen])),
+  );
+  const [doorNotice, setDoorNotice] = useState("");
   const activeRoom = plan.rooms.find((room) =>
     insidePolygon(position, room.polygon),
   );
@@ -146,6 +163,15 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
     controls.maxDistance = 40;
     const wood = floorTexture(),
       tile = floorTexture(true);
+    const privateTextures: THREE.Texture[] = [];
+    let doorState: DoorState = Object.fromEntries(
+      plan.walls.flatMap((w) =>
+        w.openings.flatMap((o) =>
+          o.joinery ? [[o.joinery.id, o.joinery.defaultOpen]] : [],
+        ),
+      ),
+    );
+    const doorModels = new Map<string, ReturnType<typeof glazedDoors>>();
     const plaster = new THREE.MeshStandardMaterial({
       color: "#f4f0e7",
       roughness: 0.92,
@@ -219,19 +245,46 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
     for (const room of plan.rooms) {
       const tiled = room.floor === "tile" || room.outside || room.shared;
       const mat = new THREE.MeshStandardMaterial({
-        color: room.outside
-          ? "#b4b6ac"
-          : room.shared
-            ? "#c5c8c4"
-            : tiled
-              ? "#d9e2df"
-              : "#ffffff",
-        map: tiled ? tile : wood,
+        color: room.paving
+          ? "#ffffff"
+          : room.outside
+            ? "#b4b6ac"
+            : room.shared
+              ? "#c5c8c4"
+              : tiled
+                ? "#d9e2df"
+                : "#ffffff",
+        map: room.paving
+          ? (() => {
+              const map = pavingTexture(room.paving.size, room.paving.color);
+              privateTextures.push(map);
+              return map;
+            })()
+          : tiled
+            ? tile
+            : wood,
         roughness: 0.9,
         side: THREE.DoubleSide,
       });
       scene.add(floorShape(room.polygon, mat, 0.002));
     }
+    const finishes = new Map<PlanWall, THREE.Material>();
+    for (const [index, wall] of plan.walls.entries()) {
+      if (wall.finish) {
+        const map = wallFinish(wall.finish.texture);
+        privateTextures.push(map);
+        finishes.set(
+          wall,
+          new THREE.MeshStandardMaterial({
+            color: wall.finish.color,
+            map,
+            roughness: 0.95,
+          }),
+        );
+      }
+      if (wall.climber) scene.add(climbingPlants(wall, index));
+    }
+    for (const item of plan.decorations ?? []) scene.add(terraceObject(item));
     function wallPiece(
       wall: PlanWall,
       from: number,
@@ -247,16 +300,26 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
       const angle = -Math.atan2(dz, dx);
       const x = wall.a[0] + dx * t,
         z = wall.a[1] + dz * t;
-      box(
+      const piece = box(
         x,
         (bottom + top) / 2,
         z,
         to - from,
         top - bottom,
         wall.thickness,
-        plaster,
+        finishes.get(wall) ?? plaster,
         angle,
       );
+      if (wall.finish) {
+        const positions = piece.geometry.getAttribute("position"),
+          uv = [];
+        for (let i = 0; i < positions.count; i++)
+          uv.push(positions.getX(i), positions.getY(i));
+        piece.geometry.setAttribute(
+          "uv",
+          new THREE.Float32BufferAttribute(uv, 2),
+        );
+      }
       if (bottom === 0)
         box(x, 0.045, z, to - from, 0.09, wall.thickness + 0.025, trim, angle);
       if (top === (wall.height ?? plan.ceilingHeight))
@@ -284,6 +347,13 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
           opening.sill + opening.height,
           height,
         );
+        if (opening.joinery) {
+          const model = glazedDoors(wall, opening, opening.joinery);
+          doorModels.set(opening.joinery.id, model);
+          scene.add(model.group);
+          end = opening.offset + opening.width;
+          continue;
+        }
         const ang = -Math.atan2(dz, dx);
         const at = (
           offset: number,
@@ -468,6 +538,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
       walk = enabled;
       controls.enabled = !enabled;
       ceiling.visible = enabled;
+      scene.background = new THREE.Color(enabled ? "#c8dfea" : "#eee9de");
       canvas.classList.toggle("walking", enabled);
       setWalking(enabled);
       if (enabled) {
@@ -484,12 +555,25 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
         yaw = pitch = 0;
         frame(top);
       },
-      room: (point) => {
-        if (!canStand(plan, point)) return;
+      room: (point, viewYaw = 0, viewPitch = 0) => {
+        if (!canStand(plan, point, 0.16, doorState)) return;
         p = [...point];
-        yaw = pitch = 0;
+        yaw = viewYaw;
+        pitch = viewPitch;
         setPosition([...p]);
         setWalk(true);
+      },
+      door: (id, open) => {
+        const next = { ...doorState, [id]: open };
+        if (walk && !canStand(plan, p, 0.16, next)) {
+          setDoorNotice("Zet eerst een stap bij de deur vandaan.");
+          return;
+        }
+        doorState = next;
+        doorModels.get(id)?.setOpen(open);
+        setDoors({ ...doorState });
+        setDoorNotice("");
+        dirty = true;
       },
     };
     frame();
@@ -583,10 +667,15 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
         forward /= norm;
         side /= norm;
         if (forward || side) {
-          p = moveInside(plan, p, [
-            (side * Math.cos(yaw) - forward * Math.sin(yaw)) * dt * 1.65,
-            (-forward * Math.cos(yaw) - side * Math.sin(yaw)) * dt * 1.65,
-          ]);
+          p = moveInside(
+            plan,
+            p,
+            [
+              (side * Math.cos(yaw) - forward * Math.sin(yaw)) * dt * 1.65,
+              (-forward * Math.cos(yaw) - side * Math.sin(yaw)) * dt * 1.65,
+            ],
+            doorState,
+          );
           look();
           if (now - lastReport > 80) {
             setPosition([...p]);
@@ -628,6 +717,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
       materials.forEach((m) => m.dispose());
       wood.dispose();
       tile.dispose();
+      privateTextures.forEach((t) => t.dispose());
       renderer.dispose();
       canvas.remove();
     };
@@ -676,7 +766,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
             aria-label="Plattegrond van boven"
             onClick={() => api.current?.reset(true)}
           >
-            <Map size={18} />
+            <MapIcon size={18} />
           </button>
           <button
             className="icon-button"
@@ -688,6 +778,24 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
           </button>
         </div>
         <div ref={host} className="interior-canvas" />
+        {joinery.length > 0 && (
+          <div className="interior-door-controls">
+            {joinery.map((j) => (
+              <button
+                key={j.id}
+                aria-pressed={doors[j.id] ?? j.defaultOpen}
+                onClick={() =>
+                  api.current?.door(j.id, !(doors[j.id] ?? j.defaultOpen))
+                }
+              >
+                <DoorOpen size={16} />
+                {j.label}{" "}
+                {(doors[j.id] ?? j.defaultOpen) ? "sluiten" : "openen"}
+              </button>
+            ))}
+            {doorNotice && <span role="status">{doorNotice}</span>}
+          </div>
+        )}
         {failed && (
           <div className="interior-failed" role="alert">
             3D kan niet starten. Schakel hardwareversnelling in je browser in en
@@ -768,7 +876,9 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
             <button
               key={room.id}
               className={walking && activeRoom?.id === room.id ? "active" : ""}
-              onClick={() => api.current?.room(room.center)}
+              onClick={() =>
+                api.current?.room(room.center, room.viewYaw, room.viewPitch)
+              }
             >
               <span>
                 <span
@@ -791,7 +901,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
           ))}
         </div>
         <div className="interior-provenance">
-          <strong>Uit jouw plattegrond</strong>
+          <strong>Bronnen en maten</strong>
           <p>
             3,70 m tuinbreedte · 2,64 m plafond in de woonkamer. Eén woonlaag;
             verdere maten en afwerking zijn benaderd.

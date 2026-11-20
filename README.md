@@ -55,6 +55,10 @@ De aangeleverde verkoopplattegrond is handmatig overgetrokken en geschaald op de
 
 Voor een ander huis voeg je een eigen privéprofiel toe. Het formaat wordt gevalideerd in `server/floorplan.mjs`; rendercode bevat geen woningindeling. Ruimtes in deze eerste interieurversie zijn nog geen automatische dossieronderdelen.
 
+Eigen foto's verfijnen het terras met grote grijze tegels, crèmekleurige wanden en klimop, een ronde houten klaptafel, donkere stoelen, plantenrek, potten en regenpijp. De glazen achterpui heeft een vast zijlicht en twee naar buiten openslaande deuren, met lichte verf binnen en dezelfde blauwgrijze kleur als de voordeur buiten. **Terrasdeuren openen/sluiten** wisselt de stand; gesloten deuren, vast glas en open deurvleugels houden de kijker tegen. Een deur wordt niet verplaatst als die in de nieuwe stand door de kijker zou gaan. Dit is een visuele reconstructie; exacte maten en kleuren zijn benaderingen.
+
+`src/terrace.ts` bouwt herbruikbare 3D-objecten. Tegels, wandafwerking, begroeiing, meubilair, kijkrichting en deurparameters komen uit het privéprofiel. Tegelafmetingen, losse objecten en begroeiing zijn afzonderlijk instelbaar. De bladgeometrie gebruikt instancing; een stilstaand beeld wordt niet telkens opnieuw gerenderd. Alle nieuwe profielvelden blijven behouden in de dossierexport.
+
 ## Projectindeling
 
 ```text

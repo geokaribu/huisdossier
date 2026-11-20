@@ -81,11 +81,85 @@ test("roof orthophoto projection keeps north at image-top in RD coordinates", ()
   geometry.dispose();
 });
 
+const joinery = {
+  id: "patio",
+  label: "Terrasdeuren",
+  fixedLeft: 0.2,
+  insideColor: "#f0eee5",
+  outsideColor: "#526371",
+  openAngle: 90,
+  defaultOpen: true,
+};
+
+test("glazed doors block when closed; fixed glass and outward-open leaves remain solid", () => {
+  const patio = {
+    ...plan,
+    walls: [
+      {
+        ...plan.walls[0],
+        openings: [{ ...plan.walls[0].openings[0], joinery }],
+      },
+    ],
+  };
+  assert.equal(canStand(patio, [3, 2.5]), true);
+  assert.equal(canStand(patio, [3, 2.5], 0.16, { patio: false }), false);
+  assert.equal(canStand(patio, [3, 2.08]), false);
+  assert.equal(canStand(patio, [3.3, 2.2]), false);
+  assert.equal(canStand(patio, [3.3, 3]), false);
+  assert.ok(moveInside(patio, [1, 2.5], [4, 0], { patio: false })[0] < 2.8);
+  assert.ok(moveInside(patio, [1, 2.5], [4, 0], { patio: true })[0] > 4.9);
+});
+
+test("terrace furniture uses its rotated footprint and decorative pots do not block walking", () => {
+  const furnished = {
+    ...plan,
+    walls: [],
+    decorations: [
+      {
+        id: "chair",
+        kind: "patio-chair",
+        center: [4, 2.5],
+        size: [0.5, 1],
+        height: 1,
+        rotation: Math.PI / 2,
+      },
+    ],
+  };
+  assert.equal(canStand(furnished, [4.4, 2.5]), false);
+  assert.equal(canStand(furnished, [4, 3]), true);
+  const decorative = {
+    ...furnished,
+    decorations: [{ ...furnished.decorations[0], solid: false }],
+  };
+  assert.equal(canStand(decorative, [4, 2.5]), true);
+});
+
 test("private floor plans remain isolated per house and are retained in a dossier export", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "huisdossier-interior-"));
   const folder = path.join(directory, "floorplans", "koekoekstraat-17");
   await mkdir(folder, { recursive: true });
-  await writeFile(path.join(folder, "plan.json"), JSON.stringify(plan));
+  const savedPlan = {
+    ...plan,
+    walls: [
+      {
+        ...plan.walls[0],
+        finish: { color: "#eeeecc", texture: "stucco" },
+        climber: { top: 2, coverage: 0.8, trellis: true },
+        openings: [{ ...plan.walls[0].openings[0], joinery }],
+      },
+    ],
+    decorations: [
+      {
+        id: "table",
+        kind: "patio-table",
+        center: [5, 4],
+        size: [0.8, 0.8],
+        height: 0.7,
+        solid: true,
+      },
+    ],
+  };
+  await writeFile(path.join(folder, "plan.json"), JSON.stringify(savedPlan));
   const { app, store } = createApp({
     directory,
     houses: [
@@ -100,7 +174,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
   try {
     const response = await fetch(`${base}/koekoekstraat-17/floorplan`);
     assert.equal(response.headers.get("cache-control"), "no-store");
-    assert.deepEqual(await response.json(), plan);
+    assert.deepEqual(await response.json(), savedPlan);
     assert.equal(await (await fetch(`${base}/other/floorplan`)).json(), null);
     assert.equal((await fetch(`${base}/missing/floorplan`)).status, 404);
     assert.equal(
@@ -110,7 +184,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
     const exported = await (
       await fetch(`${base}/koekoekstraat-17/export`)
     ).json();
-    assert.deepEqual(exported.floorplan, plan);
+    assert.deepEqual(exported.floorplan, savedPlan);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     store.close();

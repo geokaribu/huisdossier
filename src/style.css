@@ -1895,6 +1895,51 @@ select {
   border-radius: 5px;
   pointer-events: none;
 }
+.interior-door-controls {
+  position: absolute;
+  left: 20px;
+  top: 122px;
+  right: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-direction: column;
+}
+.interior-door-controls button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  background: #fdfcf9ed;
+  border: 1px solid #d2d1c6;
+  border-radius: 6px;
+  color: #34434a;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.interior-door-controls button:hover {
+  background: #fff;
+}
+.interior-door-controls > span {
+  font-size: 0.69rem;
+  line-height: 1.4;
+  padding: 7px 9px;
+  border-radius: 5px;
+  background: #fff4df;
+  color: #805729;
+}
+@media (max-width: 480px) {
+  .interior-door-controls {
+    left: 12px;
+    right: 12px;
+    top: 107px;
+  }
+  .interior-door-controls button {
+    font-size: 0.66rem;
+    padding: 7px 9px;
+  }
+}
 .interior-status .status-dot {
   width: 6px;
   height: 6px;

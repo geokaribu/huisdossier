@@ -8,6 +8,19 @@ const point = z.tuple([
 ]);
 const polygon = z.array(point).min(3).max(100);
 const color = z.string().regex(/^#[0-9a-f]{6}$/i);
+const positiveSize = z.tuple([
+  z.number().positive().max(10),
+  z.number().positive().max(10),
+]);
+const joinery = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  fixedLeft: z.number().nonnegative(),
+  insideColor: color,
+  outsideColor: color,
+  openAngle: z.number().min(65).max(100),
+  defaultOpen: z.boolean(),
+});
 const schema = z.object({
   version: z.literal(1),
   label: z.string(),
@@ -29,6 +42,11 @@ const schema = z.object({
         outside: z.boolean().optional(),
         shared: z.boolean().optional(),
         floor: z.enum(["wood", "tile"]).optional(),
+        paving: z
+          .object({ size: z.number().positive().max(2), color })
+          .optional(),
+        viewYaw: z.number().finite().optional(),
+        viewPitch: z.number().min(-1.25).max(1.25).optional(),
       }),
     )
     .max(100),
@@ -40,6 +58,16 @@ const schema = z.object({
           b: point,
           thickness: z.number().min(0.04).max(1),
           height: z.number().positive().max(5).optional(),
+          finish: z
+            .object({ color, texture: z.enum(["stucco", "brick"]) })
+            .optional(),
+          climber: z
+            .object({
+              top: z.number().positive().max(4),
+              coverage: z.number().min(0).max(1),
+              trellis: z.boolean(),
+            })
+            .optional(),
           openings: z
             .array(
               z.object({
@@ -48,6 +76,7 @@ const schema = z.object({
                 sill: z.number().nonnegative(),
                 height: z.number().positive(),
                 kind: z.enum(["door", "window"]),
+                joinery: joinery.optional(),
               }),
             )
             .default([]),
@@ -70,6 +99,15 @@ const schema = z.object({
                 message: "Openingen overlappen of vallen buiten de wand",
               });
             end = opening.offset + opening.width;
+            if (
+              opening.joinery &&
+              (opening.kind !== "door" ||
+                opening.width - opening.joinery.fixedLeft < 0.8 - 1e-6)
+            )
+              ctx.addIssue({
+                code: "custom",
+                message: "Glazen deur heeft geen bruikbare doorgang",
+              });
           }
         }),
     )
@@ -88,11 +126,34 @@ const schema = z.object({
           "stairs",
         ]),
         center: point,
-        size: point,
+        size: positiveSize,
         height: z.number().positive().max(3),
       }),
     )
     .max(100),
+  decorations: z
+    .array(
+      z.object({
+        id: z.string(),
+        kind: z.enum([
+          "patio-table",
+          "patio-chair",
+          "plant-shelf",
+          "planter",
+          "rain-pipe",
+        ]),
+        center: point,
+        size: positiveSize,
+        height: z.number().positive().max(4),
+        rotation: z.number().finite().optional(),
+        base: z.number().nonnegative().max(3).optional(),
+        color: color.optional(),
+        plant: z.enum(["flowers", "shrub"]).optional(),
+        solid: z.boolean().optional(),
+      }),
+    )
+    .max(100)
+    .optional(),
 });
 
 export async function readFloorplan(directory, houseId) {

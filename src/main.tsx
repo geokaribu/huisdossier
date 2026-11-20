@@ -38,6 +38,8 @@ import { request } from "./api";
 import { DocumentReader, categoryName } from "./DocumentReader";
 import { DossierHome } from "./DossierHome";
 import { FurnishingChoice } from "./FurnishingChoice";
+import { LightingControls } from "./LightingControls";
+import { defaultLightingSettings } from "./lighting";
 import { floorplanForView } from "./furnishings";
 import type { FurnishingView } from "./furnishings";
 import { assetIcon, kindName } from "./dossierDisplay";
@@ -49,6 +51,7 @@ import type {
   Dossier,
   Point,
   Floorplan,
+  LightingEnvironment,
 } from "./types";
 import "./style.css";
 const Viewer = lazy(() =>
@@ -77,6 +80,8 @@ const fileSize = (n: number) =>
     ? `${Math.max(1, Math.round(n / 1024))} kB`
     : `${(n / 1024 / 1024).toFixed(1)} MB`;
 function App() {
+  const [lighting, setLighting] = useState<LightingEnvironment | null>(null);
+  const [lightSettings, setLightSettings] = useState(defaultLightingSettings);
   const [floorplan, setFloorplan] = useState<Floorplan | null>(null);
   const [furnishingView, setFurnishingView] =
     useState<FurnishingView>("furnished");
@@ -149,6 +154,8 @@ function App() {
     setData(null);
     setAppearance(null);
     setFloorplan(null);
+    setLighting(null);
+    setLightSettings(defaultLightingSettings());
     setDossier({ assets: [], attachments: [], tasks: [] });
     setPlacing(false);
     setReaderId(null);
@@ -164,12 +171,18 @@ function App() {
       request<Dossier>(`/api/houses/${houseId}/dossier`),
       request<HouseAppearance | null>(`/api/houses/${houseId}/appearance`),
       request<Floorplan | null>(`/api/houses/${houseId}/floorplan`),
+      request<LightingEnvironment | null>(`/api/houses/${houseId}/lighting`),
     ])
-      .then(([model, records, finish, plan]) => {
+      .then(([model, records, finish, plan, light]) => {
         if (!cancelled) {
           setData(model);
           setAppearance(finish);
           setFloorplan(plan);
+          setLighting(light);
+          setLightSettings((s) => ({
+            ...s,
+            selectedLampId: light?.lamps[0]?.id ?? "",
+          }));
           document.title = `${model.house.address} · Geokari Huisdossier`;
           setDossier(records);
           setSelectedId(`${houseId}:building`);
@@ -653,6 +666,16 @@ function App() {
           </div>
         ) : (
           <>
+            {(page === "model" || page === "interior") && (
+              <LightingControls
+                data={data}
+                profile={lighting}
+                settings={lightSettings}
+                onChange={setLightSettings}
+                onProfile={setLighting}
+                interiorAvailable={Boolean(floorplan && appearance?.rear)}
+              />
+            )}
             {floorplan && (page === "model" || page === "interior") && (
               <FurnishingChoice
                 value={furnishingView}
@@ -702,6 +725,10 @@ function App() {
                   }
                 >
                   <InteriorViewer
+                    data={data}
+                    appearance={appearance}
+                    lighting={lighting}
+                    lightSettings={lightSettings}
                     key={`${houseId}:${initialRoom ?? "overview"}`}
                     plan={displayPlan!}
                     initialRoomId={initialRoom}
@@ -735,6 +762,11 @@ function App() {
                     }
                   >
                     <Viewer
+                      lighting={lighting}
+                      lightSettings={lightSettings}
+                      onNeighbors={(enabled) =>
+                        setLightSettings((s) => ({ ...s, neighbors: enabled }))
+                      }
                       data={data}
                       appearance={appearance}
                       floorplan={displayPlan}

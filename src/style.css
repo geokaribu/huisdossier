@@ -2661,3 +2661,186 @@ select {
     font-size: 0.58rem;
   }
 }
+/* Shared day/night controls; source facts and scenario assumptions stay distinct. */
+.lighting-panel {
+  margin-bottom: 16px;
+  border: 1px solid var(--line, #deded5);
+  border-radius: 12px;
+  background: #fffdf8;
+}
+.lighting-active .model-label {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(255, 253, 248, 0.94);
+}
+.lighting-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+}
+.lighting-panel > summary > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 650;
+  color: #192f45;
+}
+.lighting-panel > summary small {
+  color: #637065;
+  font-size: 12px;
+}
+.lighting-body {
+  padding: 0 20px 18px;
+  font-size: 13px;
+}
+.lighting-body label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.lighting-switch {
+  font-weight: 650;
+  margin-bottom: 15px;
+}
+.lighting-calendar {
+  display: flex;
+  align-items: end;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.lighting-calendar > label,
+.lamp-fields > label,
+.lamp-settings > label {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+}
+.lighting-body input:not([type="checkbox"]):not([type="range"]),
+.lighting-body select {
+  border: 1px solid #d8dcd6;
+  background: white;
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+  color: #192f45;
+  font: inherit;
+  max-width: 100%;
+}
+.lighting-presets {
+  display: flex;
+  gap: 8px;
+}
+.lighting-body button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f6f2e7;
+  border: 1px solid #d8dcd6;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.lighting-body button:hover {
+  background: #f9e4cb;
+}
+.lighting-time {
+  width: 100%;
+  margin: 18px 0 0;
+  accent-color: #f8891e;
+}
+.lighting-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #637065;
+}
+.lighting-status {
+  color: #192f45;
+  font-variant-numeric: tabular-nums;
+}
+.lighting-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin: 15px 0;
+}
+.lighting-body input[type="checkbox"] {
+  accent-color: #192f45;
+  width: 16px;
+  height: 16px;
+}
+.lighting-exposure {
+  max-width: 380px;
+  margin-bottom: 16px;
+}
+.lighting-exposure input {
+  flex: 1;
+  min-width: 50px;
+  accent-color: #f8891e;
+}
+.lamp-settings,
+.lighting-source {
+  padding: 12px 0;
+  border-top: 1px solid #e5e6df;
+}
+.lamp-settings summary,
+.lighting-source summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #192f45;
+}
+.lamp-settings summary svg {
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.lighting-body p {
+  line-height: 1.6;
+  max-width: 85ch;
+}
+.lamp-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.lamp-facts,
+.lighting-hint {
+  color: #637065;
+}
+.lamp-save {
+  margin-left: 10px;
+}
+.lighting-hint {
+  margin-bottom: 0;
+}
+@media (max-width: 700px) {
+  .lighting-panel > summary {
+    align-items: start;
+    flex-direction: column;
+    padding: 14px;
+    gap: 5px;
+  }
+  .lighting-body {
+    padding: 0 14px 16px;
+  }
+  .lamp-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lighting-calendar {
+    gap: 10px;
+  }
+  .lighting-calendar > label {
+    flex: 1;
+    min-width: 120px;
+  }
+  .lighting-presets {
+    width: 100%;
+  }
+  .lighting-options {
+    flex-direction: column;
+  }
+}

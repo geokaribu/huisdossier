@@ -52,6 +52,17 @@ export function triangulateSurface(
   );
   if (!faces.length) return null;
   const vertices = rings.flat();
+  // Earcut's 2D winding depends on the chosen projection axis. Restore the
+  // source polygon orientation so lighting/shadow normal offsets face outward.
+  for (const face of faces) {
+    const a = vertices[face[0]],
+      b = vertices[face[1]],
+      c = vertices[face[2]];
+    const faceNormal = new THREE.Vector3()
+      .subVectors(b, a)
+      .cross(new THREE.Vector3().subVectors(c, a));
+    if (faceNormal.dot(normal) < 0) [face[1], face[2]] = [face[2], face[1]];
+  }
   const positions = faces.flatMap((face) =>
     face.flatMap((index) => vertices[index].toArray()),
   );

@@ -15,12 +15,16 @@ import {
   Footprints,
 } from "lucide-react";
 import { triangulateSurface } from "./geometry";
+import { createLightingRig, contextBuildings } from "./lightingScene";
+import type { LightingRig } from "./lightingScene";
 import type {
   HouseData,
   Asset,
   Point,
   HouseAppearance,
   Floorplan,
+  LightingEnvironment,
+  LightingSettings,
 } from "./types";
 import {
   frontRelief,
@@ -39,6 +43,9 @@ import {
 } from "./appearance";
 
 interface Props {
+  lighting: LightingEnvironment | null;
+  lightSettings: LightingSettings;
+  onNeighbors: (enabled: boolean) => void;
   data: HouseData;
   appearance: HouseAppearance | null;
   floorplan: Floorplan | null;
@@ -66,6 +73,9 @@ interface ViewerApi {
 }
 
 export function Viewer({
+  lighting,
+  lightSettings,
+  onNeighbors,
   data,
   appearance,
   floorplan,
@@ -83,7 +93,10 @@ export function Viewer({
   const sceneView = useRef<{ camera: number[]; target: number[] } | null>(null);
   const callbacks = useRef({ onSelect, onPlace, placing });
   callbacks.current = { onSelect, onPlace, placing };
-  const [context, setContext] = useState(false);
+  const context = lightSettings.neighbors;
+  const rig = useRef<LightingRig | null>(null);
+  const lightState = useRef({ lighting, lightSettings });
+  lightState.current = { lighting, lightSettings };
   const [wire, setWire] = useState(false);
   const [top, setTop] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -160,6 +173,7 @@ export function Viewer({
         )
       : null;
     if (facadeMap) {
+      facadeMap.userData.bakedLighting = true;
       facadeMap.colorSpace = THREE.SRGBColorSpace;
       facadeMap.anisotropy = 8;
     }
@@ -172,11 +186,13 @@ export function Viewer({
         )
       : null;
     if (aerialMap) {
+      aerialMap.userData.bakedLighting = true;
       aerialMap.colorSpace = THREE.SRGBColorSpace;
       aerialMap.anisotropy = 8;
     }
     const targetBox = new THREE.Box3();
     for (const building of data.buildings) {
+      if (!building.target) continue;
       const group = new THREE.Group();
       group.userData.isTarget = building.target;
       for (const [surfaceIndex, surface] of building.surfaces.entries()) {
@@ -260,6 +276,8 @@ export function Viewer({
       buildings.add(group);
     }
     scene.add(buildings);
+    const neighbors = contextBuildings(data, origin);
+    buildings.add(neighbors);
     const details = appearance
       ? facadeDetails(appearance, origin, target.surfaces, textures?.roofMap)
       : new THREE.Group();
@@ -453,6 +471,11 @@ export function Viewer({
     };
     controls.addEventListener("change", requestRender);
     invalidate = requestRender;
+    rig.current = createLightingRig(scene, renderer, data, requestRender);
+    rig.current.update(
+      lightState.current.lighting,
+      lightState.current.lightSettings,
+    );
     const pins = new THREE.Group();
     scene.add(pins);
     const cleanGroup = (group: THREE.Group) => {
@@ -484,6 +507,7 @@ export function Viewer({
         a.click();
       },
       update(showContext, wireframe, current, currentAssets, showStyle) {
+        renderer.shadowMap.needsUpdate = true;
         buildings.children.forEach((g) => {
           g.visible = g.userData.isTarget || showContext;
         });
@@ -514,7 +538,14 @@ export function Viewer({
           const textured = Boolean(
             showStyle && appearance && mesh.userData.isTarget,
           );
-          const map = textured ? mesh.userData.styleMap : null;
+          const styleMap = textured
+            ? (mesh.userData.styleMap as THREE.Texture | null)
+            : null;
+          const map =
+            lightState.current.lightSettings.enabled &&
+            styleMap?.userData.bakedLighting
+              ? null
+              : styleMap;
           const clip = textured && !wireframe ? mesh.userData.styleClip : null;
           if (material.clippingPlanes !== clip) {
             material.clippingPlanes = clip;
@@ -542,7 +573,7 @@ export function Viewer({
           edges.visible = !showStyle || !appearance;
         });
         details.visible = Boolean(showStyle && appearance && !wireframe);
-        grid.visible = showContext;
+        grid.visible = showContext && !lightState.current.lightSettings.enabled;
         cleanGroup(pins);
         currentAssets
           .filter((a) => a.position)
@@ -638,6 +669,8 @@ export function Viewer({
       cancelAnimationFrame(animationFrame);
       controls.removeEventListener("change", requestRender);
       controls.dispose();
+      rig.current?.dispose();
+      rig.current = null;
       api.current = null;
       renderer.domElement.removeEventListener("pointerdown", pointerDown);
       renderer.domElement.removeEventListener("pointerup", click);
@@ -660,11 +693,24 @@ export function Viewer({
     };
   }, [data, appearance, floorplan, onError]);
   useEffect(() => {
+    rig.current?.update(lighting, lightSettings);
+  }, [lighting, lightSettings, data, appearance, floorplan]);
+  useEffect(() => {
     api.current?.update(context, wire, selected, assets, styled);
-  }, [context, wire, selected, assets, data, appearance, floorplan, styled]);
+  }, [
+    context,
+    wire,
+    selected,
+    assets,
+    data,
+    appearance,
+    floorplan,
+    styled,
+    lightSettings.enabled,
+  ]);
   return (
     <section
-      className={`viewer ${placing ? "placing" : ""}`}
+      className={`viewer ${placing ? "placing" : ""} ${lightSettings.enabled ? "lighting-active" : ""}`}
       aria-label="Huis verkennen"
     >
       <div className="viewer-toolbar">
@@ -799,7 +845,7 @@ export function Viewer({
           <input
             type="checkbox"
             checked={context}
-            onChange={(e) => setContext(e.target.checked)}
+            onChange={(e) => onNeighbors(e.target.checked)}
           />{" "}
           Omgeving
         </label>
@@ -841,7 +887,7 @@ export function Viewer({
           onClick={() => {
             setTop(false);
             setWire(false);
-            setContext(false);
+            onNeighbors(false);
             api.current?.frame();
           }}
         >

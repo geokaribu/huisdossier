@@ -7,6 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "import:lighting": "node scripts/import-lighting.mjs",
     "dev": "node server/index.mjs",
     "build": "tsc --noEmit && vite build",
     "start": "node server/index.mjs --production",
@@ -22,6 +23,7 @@
     "polygon-clipping": "^0.15.7",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "suncalc": "^2.1.4",
     "three": "^0.187.0",
     "zod": "^4.6.7"
   },

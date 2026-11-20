@@ -1,4 +1,42 @@
 export type Point = [number, number, number];
+export interface LampScenario {
+  height: number;
+  lumens: number;
+  kelvin: number;
+  distribution: "point" | "downward";
+}
+export interface LightingEnvironment {
+  version: 1;
+  latitude: number;
+  longitude: number;
+  timeZone: "Europe/Amsterdam";
+  source: {
+    url: string;
+    attribution: string;
+    license: string;
+    fetchedAt: string;
+    note: string;
+  };
+  lamps: {
+    id: string;
+    label: string;
+    rd: [number, number];
+    sourceType: string;
+    armatureType: string | null;
+    sourceDate: string | null;
+    scenario: LampScenario;
+  }[];
+}
+export interface LightingSettings {
+  enabled: boolean;
+  date: string;
+  time: string;
+  neighbors: boolean;
+  streetLights: boolean;
+  indoorLights: boolean;
+  selectedLampId: string;
+  exposure: number;
+}
 export interface Surface {
   type: string;
   rings: Point[][];

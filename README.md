@@ -37,6 +37,8 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 
 ## Wat het model voorstelt
 
+**Licht & schaduw** voegt datum/tijd, zonstand, schaduw van buurhuizen en een nachtstand met BGT-lichtmastposities toe, binnen en buiten. Lampinstellingen zijn per mast lokaal te bewaren; onbekende armatuurgegevens blijven expliciete aannames. Importeer een lichtomgeving met `npm run import:lighting -- <woning-id>`. Zie [bronnen, bediening en nauwkeurigheid](docs/lighting.md).
+
 Het adres is via het officiële BAG-verblijfsobject `0344010000061984` gekoppeld aan pand `0344100000021151`. Dat pand bevat **drie verblijfsobjecten**; het model toont de gedeelde buitenzijde, geen afbakening van alleen nummer 17.
 
 De oorspronkelijke geometrie komt uit 3DBAG LoD 2.2, gebaseerd op BAG en AHN. Het bovenaanzicht is een zicht op het gebouwmodel, geen ingemeten plattegrond. BAG-bouwjaar en gebruiksoppervlakte zijn registratiewaarden, geen eigen inmeting. De bestaande voorbeeldonderdelen komen uit de projectcontext; hun exacte locatie en toestelgegevens zijn onbekend totdat de bewoner ze invult.

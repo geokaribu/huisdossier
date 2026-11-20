@@ -13,7 +13,17 @@ import {
   RotateCcw,
   DoorOpen,
 } from "lucide-react";
-import type { Floorplan, PlanPoint, PlanWall, Point } from "./types";
+import type {
+  Floorplan,
+  PlanPoint,
+  PlanWall,
+  Point,
+  HouseData,
+  HouseAppearance,
+  LightingEnvironment,
+  LightingSettings,
+} from "./types";
+import { createLightingRig } from "./lightingScene";
 import {
   canStand,
   insidePolygon,
@@ -112,11 +122,19 @@ function tileFinish(size: number, color: string, groutColor: string) {
 }
 
 export function InteriorViewer({
+  data,
+  appearance,
+  lighting,
+  lightSettings,
   plan,
   initialRoomId,
   onDossier,
   dossierRooms = [],
 }: {
+  data: HouseData;
+  appearance: HouseAppearance | null;
+  lighting: LightingEnvironment | null;
+  lightSettings: LightingSettings;
   plan: Floorplan;
   initialRoomId?: string;
   onDossier?: (roomId: string) => void;
@@ -124,6 +142,9 @@ export function InteriorViewer({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<InteriorApi | null>(null);
+  const updateLighting = useRef<(() => void) | null>(null);
+  const lightState = useRef({ lighting, lightSettings });
+  lightState.current = { lighting, lightSettings };
   const movement = useRef(new Set<string>());
   const sceneState = useRef<{
     position: PlanPoint;
@@ -171,6 +192,7 @@ export function InteriorViewer({
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setClearColor("#eee9de");
     renderer.shadowMap.enabled = true;
+    renderer.localClippingEnabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -633,6 +655,26 @@ export function InteriorViewer({
       yaw = 0,
       pitch = 0,
       dragged = false;
+    const rig = appearance?.rear
+      ? createLightingRig(scene, renderer, data, invalidate, {
+          appearance,
+          plan,
+        })
+      : null;
+    updateLighting.current = () => {
+      const state = lightState.current;
+      rig?.update(state.lighting, state.lightSettings);
+      const simulate = Boolean(
+        rig && state.lighting && state.lightSettings.enabled,
+      );
+      if (!simulate)
+        scene.background = new THREE.Color(walk ? "#c8dfea" : "#eee9de");
+      ceiling.visible = walk || simulate;
+      // In the dollhouse view, hide the ceiling from the camera while retaining its shadow.
+      const mat = ceiling.material as THREE.MeshStandardMaterial;
+      mat.colorWrite = mat.depthWrite = walk;
+      dirty = true;
+    };
     const frame = (top = false) => {
       camera.fov = 58;
       camera.updateProjectionMatrix();
@@ -661,6 +703,7 @@ export function InteriorViewer({
       controls.enabled = !enabled;
       ceiling.visible = enabled;
       scene.background = new THREE.Color(enabled ? "#c8dfea" : "#eee9de");
+      updateLighting.current?.();
       canvas.classList.toggle("walking", enabled);
       setWalking(enabled);
       if (enabled) {
@@ -695,6 +738,7 @@ export function InteriorViewer({
         }
         doorState = next;
         doorModels.get(id)?.setOpen(open);
+        renderer.shadowMap.needsUpdate = true;
         setDoors({ ...doorState });
         setDoorNotice("");
         dirty = true;
@@ -842,6 +886,7 @@ export function InteriorViewer({
       }
     };
     frameId = requestAnimationFrame(tick);
+    updateLighting.current();
     return () => {
       sceneState.current = {
         position: [...p],
@@ -866,6 +911,8 @@ export function InteriorViewer({
       canvas.removeEventListener("pointerup", up);
       canvas.removeEventListener("pointercancel", up);
       controls.dispose();
+      rig?.dispose();
+      updateLighting.current = null;
       controls.removeEventListener("change", invalidate);
       const materials = new Set<THREE.Material>();
       scene.traverse((o) => {
@@ -887,7 +934,10 @@ export function InteriorViewer({
     };
     // A house change remounts the viewer; the scene is entirely profile-driven.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan]);
+  }, [plan, data, appearance]);
+  useEffect(() => {
+    updateLighting.current?.();
+  }, [lighting, lightSettings]);
 
   const pad = (key: string, label: string, Icon: typeof ArrowUp) => (
     <button

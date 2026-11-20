@@ -7,6 +7,7 @@ import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createStore } from "./store.mjs";
 import { floorplanForView } from "../src/furnishings.ts";
+import { readLighting, saveLampScenario } from "./lighting.mjs";
 import {
   readFloorplan,
   clientFloorplan,
@@ -81,6 +82,20 @@ export function createApp({ directory, houses, root }) {
   app.get("/api/houses/:houseId/dossier", (req, res) =>
     res.json(store.dossier(req.params.houseId)),
   );
+  app.get("/api/houses/:houseId/lighting", async (req, res) =>
+    res.json(await readLighting(directory, req.params.houseId)),
+  );
+  app.patch("/api/houses/:houseId/lighting/:lampId", async (req, res) => {
+    const ok = await saveLampScenario(
+      directory,
+      req.params.houseId,
+      req.params.lampId,
+      req.body,
+    );
+    res
+      .status(ok ? 200 : 404)
+      .json(ok ? { ok: true } : { error: "Lichtmast niet gevonden." });
+  });
   app.get("/api/houses/:houseId/floorplan", async (req, res) => {
     const view = z
       .enum(["furnished", "unfurnished"])
@@ -297,6 +312,7 @@ export function createApp({ directory, houses, root }) {
       files,
       appearance: await exportAppearance(directory, houseId),
       floorplan: plan,
+      lighting: await readLighting(directory, houseId),
       floorplanVariants: plan
         ? {
             furnished: plan,

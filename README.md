@@ -29,6 +29,7 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 - Onderhoud of een melding aan een onderdeel koppelen, dateren, afvinken en heropenen.
 - Het volledige dossier exporteren, inclusief model, metadata en originele bestandsinhoud als base64 in één JSON-bestand.
 - Op smalle schermen navigeren met het menu bovenaan.
+- **Binnen kijken**: een open 3D-overzicht van de aangeleverde woonlaag, kamerkeuze en rondlopen met WASD/pijltjes of de loopknoppen. Sleep om te kijken; Escape keert terug naar het overzicht. Muren en vaste inrichting begrenzen het lopen; deuropeningen zijn doorgangen.
 
 ## Wat het model voorstelt
 
@@ -42,9 +43,17 @@ De oorspronkelijke geometrie komt uit 3DBAG LoD 2.2, gebaseerd op BAG en AHN. He
 
 Een optioneel profiel onder `data/appearance/<woning-id>/profile.json` koppelt een lokaal gevelbeeld aan één RD/NAP-projectievlak. De textuur loopt door over alle coplanaire voorgevelvlakken; de zijkanten krijgen een aparte, indicatieve materiaalafwerking. Zet **Gevelafwerking** uit om de oorspronkelijke BAG-geometrie en basiskleuren te bekijken. De knop met het huisje toont de voorgevel.
 
-Voor de eigen woning is een AI-gecorrigeerd gevelbeeld gemaakt uit twee door de gebruiker aangeleverde Google Maps-screenshots. Het is een visuele reconstructie, geen ongewijzigde foto of inmeting. Bedekte delen zijn aangevuld. De dakkapel, dakmaterialen, kleine reliëfdetails en zijgevels zijn indicatief; er is geen interieur toegevoegd. De oorspronkelijke brongeometrie blijft intact. De decoratieve dakvariant gebruikt een expliciete lijst bronvlakken; controleer het profiel en die indices opnieuw na een modelherimport.
+Voor de eigen woning is een AI-gecorrigeerd gevelbeeld gemaakt uit twee door de gebruiker aangeleverde Google Maps-screenshots. Het is een visuele reconstructie, geen ongewijzigde foto of inmeting. Bedekte delen zijn aangevuld. De zinken voorste dakhelling, dakkapel, balkonhek en houten zonweringskast zijn visueel benaderd uit deze beelden. Een echte [PDOK RGB-luchtfoto](https://www.pdok.nl/ogc-webservices/-/article/pdok-luchtfoto-rgb-open-) wordt op de bovenzijde van het dak geprojecteerd met het RD-bereik van de WMS-aanvraag. De luchtfoto bevat belichting en schaduwen; dakobjecten in de foto zijn daarmee nog geen losse 3D-objecten. Kleine reliëfdetails en zijgevels zijn indicatief. De oorspronkelijke brongeometrie blijft intact. De decoratieve dakvariant gebruikt een expliciete lijst bronvlakken; controleer het profiel en die indices opnieuw na een modelherimport.
 
 Het gevelbeeld, de parameters, de promptnotitie en de bronattributie blijven in de genegeerde `data/`-map. Ze worden niet naar GitHub gepusht. Een verse checkout bevat daarom geen privé-gevelbeeld. De volledige dossierexport bevat het profiel en de originele textuurbestanden; de open-datalicentie van 3DBAG wordt niet op die beelden toegepast. De API biedt uitsluitend bestanden aan die bij het gekozen huisprofiel horen.
+
+## Interieur uit een plattegrond
+
+Een optioneel privéprofiel staat in `data/floorplans/<woning-id>/plan.json`. De generieke viewer gebruikt kamerpolygonen, wandsegmenten met deur- en raamopeningen, vaste inrichting en beginposities in lokale meters. Dit profiel gaat mee in de dossierexport. Het wordt niet in Git opgeslagen of automatisch uit een afbeelding gegenereerd.
+
+De aangeleverde verkoopplattegrond is handmatig overgetrokken en geschaald op de vermelde tuinbreedte van 3,70 m. De plafondhoogte van 2,64 m staat bij de woonkamer; dezelfde hoogte in andere kamers is een aanname. Kameroppervlakken zijn de labels op de tekening. Keuken, kasten, sanitair en trap volgen de getekende posities; kleuren en afwerking zijn indicatief. Alleen deze ene woonlaag is uitgewerkt. De trap is context, geen toegang tot een verzonnen verdieping. Het interieur heeft nog geen ingemeten registratie op het buitenmodel en vervangt de BAG-oppervlakte niet. Kamerkeuze verplaatst de kijker direct naar een vrije beginplek; met de loopbediening beweeg je door de openingen.
+
+Voor een ander huis voeg je een eigen privéprofiel toe. Het formaat wordt gevalideerd in `server/floorplan.mjs`; rendercode bevat geen woningindeling. Ruimtes in deze eerste interieurversie zijn nog geen automatische dossieronderdelen.
 
 ## Projectindeling
 

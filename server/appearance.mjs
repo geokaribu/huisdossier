@@ -12,6 +12,24 @@ const schema = z
     description: z.string(),
     attribution: z.string(),
     generated: z.boolean(),
+    aerial: z
+      .object({
+        texture: filename,
+        bbox: z.tuple([
+          z.number().finite(),
+          z.number().finite(),
+          z.number().finite(),
+          z.number().finite(),
+        ]),
+        attribution: z.string(),
+        url: z.string().url(),
+        fetchedAt: z.string(),
+      })
+      .refine(
+        (a) => a.bbox[2] > a.bbox[0] && a.bbox[3] > a.bbox[1],
+        "Ongeldig luchtfotobereik",
+      )
+      .optional(),
     front: z.object({
       left: point,
       right: point,
@@ -29,6 +47,7 @@ const schema = z
         dormerWidth: z.number().positive(),
         dormerInset: z.number().positive(),
         dormerBottom: z.number().finite(),
+        awningWidth: z.number().positive().optional(),
       })
       .optional(),
   })
@@ -65,18 +84,20 @@ export async function readAppearance(directory, houseId) {
 export async function exportAppearance(directory, houseId) {
   const profile = await readAppearance(directory, houseId);
   if (!profile) return null;
-  const name = profile.front.texture;
   return {
     profile,
-    files: [
-      {
+    files: await Promise.all(
+      [
+        profile.front.texture,
+        ...(profile.aerial ? [profile.aerial.texture] : []),
+      ].map(async (name) => ({
         name,
         base64: (
           await readFile(
             path.join(appearanceDirectory(directory, houseId), name),
           )
         ).toString("base64"),
-      },
-    ],
+      })),
+    ),
   };
 }

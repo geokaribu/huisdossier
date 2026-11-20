@@ -4,11 +4,13 @@
 
 Bron: gesprek met Karian/Kilian op 20 november 2026; het voorstel om een eerste inspecteerbare versie te maken is geaccepteerd. Eigen gebruik; Geokari-huisstijl. Bestaande conceptcontext: database eerst, geen permanente IoT, eigen huis gevolgd door het huis van de ouders.
 
-De eerste versie levert de geverifieerde buitenzijde van het pand, dossieronderdelen, originele bestanden en onderhoud. Plattegronden, ingemeten interieurs en fotorealisme hebben eigen opnames nodig en zijn nog niet opgenomen.
+De versie levert de geverifieerde buitenzijde van het pand, dossieronderdelen, originele bestanden en onderhoud. Aanvullende privéprofielen leveren een visuele gevel- en dakafwerking en één woonlaag uit de aangeleverde plattegrond. Deze aanvullende reconstructies zijn geen ingemeten geometrie.
 
 Aanvulling 20 november 2026: de gebruiker heeft twee gevelbeelden aangeleverd. Een apart lokaal afwerkingsprofiel projecteert een AI-gecorrigeerd frontbeeld op de bestaande voorgevel. Zijmaterialen, cornice en een opgeschoonde mansardedak/dakkapelvariant zijn visuele benaderingen. Het profiel kan worden uitgeschakeld; de originele brongeometrie wordt niet overschreven. Afwerking en attributie blijven privé in `data/appearance/` en gaan mee in de dossierexport. Deze laag staat los van de feitelijke BAG-gegevens en van toekomstige ingemeten geometrie.
 
 ## Structuur
+
+Een tweede aanvulling op 20 november 2026 gebruikt een PDOK-luchtfoto op dakvlakken en een handmatig overgetrokken plattegrond als los interieur. Beide profielen blijven in de privémap en in de volledige export. `InteriorViewer.tsx` leest uitsluitend profielgeometrie; `walkthrough.ts` verzorgt botsingen met wanden, doorgangen, vaste inrichting en de buitengrens. Kleine bewegingsstappen voorkomen dat een vertraagd frame een muur overslaat. De loopstand werkt met toetsen, slepen en zichtbare aanraakknoppen. De woonlaag is niet ingemeten gekoppeld aan het BAG-buitenmodel; er zijn geen andere verdiepingen afgeleid. De bron en aannames zijn vanuit de interface leesbaar.
 
 Een Node-proces serveert de lokale API en de webinterface. React/TypeScript verzorgt de interface; Three.js verzorgt alleen de weergave. Express valideert mutaties met Zod. Node SQLite bewaart records en losse bestanden bewaren de originelen. De keuze voor SQLite maakt deze versie eenvoudig op één computer te gebruiken; netwerkhosting of meerdere accounts vraagt een apart ontwerp en is geen impliciete vervolgfunctionaliteit.
 
@@ -20,7 +22,7 @@ De importer controleert het BAG-verblijfsobject, volgt de officiële pandrelatie
 
 1. Eerste inspectie met bewoners: model en adresrelatie beoordelen, oorspronkelijke tekeningen en gevelbeelden verzamelen.
 2. Foto's van ventilatie, elektriciteitskast en oven toevoegen; merk/type en echte plek vastleggen.
-3. Plattegrond en binnenindeling aanbrengen op basis van bronmateriaal, met bronvermelding en onzekerheid.
+3. De uitgewerkte plattegrond controleren met de bewoners, maten verifiëren en interieurfoto's toevoegen voor echte materialen; ruimte-ID's koppelen aan dossieronderdelen wanneer die hiërarchie wordt uitgewerkt.
 4. Eén ruimte of gevel met eigen opnames reconstrueren; fotogrammetrie en splats vergelijken op uiterlijk, bestandsomvang en browsergebruik.
 5. Back-upherstel via export, versiegeschiedenis en overdracht uitwerken voordat data op een gedeelde server komt.
 

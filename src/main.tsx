@@ -33,6 +33,7 @@ import {
   LoaderCircle,
   Building2,
   Layers3,
+  Footprints,
 } from "lucide-react";
 import { request } from "./api";
 import type {
@@ -42,13 +43,19 @@ import type {
   Task,
   Dossier,
   Point,
+  Floorplan,
 } from "./types";
 import "./style.css";
 const Viewer = lazy(() =>
   import("./Viewer").then((module) => ({ default: module.Viewer })),
 );
+const InteriorViewer = lazy(() =>
+  import("./InteriorViewer").then((module) => ({
+    default: module.InteriorViewer,
+  })),
+);
 
-type Page = "model" | "files" | "tasks" | "sources";
+type Page = "model" | "interior" | "files" | "tasks" | "sources";
 type Modal = "asset" | "upload" | "task" | "edit" | null;
 const localDate = () => new Date().toLocaleDateString("sv-SE");
 const formatDate = (date: string) =>
@@ -80,6 +87,7 @@ const assetIcon = (kind: string, size = 18) =>
   );
 
 function App() {
+  const [floorplan, setFloorplan] = useState<Floorplan | null>(null);
   const [appearance, setAppearance] = useState<HouseAppearance | null>(null);
   const [houseId, setHouseId] = useState("");
   const [houses, setHouses] = useState<
@@ -124,17 +132,20 @@ function App() {
     let cancelled = false;
     setData(null);
     setAppearance(null);
+    setFloorplan(null);
     setDossier({ assets: [], attachments: [], tasks: [] });
     setPlacing(false);
     Promise.all([
       request<HouseData>(`/data/${houseId}.json`),
       request<Dossier>(`/api/houses/${houseId}/dossier`),
       request<HouseAppearance | null>(`/api/houses/${houseId}/appearance`),
+      request<Floorplan | null>(`/api/houses/${houseId}/floorplan`),
     ])
-      .then(([model, records, finish]) => {
+      .then(([model, records, finish, plan]) => {
         if (!cancelled) {
           setData(model);
           setAppearance(finish);
+          setFloorplan(plan);
           document.title = `${model.house.address} · Geokari Huisdossier`;
           setDossier(records);
           setSelectedId(`${houseId}:building`);
@@ -355,6 +366,7 @@ function App() {
           {(
             [
               { id: "model", label: "Huis bekijken", Icon: Box },
+              { id: "interior", label: "Binnen kijken", Icon: Footprints },
               { id: "files", label: "Foto’s & documenten", Icon: FolderOpen },
               { id: "tasks", label: "Onderhoud", Icon: Wrench },
               { id: "sources", label: "Bronnen & model", Icon: Database },
@@ -493,6 +505,25 @@ function App() {
           </div>
         ) : (
           <>
+            {page === "interior" &&
+              (floorplan ? (
+                <Suspense
+                  fallback={
+                    <div className="loading">
+                      <LoaderCircle className="spin" size={28} />
+                      <p>Interieur laden…</p>
+                    </div>
+                  }
+                >
+                  <InteriorViewer key={houseId} plan={floorplan} />
+                </Suspense>
+              ) : (
+                <div className="loading">
+                  <Footprints size={30} />
+                  <h2>Nog geen interieur</h2>
+                  <p>Voor deze woning is nog geen plattegrond uitgewerkt.</p>
+                </div>
+              ))}
             {page === "model" && (
               <>
                 <div className="model-layout">
@@ -581,7 +612,18 @@ function App() {
                               </div>
                               <div>
                                 <dt>Interieur</dt>
-                                <dd>Nog vast te leggen</dd>
+                                <dd>
+                                  {floorplan ? (
+                                    <button
+                                      className="text-link"
+                                      onClick={() => setPage("interior")}
+                                    >
+                                      Binnen bekijken →
+                                    </button>
+                                  ) : (
+                                    "Nog vast te leggen"
+                                  )}
+                                </dd>
                               </div>
                             </dl>
                           )}
@@ -722,7 +764,7 @@ function App() {
                       : ""}
                     .{" "}
                     {appearance
-                      ? "De voorgevel is visueel gereconstrueerd uit je beelden. Zijgevels, dakmaterialen en kleine details zijn een benadering; het interieur is nog niet vastgelegd."
+                      ? `De voorgevel is visueel gereconstrueerd uit je beelden. ${appearance.aerial ? "De bovenzijde van het dak gebruikt een luchtfoto. " : ""}Zijgevels en dakdetails zijn benaderd. ${floorplan ? "Je plattegrond is uitgewerkt onder Binnen kijken." : "Het interieur is nog niet vastgelegd."}`
                       : "De binnenindeling, ramen en materialen zijn nog niet vastgelegd. Foto’s en scans maken het straks persoonlijker."}
                   </p>
                   <button onClick={() => setPage("sources")}>
@@ -915,9 +957,10 @@ function App() {
                       <h3>3DBAG: de buitenzijde</h3>
                       <p>
                         Een gereconstrueerd model op basis van BAG en
-                        hoogtegegevens. Het is geen bouwkundige inmeting.
-                        Materiaal, ramen, deuren en de indeling binnen zijn nog
-                        niet opgenomen.
+                        hoogtegegevens. Het is geen bouwkundige inmeting. Het
+                        bronmodel bevat geen materialen, ramen, deuren of
+                        binnenindeling. De aanvullende afwerking en het
+                        interieur hebben eigen bronnen.
                       </p>
                       <dl className="facts">
                         <div>
@@ -961,6 +1004,24 @@ function App() {
                       </p>
                     </div>
                   </div>
+                  {floorplan && (
+                    <div className="source-block">
+                      <span className="source-number">
+                        <Footprints size={22} />
+                      </span>
+                      <div>
+                        <h3>Plattegrond: één woonlaag</h3>
+                        <p>{floorplan.source}</p>
+                        <p>{floorplan.description}</p>
+                        <button
+                          className="button secondary"
+                          onClick={() => setPage("interior")}
+                        >
+                          <Footprints size={16} /> Binnen bekijken
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {appearance && (
                     <div className="source-block">
                       <span className="source-number">Foto</span>
@@ -979,6 +1040,23 @@ function App() {
                           {appearance.attribution} Het gevelbeeld blijft lokaal
                           en staat los van de geometrie en de open-datalicentie.
                         </p>
+                        {appearance.aerial && (
+                          <p>
+                            <a
+                              href={appearance.aerial.texture}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Bekijk de luchtfoto <ExternalLink size={14} />
+                            </a>
+                            <br />
+                            <small>
+                              {appearance.aerial.attribution}. Opgehaald op{" "}
+                              {formatDate(appearance.aerial.fetchedAt)}. De foto
+                              is op de bovenzijde van het dak geprojecteerd.
+                            </small>
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -988,7 +1066,11 @@ function App() {
                   <h2>Van gebouw naar jullie huis</h2>
                   <p>De volgende laag komt van jullie eigen materiaal.</p>
                   <ul>
-                    <li>Een plattegrond voor de binnenindeling</li>
+                    <li>
+                      {floorplan
+                        ? "Binnenindeling en rondlopen uit jullie plattegrond"
+                        : "Een plattegrond voor de binnenindeling"}
+                    </li>
                     <li>Foto’s van gevels en ruimtes</li>
                     <li>Scans voor meer detail</li>
                     <li>Toestelgegevens en onderhoudshistorie</li>

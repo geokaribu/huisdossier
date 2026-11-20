@@ -49,6 +49,23 @@ export function projectFront(
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
 }
 
+/** Orthophoto projection uses its exact RD bounding box; north is image-up. */
+export function projectAerial(
+  geometry: THREE.BufferGeometry,
+  profile: NonNullable<HouseAppearance["aerial"]>,
+  origin: Point,
+) {
+  const [xmin, ymin, xmax, ymax] = profile.bbox;
+  const positions = geometry.getAttribute("position"),
+    uv = [];
+  for (let i = 0; i < positions.count; i++)
+    uv.push(
+      (positions.getX(i) + origin[0] - xmin) / (xmax - xmin),
+      (-positions.getZ(i) + origin[1] - ymin) / (ymax - ymin),
+    );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+}
+
 /** Source-independent, approximate stucco and zinc materials. No invented windows. */
 export function materialTextures() {
   const stucco = document.createElement("canvas");
@@ -324,6 +341,27 @@ export function facadeDetails(
     );
     for (let x = a; x <= b; x += 0.14)
       box(front(x, r.dormerBottom + 0.32, 0.42), 0.018, 0.73, 0.018, metal);
+    if (r.awningWidth) {
+      const timber = new THREE.MeshStandardMaterial({
+        color: "#ad8555",
+        roughness: 0.85,
+      });
+      box(
+        front(width / 2, r.top - 0.25, 0.28),
+        r.awningWidth,
+        0.16,
+        0.38,
+        timber,
+      );
+      for (const x of [-r.awningWidth / 2, r.awningWidth / 2])
+        box(
+          front(width / 2 + x, r.top - 0.37, 0.22),
+          0.035,
+          0.26,
+          0.035,
+          metal,
+        );
+    }
   } else if (dormer) {
     const points = dormer.rings.flat();
     const cx = points.reduce((s, p) => s + p[0] / points.length, 0),

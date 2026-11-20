@@ -24,7 +24,7 @@ export function createStore(directory, houses) {
       house.id,
       "Het gebouw",
       "gebouw",
-      "De gereconstrueerde buitenzijde uit 3DBAG. De indeling binnen is nog niet vastgelegd.",
+      "De gereconstrueerde buitenzijde uit 3DBAG. Aanvullende afwerking en binnenindeling hebben eigen bronnen.",
       null,
     );
     add.run(

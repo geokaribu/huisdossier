@@ -6,6 +6,7 @@ import { mkdirSync } from "node:fs";
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createStore } from "./store.mjs";
+import { readFloorplan } from "./floorplan.mjs";
 import {
   appearanceDirectory,
   readAppearance,
@@ -69,6 +70,9 @@ export function createApp({ directory, houses, root }) {
   });
   app.get("/api/houses/:houseId/dossier", (req, res) =>
     res.json(store.dossier(req.params.houseId)),
+  );
+  app.get("/api/houses/:houseId/floorplan", async (req, res) =>
+    res.json(await readFloorplan(directory, req.params.houseId)),
   );
   app.post("/api/houses/:houseId/assets", (req, res) => {
     const data = assetSchema.parse(req.body);
@@ -156,6 +160,14 @@ export function createApp({ directory, houses, root }) {
       profile
         ? {
             ...profile,
+            ...(profile.aerial
+              ? {
+                  aerial: {
+                    ...profile.aerial,
+                    texture: `/api/houses/${req.params.houseId}/appearance/${profile.aerial.texture}`,
+                  },
+                }
+              : {}),
             front: {
               ...profile.front,
               texture: `/api/houses/${req.params.houseId}/appearance/${profile.front.texture}`,
@@ -166,12 +178,17 @@ export function createApp({ directory, houses, root }) {
   });
   app.get("/api/houses/:houseId/appearance/:file", async (req, res) => {
     const profile = await readAppearance(directory, req.params.houseId);
-    if (!profile || req.params.file !== profile.front.texture)
+    if (
+      !profile ||
+      ![profile.front.texture, profile.aerial?.texture].includes(
+        req.params.file,
+      )
+    )
       return res.status(404).json({ error: "Gevelbeeld niet gevonden." });
     res.sendFile(
       path.join(
         appearanceDirectory(directory, req.params.houseId),
-        profile.front.texture,
+        req.params.file,
       ),
     );
   });
@@ -201,6 +218,7 @@ export function createApp({ directory, houses, root }) {
       dossier: store.dossier(houseId),
       files,
       appearance: await exportAppearance(directory, houseId),
+      floorplan: await readFloorplan(directory, houseId),
     });
   });
   // Preserve API 404 semantics rather than serving the SPA for a mistyped endpoint.

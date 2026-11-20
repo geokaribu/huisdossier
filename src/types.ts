@@ -69,6 +69,13 @@ export interface HouseAppearance {
   description: string;
   attribution: string;
   generated: boolean;
+  aerial?: {
+    texture: string;
+    bbox: [number, number, number, number];
+    attribution: string;
+    url: string;
+    fetchedAt: string;
+  };
   front: {
     left: [number, number];
     right: [number, number];
@@ -85,5 +92,57 @@ export interface HouseAppearance {
     dormerWidth: number;
     dormerInset: number;
     dormerBottom: number;
+    awningWidth?: number;
   };
+}
+
+export type PlanPoint = [number, number];
+export interface PlanWall {
+  a: PlanPoint;
+  b: PlanPoint;
+  thickness: number;
+  height?: number;
+  openings: {
+    offset: number;
+    width: number;
+    sill: number;
+    height: number;
+    kind: "door" | "window";
+  }[];
+}
+export interface Floorplan {
+  version: 1;
+  label: string;
+  source: string;
+  description: string;
+  ceilingHeight: number;
+  outline: PlanPoint[];
+  ceiling: PlanPoint[];
+  spawn: PlanPoint;
+  rooms: {
+    id: string;
+    name: string;
+    polygon: PlanPoint[];
+    center: PlanPoint;
+    color: string;
+    area?: number;
+    outside?: boolean;
+    shared?: boolean;
+    floor?: "wood" | "tile";
+  }[];
+  walls: PlanWall[];
+  fixtures: {
+    kind:
+      | "counter"
+      | "sink"
+      | "hob"
+      | "toilet"
+      | "basin"
+      | "shower"
+      | "closet"
+      | "stairs";
+    center: PlanPoint;
+    size: PlanPoint;
+    height: number;
+  }[];
 }

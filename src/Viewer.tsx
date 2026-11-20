@@ -20,6 +20,7 @@ import {
   isFrontSurface,
   materialTextures,
   projectFront,
+  projectAerial,
   projectMaterial,
 } from "./appearance";
 
@@ -139,6 +140,18 @@ export function Viewer({
       facadeMap.colorSpace = THREE.SRGBColorSpace;
       facadeMap.anisotropy = 8;
     }
+    const aerialMap = appearance?.aerial
+      ? new THREE.TextureLoader().load(
+          appearance.aerial.texture,
+          () => invalidate(),
+          undefined,
+          () => onError("De luchtfoto kon niet worden geladen."),
+        )
+      : null;
+    if (aerialMap) {
+      aerialMap.colorSpace = THREE.SRGBColorSpace;
+      aerialMap.anisotropy = 8;
+    }
     const targetBox = new THREE.Box3();
     for (const building of data.buildings) {
       const group = new THREE.Group();
@@ -162,11 +175,13 @@ export function Viewer({
             ? front
               ? facadeMap
               : roof
-                ? textures.roofMap
+                ? (aerialMap ?? textures.roofMap)
                 : textures.stuccoMap
             : null;
         if (building.target && appearance) {
           if (front) projectFront(geometry, appearance, origin);
+          else if (roof && appearance.aerial)
+            projectAerial(geometry, appearance.aerial, origin);
           else projectMaterial(geometry, appearance, origin, roof);
         }
         const styleColor = building.target && appearance ? "#ffffff" : color;
@@ -484,6 +499,7 @@ export function Viewer({
       });
       renderer.dispose();
       facadeMap?.dispose();
+      aerialMap?.dispose();
       textures?.stuccoMap.dispose();
       textures?.roofMap.dispose();
       renderer.domElement.remove();

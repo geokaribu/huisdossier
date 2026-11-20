@@ -14,6 +14,13 @@ const profile = {
   description: "Visual reconstruction",
   attribution: "User reference",
   generated: true,
+  aerial: {
+    texture: "aerial.jpg",
+    bbox: [0, 0, 10, 10],
+    attribution: "Synthetic aerial",
+    url: "https://example.com/wms",
+    fetchedAt: "2026-11-20T00:00:00.000Z",
+  },
   front: {
     left: [0, 0],
     right: [4, 0],
@@ -72,6 +79,10 @@ test("appearance and original texture are private, isolated per house and includ
     path.join(assetDir, "front-facade.png"),
     Buffer.from("test-texture-content"),
   );
+  await writeFile(
+    path.join(assetDir, "aerial.jpg"),
+    Buffer.from("test-aerial-content"),
+  );
   const { app, store } = createApp({
     directory,
     houses: [
@@ -102,6 +113,18 @@ test("appearance and original texture are private, isolated per house and includ
     );
     assert.equal(await (await fetch(base + "/other/appearance")).json(), null);
     assert.equal(
+      await (
+        await fetch(
+          `http://127.0.0.1:${server.address().port}` + model.aerial.texture,
+        )
+      ).text(),
+      "test-aerial-content",
+    );
+    assert.equal(
+      (await fetch(base + "/other/appearance/aerial.jpg")).status,
+      404,
+    );
+    assert.equal(
       (await fetch(base + "/other/appearance/front-facade.png")).status,
       404,
     );
@@ -116,6 +139,10 @@ test("appearance and original texture are private, isolated per house and includ
     assert.equal(
       Buffer.from(exported.appearance.files[0].base64, "base64").toString(),
       "test-texture-content",
+    );
+    assert.equal(
+      Buffer.from(exported.appearance.files[1].base64, "base64").toString(),
+      "test-aerial-content",
     );
   } finally {
     await new Promise((resolve) => server.close(resolve));

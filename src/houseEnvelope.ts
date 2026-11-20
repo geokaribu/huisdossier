@@ -17,6 +17,7 @@ import {
 export { facadeTransform, planToExterior } from "./houseFrame.ts";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings.ts";
 import { loadArtworkTextures } from "./framedArtwork.ts";
+import { hingedDoor } from "./hingedDoor.ts";
 import {
   architectureGeometry,
   filledSlabGeometry,
@@ -656,7 +657,11 @@ export function rearExterior(
           "rear-wall",
           portal.thickness,
         );
-      if (o.joinery) {
+      if (o.door) {
+        group.add(
+          hingedDoor(portal, o, { ...o.door, defaultOpen: false }).group,
+        );
+      } else if (o.joinery) {
         const doors = glazedDoors(portal, o, {
           ...o.joinery,
           defaultOpen: false,

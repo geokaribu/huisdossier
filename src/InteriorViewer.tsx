@@ -27,6 +27,7 @@ import { createLightingRig } from "./lightingScene";
 import { interiorLights } from "./interiorLights";
 import { disposeFurnitureReflection } from "./bedroomFurniture";
 import { loadArtworkTextures } from "./framedArtwork";
+import { hingedDoor } from "./hingedDoor";
 import {
   canStand,
   insidePolygon,
@@ -162,11 +163,11 @@ export function InteriorViewer({
   const [walking, setWalking] = useState(false);
   const [position, setPosition] = useState<PlanPoint>(plan.spawn);
   const [failed, setFailed] = useState(false);
-  const joinery = plan.walls.flatMap((w) =>
-    w.openings.flatMap((o) => (o.joinery ? [o.joinery] : [])),
-  );
+  const configuredDoors = plan.walls
+    .flatMap((w) => w.openings.map((o) => o.door ?? o.joinery))
+    .filter((c) => c !== undefined);
   const [doors, setDoors] = useState<DoorState>(() =>
-    Object.fromEntries(joinery.map((j) => [j.id, j.defaultOpen])),
+    Object.fromEntries(configuredDoors.map((j) => [j.id, j.defaultOpen])),
   );
   const [doorNotice, setDoorNotice] = useState("");
   const activeRoom = plan.rooms.find((room) =>
@@ -262,19 +263,10 @@ export function InteriorViewer({
     const artworkMaps = loadArtworkTextures(plan, invalidate);
     privateTextures.push(...artworkMaps.values());
     let doorState: DoorState = Object.fromEntries(
-      plan.walls.flatMap((w) =>
-        w.openings.flatMap((o) =>
-          o.joinery
-            ? [
-                [
-                  o.joinery.id,
-                  sceneState.current?.doors[o.joinery.id] ??
-                    o.joinery.defaultOpen,
-                ],
-              ]
-            : [],
-        ),
-      ),
+      configuredDoors.map((c) => [
+        c.id,
+        sceneState.current?.doors[c.id] ?? c.defaultOpen,
+      ]),
     );
     setDoors({ ...doorState });
     const doorModels = new Map<string, ReturnType<typeof glazedDoors>>();
@@ -485,10 +477,13 @@ export function InteriorViewer({
           opening.sill + opening.height,
           height,
         );
-        if (opening.joinery) {
-          const model = glazedDoors(wall, opening, opening.joinery);
-          model.setOpen(doorState[opening.joinery.id]);
-          doorModels.set(opening.joinery.id, model);
+        if (opening.door || opening.joinery) {
+          const config = (opening.door ?? opening.joinery)!;
+          const model = opening.door
+            ? hingedDoor(wall, opening, opening.door)
+            : glazedDoors(wall, opening, opening.joinery!);
+          model.setOpen(doorState[config.id]);
+          doorModels.set(config.id, model);
           scene.add(model.group);
           end = opening.offset + opening.width;
           continue;
@@ -995,9 +990,9 @@ export function InteriorViewer({
           </button>
         </div>
         <div ref={host} className="interior-canvas" />
-        {joinery.length > 0 && (
+        {configuredDoors.length > 0 && (
           <div className="interior-door-controls">
-            {joinery.map((j) => (
+            {configuredDoors.map((j) => (
               <button
                 key={j.id}
                 aria-pressed={doors[j.id] ?? j.defaultOpen}

@@ -113,6 +113,17 @@ const schema = z.object({
                 kind: z.enum(["door", "window"]),
                 frameColor: color.optional(),
                 joinery: joinery.optional(),
+                door: z
+                  .object({
+                    id: z.string().min(1),
+                    label: z.string().min(1),
+                    color,
+                    hinge: z.enum(["start", "end"]),
+                    swing: z.enum(["positive", "negative"]),
+                    openAngle: z.number().min(65).max(110),
+                    defaultOpen: z.boolean(),
+                  })
+                  .optional(),
               }),
             )
             .default([]),
@@ -165,6 +176,17 @@ const schema = z.object({
               ctx.addIssue({
                 code: "custom",
                 message: "Glazen deur heeft geen bruikbare doorgang",
+              });
+            if (
+              opening.door &&
+              (opening.kind !== "door" ||
+                opening.joinery ||
+                opening.sill > 0.05 ||
+                opening.width < 0.5)
+            )
+              ctx.addIssue({
+                code: "custom",
+                message: "Binnendeur hoort bij één vrije deuropening",
               });
           }
         }),

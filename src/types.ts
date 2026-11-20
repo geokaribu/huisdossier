@@ -271,6 +271,16 @@ export interface PlanDecoration {
   light?: { color: string; intensity: number; distance: number };
   artwork?: { texture: string; attribution: string; generated: boolean };
 }
+export interface HingedDoor {
+  id: string;
+  label: string;
+  color: string;
+  hinge: "start" | "end";
+  /** Positive is left of the directed wall segment in plan coordinates. */
+  swing: "positive" | "negative";
+  openAngle: number;
+  defaultOpen: boolean;
+}
 export interface PlanWall {
   outsideRoomId?: string;
   a: PlanPoint;
@@ -285,6 +295,7 @@ export interface PlanWall {
     kind: "door" | "window";
     frameColor?: string;
     joinery?: GlazedJoinery;
+    door?: HingedDoor;
   }[];
   finish?: { color: string; texture: "stucco" | "brick" };
   coatings?: {

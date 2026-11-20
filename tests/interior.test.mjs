@@ -203,6 +203,29 @@ test("private floor plans remain isolated per house and are retained in a dossie
         climber: { top: 2, coverage: 0.8, trellis: true },
         openings: [{ ...plan.walls[0].openings[0], joinery }],
       },
+      {
+        a: [0, 0],
+        b: [2, 0],
+        thickness: 0.1,
+        openings: [
+          {
+            offset: 0.5,
+            width: 0.8,
+            height: 2.12,
+            sill: 0,
+            kind: "door",
+            door: {
+              id: "wet-room-door",
+              label: "Wet room door",
+              color: "#eee9df",
+              hinge: "end",
+              swing: "negative",
+              openAngle: 90,
+              defaultOpen: false,
+            },
+          },
+        ],
+      },
     ],
     decorations: [
       {

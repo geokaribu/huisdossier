@@ -1,5 +1,6 @@
 import type { Floorplan, PlanPoint, PlanWall } from "./types";
 import { stairUnderside } from "./stairs.ts";
+import { hingedDoorLayout } from "./doorLayout.ts";
 export type DoorState = Record<string, boolean>;
 
 /** Open leaf segments shared by walking collisions and the floor-plan drawing. */
@@ -12,6 +13,25 @@ export function openDoorLeaves(
     uz = (wall.b[1] - wall.a[1]) / length;
   const leaves: [PlanPoint, PlanPoint][] = [];
   for (const opening of wall.openings) {
+    if (opening.door) {
+      const config = opening.door;
+      if (doors[config.id] ?? config.defaultOpen) {
+        const layout = hingedDoorLayout(opening.width, config, true);
+        const start = opening.offset + layout.hinge;
+        leaves.push([
+          [wall.a[0] + ux * start, wall.a[1] + uz * start],
+          [
+            wall.a[0] +
+              ux * (opening.offset + layout.end[0]) -
+              uz * layout.end[1],
+            wall.a[1] +
+              uz * (opening.offset + layout.end[0]) +
+              ux * layout.end[1],
+          ],
+        ]);
+      }
+      continue;
+    }
     const j = opening.joinery;
     if (!j || !(doors[j.id] ?? j.defaultOpen)) continue;
     const angle = (j.openAngle * Math.PI) / 180,
@@ -71,8 +91,9 @@ export function wallSolids(
     .sort((a, b) => a.offset - b.offset)
     .filter((o) => o.kind === "door" && o.sill < 0.05 && o.height >= 1.9)) {
     if (
-      opening.joinery &&
-      !(doors[opening.joinery.id] ?? opening.joinery.defaultOpen)
+      (opening.door && !(doors[opening.door.id] ?? opening.door.defaultOpen)) ||
+      (opening.joinery &&
+        !(doors[opening.joinery.id] ?? opening.joinery.defaultOpen))
     )
       continue;
     const from = opening.offset + (opening.joinery?.fixedLeft ?? 0);

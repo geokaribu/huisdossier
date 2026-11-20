@@ -25,6 +25,7 @@ interface Props {
   onDocument: (id: string) => void;
   onInterior: (roomId: string) => void;
   renderTasks: (tasks: Task[]) => ReactNode;
+  contacts?: ReactNode;
 }
 
 export function DossierHome({
@@ -41,6 +42,7 @@ export function DossierHome({
   onDocument,
   onInterior,
   renderTasks,
+  contacts,
 }: Props) {
   const openTasks = dossier.tasks.filter((t) => t.status === "open");
   const [search, setSearch] = useState("");
@@ -216,6 +218,7 @@ export function DossierHome({
                 </p>
               </details>
             )}
+            {contacts}
             <div className="dossier-columns">
               <div>
                 <div className="dossier-column-heading">

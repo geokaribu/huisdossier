@@ -1,0 +1,305 @@
+.planning-page {
+  display: grid;
+  gap: 24px;
+}
+.planning-page h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.planning-page .section-heading {
+  align-items: flex-start;
+}
+.planning-page .section-heading .button {
+  flex-shrink: 0;
+}
+.planning-options {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 24px 0;
+}
+.planning-options > label {
+  min-width: 230px;
+  flex: 1;
+  max-width: 340px;
+}
+.planning-page label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.planning-page select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--navy);
+  font: inherit;
+}
+.planning-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  padding: 0 0 28px;
+}
+.planning-counts span {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.planning-counts strong {
+  color: var(--navy);
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.planning-group {
+  margin: 8px 0 28px;
+}
+.planning-group:last-child {
+  margin-bottom: 0;
+}
+.planning-group h2 {
+  font-size: 15px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.planning-group h2 span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.planning-group.overdue > h2::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b56318;
+}
+.planning-task {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.planning-task:last-child {
+  border-bottom: 0;
+}
+.planning-date {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  flex: 0 0 68px;
+  padding-top: 2px;
+}
+.planning-date strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.planning-date span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.planning-task-body {
+  min-width: 0;
+}
+.planning-task h3 {
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.planning-task p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.planning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 12px;
+}
+.planning-actions .text-link,
+.contact-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  min-height: 32px;
+}
+.planning-later {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.planning-later summary {
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.planning-secondary {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+}
+.calendar-export,
+.maintenance-costs {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+.planning-secondary h2,
+.reminder-settings h2 {
+  font-size: 17px;
+}
+.planning-secondary p,
+.reminder-settings p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 80ch;
+}
+.calendar-export .button {
+  justify-self: start;
+}
+.cost-total {
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.reminder-settings > .form-note {
+  margin-top: 14px;
+}
+.planning-empty {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  padding: 16px 0;
+}
+.part-contacts {
+  margin: 24px 0;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.part-contacts h3 {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.part-contact {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0 16px;
+  margin-bottom: 12px;
+}
+.part-contact strong {
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.part-contact p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.contact-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.contact-heading > div {
+  min-width: 0;
+}
+.contact-actions {
+  display: flex;
+  gap: 6px 16px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.contact-actions a {
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.contact-actions a svg {
+  flex-shrink: 0;
+}
+.part-contact details {
+  font-size: 12px;
+  margin-top: 6px;
+}
+.part-contact summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.contact-unlink {
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 32px;
+  margin-top: 4px;
+}
+.part-contacts > .text-link {
+  font-size: 12px;
+}
+.spatial-inspector .part-contacts {
+  margin-top: 16px;
+}
+@media (max-width: 1000px) {
+  .planning-secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .planning-page {
+    gap: 20px;
+  }
+  .planning-page .section-heading {
+    flex-direction: column;
+  }
+  .planning-options {
+    gap: 16px;
+  }
+  .planning-options > label {
+    min-width: 0;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .planning-task {
+    gap: 12px;
+  }
+  .planning-date {
+    flex-basis: 53px;
+  }
+  .planning-date strong {
+    font-size: 14px;
+  }
+  .planning-actions {
+    gap: 6px 16px;
+  }
+  .planning-actions .text-link,
+  .contact-actions a,
+  .contact-unlink {
+    min-height: 40px;
+  }
+  .planning-counts {
+    gap: 20px;
+  }
+  .planning-counts span {
+    max-width: 100px;
+  }
+  .part-contacts .dossier-column-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

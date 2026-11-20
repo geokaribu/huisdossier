@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Dialog } from "./Dialog";
 import { todayLocal } from "./residentWorkflows";
+import { parseCost } from "./planning";
 import type { Person, Task } from "./types";
 export function CompleteTaskDialog({
   task,
@@ -16,6 +17,7 @@ export function CompleteTaskDialog({
     result: string;
     completedOn: string;
     completedById: string | null;
+    costCents: number | null;
   }) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false),
@@ -40,6 +42,7 @@ export function CompleteTaskDialog({
               result: String(form.get("result")),
               completedOn: String(form.get("completedOn")),
               completedById: String(form.get("completedById") || "") || null,
+              costCents: parseCost(String(form.get("cost") ?? "")),
             });
           } catch (e) {
             setError((e as Error).message);
@@ -59,6 +62,7 @@ export function CompleteTaskDialog({
             maxLength={10000}
             required
             placeholder="Bijvoorbeeld: filter vervangen en werking gecontroleerd…"
+            defaultValue={task.result ?? ""}
           />
         </label>
         <label>
@@ -83,6 +87,24 @@ export function CompleteTaskDialog({
                 </option>
               ))}
           </select>
+        </label>
+        <label>
+          Werkelijk betaalde kosten in euro (optioneel)
+          <input
+            name="cost"
+            inputMode="decimal"
+            maxLength={12}
+            defaultValue={
+              task.costCents != null
+                ? (task.costCents / 100).toFixed(2).replace(".", ",")
+                : ""
+            }
+            placeholder="Bijvoorbeeld: 125,50"
+          />
+          <small>
+            Leeg = onbekend. Vul 0 in als er geen kosten waren. Bewaar de
+            factuur bij deze melding.
+          </small>
         </label>
         {task.planId && (
           <p className="form-note">

@@ -12,6 +12,11 @@ import {
 import { request } from "./api";
 import { Dialog } from "./Dialog";
 import {
+  ContactActions,
+  ContactFields,
+  contactFieldsData,
+} from "./ContactDetails";
+import {
   dossierAttention,
   residentDate,
   todayLocal,
@@ -195,11 +200,30 @@ export function ManagementPage({
                         : "Vakpersoon"}
                     {!person.active ? " · gearchiveerd" : ""}
                   </p>
-                  {(person.email || person.phone) && (
+                  {(person.company || person.specialty) && (
                     <p>
-                      {person.email}
-                      {person.email && person.phone ? " · " : ""}
-                      {person.phone}
+                      {[person.company, person.specialty]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                  <ContactActions person={person} />
+                  {person.notes && <p>{person.notes}</p>}
+                  {(dossier.contactLinks ?? []).some(
+                    (link) => link.personId === person.id,
+                  ) && (
+                    <p>
+                      Gekoppeld aan:{" "}
+                      {(dossier.contactLinks ?? [])
+                        .filter((link) => link.personId === person.id)
+                        .map(
+                          (link) =>
+                            dossier.assets.find(
+                              (asset) => asset.id === link.assetId,
+                            )?.name,
+                        )
+                        .filter(Boolean)
+                        .join(", ")}
                     </p>
                   )}
                 </div>
@@ -413,6 +437,7 @@ export function ManagementPage({
                         role: form.get("role"),
                         email: String(form.get("email") ?? "").trim(),
                         phone: form.get("phone") ?? "",
+                        ...contactFieldsData(form),
                         active: person ? form.get("active") === "on" : true,
                       }),
                     }),
@@ -482,6 +507,7 @@ export function ManagementPage({
                     defaultValue={modal.person?.phone ?? ""}
                   />
                 </label>
+                <ContactFields person={modal.person} />
                 {modal.person && (
                   <label className="resident-check">
                     <input

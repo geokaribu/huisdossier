@@ -8,6 +8,7 @@ import path from "node:path";
 import { createStore } from "./store.mjs";
 import { managementRoutes, calendarDate } from "./management-routes.mjs";
 import { calendarToday } from "./management.mjs";
+import { planningRoutes } from "./planning-routes.mjs";
 import { floorplanForView } from "../src/furnishings.ts";
 import { readLighting, saveLampScenario } from "./lighting.mjs";
 import {
@@ -162,6 +163,7 @@ export function createApp({
     limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   });
   managementRoutes(app, { store, upload, directory });
+  planningRoutes(app, { store, houses });
   app.post(
     "/api/houses/:houseId/assets/:assetId/files",
     (req, res, next) => {
@@ -261,6 +263,8 @@ export function createApp({
         completedById: z.string().max(200).nullable().optional(),
         completedOn: calendarDate.optional(),
         result: z.string().trim().max(10000).optional(),
+        remindOn: calendarDate.nullable().optional(),
+        costCents: z.number().int().min(0).max(100000000).nullable().optional(),
         state: z.enum(["active", "hold", "verify"]).optional(),
         status: z.enum(["open", "done"]).optional(),
       })

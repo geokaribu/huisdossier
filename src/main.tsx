@@ -67,9 +67,15 @@ import { Dialog } from "./Dialog";
 import { CapturePage } from "./CapturePage";
 import { ManagementPage } from "./ManagementPage";
 import { CompleteTaskDialog } from "./CompleteTaskDialog";
+import { PlanningPage } from "./PlanningPage";
+import { PartContacts } from "./PartContacts";
+import { MaintenanceReminders } from "./MaintenanceReminders";
+import { formatCost, parseCost } from "./planning";
+import type { HousePage } from "./houseSelection";
 import "./style.css";
 import "./workspace.css";
 import "./management.css";
+import "./planning.css";
 const Viewer = lazy(() =>
   import("./Viewer").then((module) => ({ default: module.Viewer })),
 );
@@ -79,15 +85,7 @@ const InteriorViewer = lazy(() =>
   })),
 );
 
-type Page =
-  | "dossier"
-  | "model"
-  | "interior"
-  | "files"
-  | "tasks"
-  | "sources"
-  | "capture"
-  | "manage";
+type Page = HousePage;
 type Modal = "asset" | "upload" | "task" | "task-edit" | "edit" | null;
 const formatDate = (date: string) =>
   !date
@@ -493,11 +491,18 @@ function App() {
               {(task.description ||
                 task.source ||
                 task.result ||
+                task.costCents != null ||
                 dossier.attachments.some(
                   (file) => file.taskId === task.id,
                 )) && (
                 <details className="task-details">
                   <summary>Toelichting{task.source ? " & bron" : ""}</summary>
+                  {task.costCents != null && (
+                    <p>
+                      Vastgelegde kosten:{" "}
+                      <strong>{formatCost(task.costCents)}</strong>
+                    </p>
+                  )}
                   {task.result && (
                     <p>
                       <strong>Uitvoering:</strong> {task.result}
@@ -603,6 +608,15 @@ function App() {
 
   return (
     <div className="app-shell">
+      {data?.house.id === houseId && (
+        <MaintenanceReminders
+          houseId={houseId}
+          dossier={dossier}
+          onOpen={() => {
+            if (activeHouse.current === houseId) setPage("planning");
+          }}
+        />
+      )}
       <a className="skip-link" href="#workspace-content">
         Naar de inhoud
       </a>
@@ -733,6 +747,22 @@ function App() {
                 onOpenDossier={openDossier}
               />
             )}
+            {page === "planning" && (
+              <PlanningPage
+                key={houseId}
+                houseId={houseId}
+                dossier={dossier}
+                onRefresh={refresh}
+                onEdit={(task) => {
+                  setEditingTask(task);
+                  openModal("task-edit");
+                }}
+                onComplete={setCompletingTask}
+                onPart={openDossier}
+                onManage={() => setPage("manage")}
+                onCapture={() => setPage("capture")}
+              />
+            )}
             {page === "manage" && (
               <ManagementPage
                 key={houseId}
@@ -751,6 +781,18 @@ function App() {
               <DossierHome
                 dossier={dossier}
                 selected={selected}
+                contacts={
+                  selected && (
+                    <PartContacts
+                      key={`${houseId}/${selected.id}`}
+                      houseId={houseId}
+                      asset={selected}
+                      dossier={dossier}
+                      onRefresh={refresh}
+                      onManage={() => setPage("manage")}
+                    />
+                  )
+                }
                 floorplan={floorplan}
                 onSelect={openDossier}
                 onFiles={showFiles}
@@ -909,6 +951,16 @@ function App() {
                       </button>
                       {inspectorTab === "details" && (
                         <>
+                          {selected && (
+                            <PartContacts
+                              key={`${houseId}/${selected.id}`}
+                              houseId={houseId}
+                              asset={selected}
+                              dossier={dossier}
+                              onRefresh={refresh}
+                              onManage={() => setPage("manage")}
+                            />
+                          )}
                           <details
                             className="part-description-collapsed"
                             key={selectedId}
@@ -1768,6 +1820,14 @@ function App() {
                               ? String(form.get("owner") || "")
                               : "",
                           state: form.get("state"),
+                          ...(modal === "task-edit" &&
+                          editingTask?.status === "done"
+                            ? {
+                                costCents: parseCost(
+                                  String(form.get("cost") ?? ""),
+                                ),
+                              }
+                            : {}),
                         }),
                       },
                     ),
@@ -1948,6 +2008,25 @@ function App() {
                     <option value="verify">Eerst controleren</option>
                   </select>
                 </label>
+                {modal === "task-edit" && editingTask?.status === "done" && (
+                  <label>
+                    Werkelijk betaalde kosten in euro (optioneel)
+                    <input
+                      name="cost"
+                      inputMode="decimal"
+                      maxLength={12}
+                      defaultValue={
+                        editingTask.costCents != null
+                          ? (editingTask.costCents / 100)
+                              .toFixed(2)
+                              .replace(".", ",")
+                          : ""
+                      }
+                      placeholder="Bijvoorbeeld: 125,50"
+                    />
+                    <small>Leeg = onbekend. 0 = geen kosten.</small>
+                  </label>
+                )}
               </>
             )}
             {modal !== "upload" && (

@@ -7,6 +7,7 @@ export const housePages = [
   "sources",
   "capture",
   "manage",
+  "planning",
 ] as const;
 export type HousePage = (typeof housePages)[number];
 export function resolveHouseId(

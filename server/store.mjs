@@ -130,6 +130,7 @@ export function createStore(directory, houses) {
           .all(houseId)
           .map(taskRow),
         people: management.people(houseId),
+        contactLinks: management.contactLinks(houseId),
       };
     },
     addAsset(houseId, data) {
@@ -252,6 +253,7 @@ export function createStore(directory, houses) {
                   : new Date().toISOString(),
                 result: data.result ?? "",
                 completedById: data.recordedById ?? null,
+                costCents: data.costCents ?? null,
               }
             : {}),
         }),
@@ -282,6 +284,8 @@ export function createStore(directory, houses) {
           "assigneeId",
           "result",
           "completedById",
+          "remindOn",
+          "costCents",
         ])
           if (data[field] !== undefined) meta[field] = data[field];
         const changes = db

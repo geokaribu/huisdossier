@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { request } from "./api";
 import { todayLocal } from "./residentWorkflows";
+import { parseCost } from "./planning";
 import type { Dossier } from "./types";
 
 type EntryKind = "task" | "note" | "file" | "completed";
@@ -22,6 +23,7 @@ type Draft = {
   assigneeId: string;
   date: string;
   category: string;
+  cost: string;
 };
 const blank = (house: string): Draft => ({
   requestId: crypto.randomUUID(),
@@ -33,6 +35,7 @@ const blank = (house: string): Draft => ({
   assigneeId: "",
   date: "",
   category: "observations",
+  cost: "",
 });
 export function CapturePage({
   houseId,
@@ -188,6 +191,10 @@ export function CapturePage({
                 Object.entries(draft).forEach(([key, value]) =>
                   body.set(key, value),
                 );
+                if (draft.kind === "completed") {
+                  const cents = parseCost(draft.cost);
+                  if (cents !== null) body.set("costCents", String(cents));
+                }
                 if (file) body.set("file", file);
                 const result = await request<{
                   assetId: string;
@@ -265,6 +272,20 @@ export function CapturePage({
                 required={draft.kind === "note" || draft.kind === "completed"}
               />
             </label>
+            {draft.kind === "completed" && (
+              <label>
+                Werkelijk betaalde kosten in euro (optioneel)
+                <input
+                  name="cost"
+                  value={draft.cost}
+                  onChange={(event) => change({ cost: event.target.value })}
+                  inputMode="decimal"
+                  maxLength={12}
+                  placeholder="Bijvoorbeeld: 125,50"
+                />
+                <small>Leeg = onbekend. 0 = geen kosten.</small>
+              </label>
+            )}
             {(draft.kind === "task" || draft.kind === "completed") && (
               <label>
                 {draft.kind === "completed"

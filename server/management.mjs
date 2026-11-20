@@ -48,6 +48,18 @@ export function createManagement(db) {
     CREATE TABLE IF NOT EXISTS entries (
     house_id TEXT NOT NULL REFERENCES houses(id),request_id TEXT NOT NULL,result TEXT NOT NULL,PRIMARY KEY(house_id,request_id));
     INSERT OR IGNORE INTO migrations VALUES(3);`);
+  if (!db.prepare("SELECT 1 FROM migrations WHERE version=4").get()) {
+    db.exec(`BEGIN;
+      ALTER TABLE people ADD COLUMN details TEXT NOT NULL DEFAULT '{}';
+      CREATE TABLE asset_contacts (
+        house_id TEXT NOT NULL REFERENCES houses(id), asset_id TEXT NOT NULL REFERENCES assets(id),
+        person_id TEXT NOT NULL REFERENCES people(id), label TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY(house_id,asset_id,person_id));
+      CREATE TABLE installation (id TEXT PRIMARY KEY);
+      INSERT INTO migrations VALUES(4); COMMIT;`);
+  }
+  if (!db.prepare("SELECT id FROM installation").get())
+    db.prepare("INSERT INTO installation VALUES(?)").run(randomUUID());
   const personRow = (r) => ({
     id: r.id,
     name: r.name,
@@ -57,6 +69,7 @@ export function createManagement(db) {
     active: Boolean(r.active),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    ...JSON.parse(r.details),
   });
   const planRow = (r) => ({
     id: r.id,
@@ -164,8 +177,9 @@ export function createManagement(db) {
           .all(house),
       };
     },
-    addPerson(house, data) {
-      return transaction(() => {
+    // The contact-link operation uses the same helper inside its own transaction.
+    addPerson(house, data, inTransaction = false) {
+      const work = () => {
         if (
           db
             .prepare(
@@ -179,7 +193,9 @@ export function createManagement(db) {
           );
         const id = randomUUID(),
           now = new Date().toISOString();
-        db.prepare("INSERT INTO people VALUES(?,?,?,?,?,?,?,?,?,?)").run(
+        db.prepare(
+          "INSERT INTO people(id,house_id,name,normalized_name,role,email,phone,active,created_at,updated_at,details) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+        ).run(
           id,
           house,
           data.name,
@@ -190,10 +206,19 @@ export function createManagement(db) {
           Number(data.active ?? true),
           now,
           now,
+          JSON.stringify(
+            Object.fromEntries(
+              ["company", "specialty", "website", "notes"].map((key) => [
+                key,
+                data[key] ?? "",
+              ]),
+            ),
+          ),
         );
         activity(house, "person", id, `Persoon toegevoegd: ${data.name}`);
         return id;
-      });
+      };
+      return inTransaction ? work() : transaction(work);
     },
     updatePerson(house, id, data) {
       return transaction(() => {
@@ -207,7 +232,7 @@ export function createManagement(db) {
         if (collision)
           throw problem("Deze naam staat al bij deze woning.", 409);
         db.prepare(
-          "UPDATE people SET name=?,normalized_name=?,role=?,email=?,phone=?,active=?,updated_at=? WHERE house_id=? AND id=?",
+          "UPDATE people SET name=?,normalized_name=?,role=?,email=?,phone=?,active=?,updated_at=?,details=? WHERE house_id=? AND id=?",
         ).run(
           data.name,
           normalize(data.name),
@@ -216,6 +241,14 @@ export function createManagement(db) {
           data.phone,
           Number(data.active),
           new Date().toISOString(),
+          JSON.stringify(
+            Object.fromEntries(
+              ["company", "specialty", "website", "notes"].map((key) => [
+                key,
+                data[key] ?? JSON.parse(current.details)[key] ?? "",
+              ]),
+            ),
+          ),
           house,
           id,
         );
@@ -226,6 +259,56 @@ export function createManagement(db) {
           `${data.active ? "Persoon bijgewerkt" : "Persoon gearchiveerd"}: ${data.name}`,
         );
       });
+    },
+    installationId: db.prepare("SELECT id FROM installation").get().id,
+    contactLinks(house) {
+      return db
+        .prepare(
+          "SELECT asset_id AS assetId,person_id AS personId,label,notes FROM asset_contacts WHERE house_id=? ORDER BY rowid",
+        )
+        .all(house);
+    },
+    saveContactLink(house, assetId, data) {
+      return transaction(() => {
+        if (
+          !db
+            .prepare("SELECT id FROM assets WHERE house_id=? AND id=?")
+            .get(house, assetId)
+        )
+          throw problem("Onderdeel niet gevonden.", 404);
+        const personId =
+          data.personId || this.addPerson(house, data.person, true);
+        validatePerson(
+          house,
+          personId,
+          Boolean(
+            db
+              .prepare(
+                "SELECT 1 FROM asset_contacts WHERE house_id=? AND asset_id=? AND person_id=?",
+              )
+              .get(house, assetId, personId),
+          ),
+        );
+        db.prepare(
+          "INSERT INTO asset_contacts VALUES(?,?,?,?,?) ON CONFLICT(house_id,asset_id,person_id) DO UPDATE SET label=excluded.label,notes=excluded.notes",
+        ).run(house, assetId, personId, data.label, data.notes);
+        activity(house, "contact", personId, "Contact bij onderdeel bewaard");
+        return personId;
+      });
+    },
+    removeContactLink(house, assetId, personId) {
+      const changes = db
+        .prepare(
+          "DELETE FROM asset_contacts WHERE house_id=? AND asset_id=? AND person_id=?",
+        )
+        .run(house, assetId, personId).changes;
+      if (!changes) throw problem("Contactkoppeling niet gevonden.", 404);
+      activity(
+        house,
+        "contact",
+        personId,
+        "Contact losgekoppeld van onderdeel",
+      );
     },
     addPlan(house, data) {
       return transaction(() => {

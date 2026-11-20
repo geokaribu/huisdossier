@@ -12,6 +12,7 @@ import {
   Wrench,
   X,
   Settings2,
+  CalendarDays,
 } from "lucide-react";
 import { housePageUrl, type HousePage } from "./houseSelection";
 
@@ -57,6 +58,11 @@ export const pageInfo: Record<
     title: "Beheer",
     description:
       "Regel de personen, onderhoudsafspraken en het bijhouden van deze woning.",
+  },
+  planning: {
+    title: "Planning",
+    description:
+      "Bekijk wat eraan komt, stel herinneringen in en neem onderhoud mee naar je agenda.",
   },
 };
 export function followWorkspaceLink(
@@ -135,6 +141,7 @@ export function WorkspaceNavigation({
         { id: "capture", label: "Iets toevoegen", Icon: Plus },
         { id: "files", label: "Documenten & foto's", Icon: FolderOpen },
         { id: "tasks", label: "Onderhoud", Icon: Wrench },
+        { id: "planning", label: "Planning", Icon: CalendarDays },
       ],
     },
     {

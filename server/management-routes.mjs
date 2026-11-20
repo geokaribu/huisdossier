@@ -14,12 +14,16 @@ export const calendarDate = z
       new Date(value).toISOString().slice(0, 10) === value,
     "Kies een geldige datum.",
   );
-const personSchema = z.object({
+export const personSchema = z.object({
   name: text,
   role: z.enum(["resident", "helper", "professional"]).default("resident"),
   email: z.union([z.email(), z.literal("")]).default(""),
   phone: z.string().trim().max(60).default(""),
   active: z.boolean().default(true),
+  company: z.string().trim().max(200).optional(),
+  specialty: z.string().trim().max(200).optional(),
+  website: z.union([z.url({ protocol: /^https?$/ }), z.literal("")]).optional(),
+  notes: z.string().trim().max(5000).optional(),
 });
 const planSchema = z.object({
   assetId: text,
@@ -75,6 +79,11 @@ export function managementRoutes(app, { store, upload, directory }) {
     assigneeId: z.string().max(200).default(""),
     date: z.union([calendarDate, z.literal("")]).default(""),
     category: z.string().max(100).default("observations"),
+    costCents: z.preprocess(
+      (value) =>
+        value === undefined || value === "" ? undefined : Number(value),
+      z.number().int().min(0).max(100000000).optional(),
+    ),
   });
   app.post(
     "/api/houses/:houseId/entries",
@@ -152,6 +161,7 @@ export function managementRoutes(app, { store, upload, directory }) {
           if (data.kind === "task" || data.kind === "completed")
             taskId = store.addTask(house, {
               ...data,
+              ...(data.kind !== "completed" ? { costCents: undefined } : {}),
               owner: "",
               state: "active",
               status: data.kind === "completed" ? "done" : "open",

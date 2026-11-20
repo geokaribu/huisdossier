@@ -129,6 +129,8 @@ export interface Task {
   completedById?: string | null;
   result?: string;
   planId?: string;
+  remindOn?: string | null;
+  costCents?: number | null;
 }
 export interface Person {
   id: string;
@@ -136,6 +138,10 @@ export interface Person {
   role: "resident" | "helper" | "professional";
   email: string;
   phone: string;
+  company?: string;
+  specialty?: string;
+  website?: string;
+  notes?: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -169,6 +175,12 @@ export interface Dossier {
   attachments: Attachment[];
   tasks: Task[];
   people?: Person[];
+  contactLinks?: {
+    assetId: string;
+    personId: string;
+    label: string;
+    notes: string;
+  }[];
 }
 export interface HouseAppearance {
   shell?: {

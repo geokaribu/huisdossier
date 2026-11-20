@@ -12,6 +12,13 @@ const schema = z
     description: z.string(),
     attribution: z.string(),
     generated: z.boolean(),
+    shell: z
+      .object({
+        rearSurface: z.number().int().nonnegative(),
+        hiddenSurfaceIndices: z.array(z.number().int().nonnegative()),
+        attribution: z.string(),
+      })
+      .optional(),
     hiddenSurfaceIndices: z.array(z.number().int().nonnegative()).optional(),
     frontOpenings: z
       .array(

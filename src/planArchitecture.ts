@@ -7,6 +7,46 @@ const EPS = 1e-6;
 const cross = (a: PlanPoint, b: PlanPoint) => a[0] * b[1] - a[1] * b[0];
 const lengthOf = (w: PlanWall) => Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
 
+/** A filled slab shares the outside of the wall union, with no stacked roof-edge caps. */
+export function filledSlabGeometry(
+  points: PlanPoint[],
+  walls: PlanWall[],
+  thickness: number,
+) {
+  const polys = clipping.union([points], section(walls, 1, 0.5));
+  const shapes = polys.map((rings) => {
+    const shape = new THREE.Shape(
+      rings[0].map(([x, z]) => new THREE.Vector2(x, -z)),
+    );
+    for (const ring of rings.slice(1))
+      shape.holes.push(
+        new THREE.Path(ring.map(([x, z]) => new THREE.Vector2(x, -z))),
+      );
+    return shape;
+  });
+  const geometry = new THREE.ExtrudeGeometry(shapes, {
+    depth: thickness,
+    bevelEnabled: false,
+    steps: 1,
+  });
+  geometry.rotateX(-Math.PI / 2);
+  geometry.clearGroups();
+  const normal = geometry.getAttribute("normal");
+  let start = 0,
+    material = -1;
+  for (let i = 0; i < normal.count; i += 3) {
+    const next = normal.getY(i) < -0.99 ? 1 : 0;
+    if (next !== material) {
+      if (i > start) geometry.addGroup(start, i - start, material);
+      start = i;
+      material = next;
+    }
+  }
+  if (normal.count > start)
+    geometry.addGroup(start, normal.count - start, material);
+  return geometry;
+}
+
 /** Butt T junctions, miter connected corners; never snap an unconnected source wall. */
 function footprint(
   w: PlanWall,

@@ -115,6 +115,11 @@ export interface Dossier {
   tasks: Task[];
 }
 export interface HouseAppearance {
+  shell?: {
+    rearSurface: number;
+    hiddenSurfaceIndices: number[];
+    attribution: string;
+  };
   version: 1;
   label: string;
   description: string;

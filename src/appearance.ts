@@ -1,17 +1,8 @@
 import * as THREE from "three";
 import type { HouseAppearance, Point, Surface } from "./types";
 import { recessedRoof } from "./roof.ts";
-
-export function frontFrame(profile: HouseAppearance) {
-  const { left, right } = profile.front;
-  const width = Math.hypot(right[0] - left[0], right[1] - left[1]);
-  const u: [number, number] = [
-    (right[0] - left[0]) / width,
-    (right[1] - left[1]) / width,
-  ];
-  const normal: [number, number] = [u[1], -u[0]];
-  return { u, normal, width };
-}
+import { frontFrame } from "./houseFrame.ts";
+export { frontFrame } from "./houseFrame.ts";
 
 export function isFrontSurface(surface: Surface, profile: HouseAppearance) {
   if (surface.type !== "WallSurface") return false;
@@ -118,12 +109,30 @@ export function projectMaterial(
 ) {
   const { u, normal } = frontFrame(profile);
   const positions = geometry.getAttribute("position");
+  // A facade-only projection collapses UVs on side walls, stretching a single
+  // stucco pixel into long streaks. Select the dominant horizontal wall axis.
+  let minAcross = Infinity,
+    maxAcross = -Infinity,
+    minDepth = Infinity,
+    maxDepth = -Infinity;
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i) + origin[0] - profile.front.left[0],
+      y = -positions.getZ(i) + origin[1] - profile.front.left[1];
+    const across = x * u[0] + y * u[1],
+      depth = x * normal[0] + y * normal[1];
+    minAcross = Math.min(minAcross, across);
+    maxAcross = Math.max(maxAcross, across);
+    minDepth = Math.min(minDepth, depth);
+    maxDepth = Math.max(maxDepth, depth);
+  }
+  const sideWall = !roof && maxDepth - minDepth > maxAcross - minAcross;
   const uv = [];
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i) + origin[0] - profile.front.left[0],
       y = -positions.getZ(i) + origin[1] - profile.front.left[1];
     uv.push(
-      (x * u[0] + y * u[1]) / (roof ? 0.55 : 2),
+      (sideWall ? x * normal[0] + y * normal[1] : x * u[0] + y * u[1]) /
+        (roof ? 0.55 : 2),
       roof ? (x * normal[0] + y * normal[1]) / 1.5 : positions.getY(i) / 2,
     );
   }

@@ -17,6 +17,8 @@ import {
 import { triangulateSurface } from "./geometry";
 import { createLightingRig, contextBuildings } from "./lightingScene";
 import type { LightingRig } from "./lightingScene";
+import { exteriorShell } from "./exteriorShell";
+import { contextCutaway } from "./contextCutaway";
 import type {
   HouseData,
   Asset,
@@ -102,6 +104,7 @@ export function Viewer({
   const [failed, setFailed] = useState(false);
   const [styled, setStyled] = useState(true);
   const [view, setView] = useState<ExteriorView>("overview");
+  const [cutaway, setCutaway] = useState(false);
 
   useEffect(() => {
     if (!host.current) return;
@@ -139,15 +142,15 @@ export function Viewer({
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, {
-      left: -50,
-      right: 50,
-      top: 50,
-      bottom: -50,
+      left: -30,
+      right: 30,
+      top: 30,
+      bottom: -30,
       near: 1,
       far: 120,
     });
-    sun.shadow.bias = -0.001;
-    sun.shadow.normalBias = 0.04;
+    sun.shadow.bias = -0.00015;
+    sun.shadow.normalBias = 0.015;
     scene.add(sun);
     const target = data.buildings.find((b) => b.target)!;
     const targetPoints = target.surfaces.flatMap((s) => s.rings.flat());
@@ -287,13 +290,38 @@ export function Viewer({
       );
     if (appearance?.flatRoof)
       details.add(flatRoofDetails(appearance, origin, target.surfaces));
+    const shellDetails = appearance?.shell
+      ? exteriorShell(
+          appearance,
+          origin,
+          target.surfaces,
+          textures?.stuccoMap ?? null,
+          aerialMap,
+        )
+      : null;
+    if (shellDetails) details.add(shellDetails);
     const rear =
       appearance?.rear && floorplan
-        ? rearExterior(appearance, origin, floorplan, true, () => invalidate())
+        ? rearExterior(
+            appearance,
+            origin,
+            floorplan,
+            true,
+            () => invalidate(),
+            target.surfaces,
+          )
         : null;
     if (rear) details.add(rear.group);
     scene.add(details);
     targetBox.expandByObject(details);
+    const detailMeshes: THREE.Mesh[] = [];
+    details.traverse((o) => {
+      if (o instanceof THREE.Mesh) detailMeshes.push(o);
+    });
+    const revealHouse = contextCutaway(neighbors, () => [
+      ...meshes.filter((m) => m.visible),
+      ...(details.visible ? detailMeshes : []),
+    ]);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(250, 250),
       new THREE.MeshStandardMaterial({ color: "#eee9dc", roughness: 1 }),
@@ -464,6 +492,8 @@ export function Viewer({
       animationFrame = requestAnimationFrame(() => {
         animationFrame = 0;
         controls.update();
+        scene.updateMatrixWorld(true);
+        setCutaway(revealHouse(camera, controls.target));
         if (north.current)
           north.current.style.transform = `rotate(${controls.getAzimuthalAngle()}rad)`;
         renderer.render(scene, camera);
@@ -516,9 +546,13 @@ export function Viewer({
             showStyle &&
             !wireframe &&
             mesh.userData.isTarget &&
-            (appearance?.roof?.hiddenSurfaceIndices.includes(
-              mesh.userData.surfaceIndex,
-            ) ||
+            ((shellDetails?.children.length &&
+              appearance?.shell?.hiddenSurfaceIndices.includes(
+                mesh.userData.surfaceIndex,
+              )) ||
+              appearance?.roof?.hiddenSurfaceIndices.includes(
+                mesh.userData.surfaceIndex,
+              ) ||
               appearance?.hiddenSurfaceIndices?.includes(
                 mesh.userData.surfaceIndex,
               ) ||
@@ -903,9 +937,15 @@ export function Viewer({
             </>
           ) : (
             <>
-              Sleep om te draaien <span className="dot-sep">·</span> Scroll om
-              te zoomen <span className="dot-sep">·</span> Klik op een gevel of
-              dak
+              {cutaway ? (
+                "Omgeving voor de kijker weggesneden; schaduw blijft behouden."
+              ) : (
+                <>
+                  Sleep om te draaien <span className="dot-sep">·</span> Scroll
+                  om te zoomen <span className="dot-sep">·</span> Klik op een
+                  gevel of dak
+                </>
+              )}
             </>
           )}
         </span>

@@ -10,6 +10,20 @@ The interior uses the same construction for skirting, excluding garden boundarie
 
 The rear envelope uses the same wall geometry and source wall thicknesses for the perimeter and glazed portal. Exterior paint is split at openings, so it cannot paint over a door or window. The low extension's registration against the taller BAG volume remains approximate. Its outside rendering does not reconstruct the other apartments.
 
+## Exterior assembly
+
+An optional private `appearance.shell` profile selects the source rear wall and the BAG faces replaced in the visual reconstruction. `houseFrame.ts` supplies one facade/plan transform and one main-shell layout. `exteriorShell.ts` shares the same ridge with the sloping roof, side cheeks, flat roof, roof edging and fixtures. The existing BAG rear wall determines the rear contact corners and its potentially sloping lower edge. `rearExterior` inserts those corners into the traced cut line and fills up to that edge instead of stopping at an unrelated constant height. The original model remains available with facade styling disabled; keep the selected surface indices under review after any source reimport.
+
+The low roof is one filled, extruded slab including the wall perimeter. It has no separate coplanar edge caps. Display foundations extend below the ground plane; the main base includes the ridge kink so it follows the side walls exactly. The 12 cm footing thickness is a display convention, not evidence of the real foundation.
+
+The canopy mounts to the roof at the upper balcony opening. Its supports meet both the roof skin and the canopy crossbar. A solid balcony deck supports the corner posts; side rails terminate at the back wall and spindles connect to lower rails. Side-wall UVs follow the dominant horizontal wall direction, avoiding a facade projection stretched along an entire side wall. These checks do not establish hidden construction or measured dimensions.
+
+The inside lighting context uses the same reconstructed structural geometry, clipped above the room ceiling, instead of retaining the superseded BAG roofs. Loose furnishings and terrace boundaries already present in the interior scene are excluded from that extra context.
+
+Synthetic tests probe canopy mount contact, post bearing, ridge/roof-edge agreement, the full sloping rear seam, side-wall texture scale, source preservation and replacement shadow geometry. Visual review covers front, both sides, rear, roof detail and top view, with original/styled and furnished/unfurnished variants. Connectivity alone still does not establish fidelity to the actual dwelling.
+
+If a context building blocks the camera-to-house ray, the viewer cuts the context just before the actual house hit. That clipping applies only to the context's color/depth view; `clipShadows` is disabled so the complete neighbor remains a shadow caster. The viewer explains the cutaway while active. This keeps close front/roof views usable on narrow screens, where the fitting camera can otherwise end up inside a neighboring building.
+
 ## Review criteria
 
 | Check                | Evidence / limit                                                                                                                                                                                                                                                       |

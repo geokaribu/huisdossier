@@ -250,16 +250,31 @@ export function recessedRoof(
     zinc,
     "balcony-soffit",
   );
-  quad(
-    [
-      world(a, bottom, frontOut),
-      world(b, bottom, frontOut),
-      back(b, bottom),
-      back(a, bottom),
-    ],
-    deck,
-    "balcony-deck",
+  const deckFront = frontOut + 0.13,
+    deckBack = -recess.depth,
+    deckThickness = 0.1;
+  const deckCorners = [
+    world(a - 0.035, bottom, deckFront),
+    world(b + 0.035, bottom, deckFront),
+    world(b + 0.035, bottom, deckBack),
+    world(a - 0.035, bottom, deckBack),
+  ];
+  quad([...deckCorners], deck, "balcony-deck");
+  const deckBelow = deckCorners.map((p) =>
+    p.clone().add(new THREE.Vector3(0, -deckThickness, 0)),
   );
+  quad([...deckBelow].reverse(), deck, "balcony-deck-underside");
+  for (let i = 0; i < 4; i++)
+    quad(
+      [
+        deckCorners[i],
+        deckBelow[i],
+        deckBelow[(i + 1) % 4],
+        deckCorners[(i + 1) % 4],
+      ],
+      deck,
+      "balcony-deck-edge",
+    );
   quad(
     [back(a, bottom), back(b, bottom), back(b, top), back(a, top)],
     plaster,
@@ -297,8 +312,8 @@ export function recessedRoof(
   // A tan vertical screen is visible below the wooden awning in the supplied close-up.
   for (let x = doorA + (doorB - doorA) * 0.38; x < doorB - 0.025; x += 0.045)
     bar(
-      back(x, bottom + 0.1, 0.08),
-      back(x, doorTop - 0.08, 0.08),
+      back(x, bottom + 0.03, 0.08),
+      back(x, doorTop, 0.08),
       0.041,
       timber,
       "timber-screen",
@@ -324,15 +339,30 @@ export function recessedRoof(
   for (const x of [a, b]) {
     bar(
       world(x, railTop, out),
-      back(x, railTop, 0.08),
+      back(x, railTop),
+      0.035,
+      rail,
+      "balcony-side-rail",
+    );
+    bar(
+      world(x, bottom, out),
+      world(x, railTop, out),
+      0.035,
+      rail,
+      "balcony-post",
+    );
+    bar(back(x, bottom), back(x, railTop), 0.035, rail, "balcony-post");
+    bar(
+      world(x, bottom + 0.06, out),
+      back(x, bottom + 0.06),
       0.035,
       rail,
       "balcony-side-rail",
     );
     for (let t = 0.2; t < 1; t += 0.2) {
-      const z = out + (-recess.depth + 0.08 - out) * t;
+      const z = out + (-recess.depth - out) * t;
       bar(
-        world(x, bottom + 0.04, z),
+        world(x, bottom + 0.06, z),
         world(x, railTop, z),
         0.018,
         rail,
@@ -343,27 +373,39 @@ export function recessedRoof(
   if (r.awningWidth) {
     const left = (width - r.awningWidth) / 2,
       right = (width + r.awningWidth) / 2,
-      y = doorTop + 0.04,
-      caseOut = frontOut + 0.12;
-    for (let z = caseOut - 0.4; z <= caseOut; z += 0.035)
+      mountT = Math.min(0.98, recess.topT + 0.02),
+      y = profile.front.top + rise * mountT,
+      mountOut = -r.inset * mountT + 0.015,
+      caseOut = mountOut + 0.4;
+    for (let z = mountOut; z <= caseOut; z += 0.035)
       bar(world(left, y, z), world(right, y, z), 0.035, timber, "awning-slat");
-    for (const z of [caseOut - 0.4, caseOut]) {
+    for (const z of [mountOut, caseOut]) {
       bar(
-        world(left, y + 0.04, z),
-        world(right, y + 0.04, z),
+        world(a - 0.045, y, z),
+        world(b + 0.045, y, z),
         0.09,
         timber,
         "awning-case",
       );
     }
-    for (const x of [left, right])
+    for (const x of [a - 0.035, b + 0.035]) {
+      const lowerY = y - 0.22,
+        lowerOut = -r.inset * ((lowerY - profile.front.top) / rise) + 0.015;
       bar(
-        world(x, y - 0.18, caseOut - 0.3),
+        world(x, lowerY, lowerOut),
+        world(x, y, mountOut),
+        0.025,
+        frame,
+        "awning-mount",
+      );
+      bar(
+        world(x, lowerY, lowerOut),
         world(x, y, caseOut),
         0.025,
         frame,
         "awning-support",
       );
+    }
   }
   return group;
 }

@@ -15,6 +15,11 @@ const profile = {
   description: "Visual reconstruction",
   attribution: "User reference",
   generated: true,
+  shell: {
+    rearSurface: 1,
+    hiddenSurfaceIndices: [1, 2],
+    attribution: "Synthetic source selection",
+  },
   hiddenSurfaceIndices: [7, 14, 15],
   frontOpenings: [
     {

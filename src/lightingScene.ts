@@ -1,7 +1,14 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { triangulateSurface } from "./geometry.ts";
-import { planToExterior } from "./houseEnvelope.ts";
+import {
+  planToExterior,
+  frontRelief,
+  rearExterior,
+  flatRoofDetails,
+} from "./houseEnvelope.ts";
+import { facadeDetails } from "./appearance.ts";
+import { exteriorShell } from "./exteriorShell.ts";
 import {
   activeLampIds,
   coneAngle,
@@ -34,15 +41,81 @@ export function contextBuildings(
   origin: Point,
   transform = new THREE.Matrix4(),
   ownUpperFloor?: number,
+  reconstruction?: { appearance: HouseAppearance; plan: Floorplan },
 ) {
   const group = new THREE.Group();
   for (const target of [false, true]) {
     if (target && ownUpperFloor === undefined) continue;
     const geometries: THREE.BufferGeometry[] = [];
     for (const building of data.buildings.filter((b) => b.target === target)) {
-      for (const surface of building.surfaces) {
+      const profile = target ? reconstruction?.appearance : null;
+      const hidden = new Set(
+        profile
+          ? [
+              ...(profile.hiddenSurfaceIndices ?? []),
+              ...(profile.roof?.hiddenSurfaceIndices ?? []),
+              ...(profile.rear?.hiddenSurfaceIndices ?? []),
+              ...(profile.shell?.hiddenSurfaceIndices ?? []),
+            ]
+          : [],
+      );
+      for (const [index, surface] of building.surfaces.entries()) {
+        if (hidden.has(index)) continue;
         const geometry = triangulateSurface(surface, origin);
         if (geometry) geometries.push(geometry.applyMatrix4(transform));
+      }
+      if (profile && reconstruction) {
+        const solids = new THREE.Group();
+        solids.add(facadeDetails(profile, origin, building.surfaces));
+        if (profile.frontOpenings?.length)
+          solids.add(frontRelief(profile, origin, null, null));
+        if (profile.shell)
+          solids.add(exteriorShell(profile, origin, building.surfaces));
+        if (profile.flatRoof)
+          solids.add(flatRoofDetails(profile, origin, building.surfaces));
+        if (profile.rear) {
+          const structuralPlan = {
+            ...reconstruction.plan,
+            decorations: [],
+            walls: reconstruction.plan.walls.map((w) => ({
+              ...w,
+              coatings: undefined,
+              climber: undefined,
+            })),
+          };
+          solids.add(
+            rearExterior(
+              profile,
+              origin,
+              structuralPlan,
+              false,
+              () => {},
+              building.surfaces,
+            ).group,
+          );
+        }
+        solids.updateMatrixWorld(true);
+        const materials = new Set<THREE.Material>();
+        solids.traverse((o) => {
+          if (!(o instanceof THREE.Mesh)) return;
+          if (o.castShadow && o.userData.role !== "terrace-boundary") {
+            const geometry = o.geometry.index
+              ? o.geometry.toNonIndexed()
+              : o.geometry.clone();
+            for (const name of Object.keys(geometry.attributes))
+              if (name !== "position" && name !== "normal")
+                geometry.deleteAttribute(name);
+            geometries.push(
+              geometry.applyMatrix4(o.matrixWorld).applyMatrix4(transform),
+            );
+          }
+          o.geometry.dispose();
+          for (const material of Array.isArray(o.material)
+            ? o.material
+            : [o.material])
+            materials.add(material);
+        });
+        materials.forEach((m) => m.dispose());
       }
     }
     if (!geometries.length) continue;
@@ -171,6 +244,7 @@ export function createLightingRig(
         origin,
         transform,
         interior.plan.ceilingHeight + 0.025,
+        interior,
       )
     : null;
   if (context) group.add(context);

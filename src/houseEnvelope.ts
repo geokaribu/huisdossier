@@ -8,8 +8,18 @@ import type {
   Surface,
 } from "./types";
 import { frontFrame } from "./appearance.ts";
+import {
+  facadeTransform,
+  planToExterior,
+  mainShellLayout,
+  mainShellRoof,
+} from "./houseFrame.ts";
+export { facadeTransform, planToExterior } from "./houseFrame.ts";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings.ts";
-import { architectureGeometry } from "./planArchitecture.ts";
+import {
+  architectureGeometry,
+  filledSlabGeometry,
+} from "./planArchitecture.ts";
 import {
   glazedDoors,
   terraceObject,
@@ -65,35 +75,6 @@ function mark(group: THREE.Object3D, type = "WallSurface") {
     }
   });
 }
-export function facadeTransform(profile: HouseAppearance, origin: Point) {
-  const { u } = frontFrame(profile),
-    matrix = new THREE.Matrix4();
-  matrix.compose(
-    new THREE.Vector3(
-      profile.front.left[0] - origin[0],
-      profile.front.bottom - origin[2],
-      -(profile.front.left[1] - origin[1]),
-    ),
-    new THREE.Quaternion().setFromAxisAngle(
-      new THREE.Vector3(0, 1, 0),
-      Math.atan2(u[1], u[0]),
-    ),
-    new THREE.Vector3(1, 1, 1),
-  );
-  return matrix;
-}
-/** Approximate registration, explicitly stored with provenance; both renderers share the same plan. */
-export function planToExterior(profile: HouseAppearance, origin: Point) {
-  const r = profile.rear!,
-    local = new THREE.Matrix4().makeTranslation(
-      -r.anchor[0] * r.scale[0],
-      0,
-      -r.anchor[1] * r.scale[1],
-    );
-  local.multiply(new THREE.Matrix4().makeScale(r.scale[0], 1, r.scale[1]));
-  return facadeTransform(profile, origin).multiply(local);
-}
-
 export function frontRelief(
   profile: HouseAppearance,
   origin: Point,
@@ -323,7 +304,8 @@ export function flatRoofDetails(
   const group = new THREE.Group(),
     r = profile.flatRoof;
   if (!r) return group;
-  const source = surfaces[r.surface];
+  const source =
+    mainShellRoof(profile, origin, surfaces) ?? surfaces[r.surface];
   if (!source) return group;
   const rim = new THREE.MeshStandardMaterial({
     color: "#b5b9b4",
@@ -451,6 +433,7 @@ export function rearExterior(
   plan: Floorplan,
   withTextures = true,
   onLoad: () => void = () => {},
+  surfaces: Surface[] = [],
 ) {
   const group = new THREE.Group(),
     textures: THREE.Texture[] = [];
@@ -462,6 +445,34 @@ export function rearExterior(
   const r = profile.rear!,
     height = plan.ceilingHeight,
     footprint = rearFootprint(plan.ceiling, r.shellStartZ);
+  const shell = mainShellLayout(profile, origin, surfaces);
+  let junction: [THREE.Vector3, THREE.Vector3] | null = null;
+  if (shell) {
+    const toPlan = planToExterior(profile, origin)
+      .invert()
+      .multiply(shell.matrix);
+    const left = shell.left.clone().applyMatrix4(toPlan),
+      right = shell.right.clone().applyMatrix4(toPlan);
+    // Insert the actual rear-wall corners between the two traced cut-line vertices.
+    // This makes a short connecting return rather than a crack between two frames.
+    const edge = footprint.findIndex(
+      (a, i) =>
+        Math.abs(a[1] - r.shellStartZ) < 1e-5 &&
+        Math.abs(footprint[(i + 1) % footprint.length][1] - r.shellStartZ) <
+          1e-5,
+    );
+    if (edge >= 0) {
+      const a = footprint[edge],
+        b = footprint[(edge + 1) % footprint.length];
+      const ordered = a[0] > b[0] ? [right, left] : [left, right];
+      footprint.splice(
+        edge + 1,
+        0,
+        ...ordered.map((v) => [v.x, v.z] as PlanPoint),
+      );
+      junction = [left, right];
+    }
+  }
   const plaster = new THREE.MeshStandardMaterial({
     color: "#eeeade",
     roughness: 0.96,
@@ -483,20 +494,23 @@ export function rearExterior(
     roughness: 0.92,
     side: THREE.DoubleSide,
   });
-  floor(group, footprint, -0.015, inner, "rear-room-floor");
-  floor(group, footprint, height, plaster, "rear-room-ceiling");
-  floor(group, footprint, height + r.roofThickness, cap, "extension-roof");
   const portal = plan.walls.find((w) =>
     w.openings.some((o) => o.joinery?.id === r.portalId),
   );
-  if (portal)
-    floor(
-      group,
-      rearFootprint(plan.outline, portal.a[1] + 0.12),
-      -0.025,
-      cap,
-      "terrace-foundation",
+  if (portal) {
+    const gardenFootprint = rearFootprint(plan.outline, portal.a[1] + 0.12);
+    const gardenWalls = plan.walls
+      .filter((w) => w.outsideRoomId === r.outsideRoomId)
+      .map((w) => ({ ...w, openings: [], height: undefined }));
+    const footing = new THREE.Mesh(
+      filledSlabGeometry(gardenFootprint, gardenWalls, 0.12),
+      [cap, cap],
     );
+    footing.position.y = -0.125;
+    footing.castShadow = footing.receiveShadow = true;
+    footing.userData.role = "terrace-foundation";
+    group.add(footing);
+  }
   const roomLight = new THREE.PointLight("#fff6e4", 3, 6, 1);
   roomLight.position.set(
     (footprint[0][0] + footprint[1][0]) / 2,
@@ -531,6 +545,7 @@ export function rearExterior(
     }
     batch.walls.push({ a, b, thickness, height: hi - lo, openings: [] });
   }
+  const roofWalls: PlanWall[] = [];
   for (let i = 0; i < footprint.length; i++) {
     const a = footprint[i],
       b = footprint[(i + 1) % footprint.length];
@@ -548,16 +563,9 @@ export function rearExterior(
     );
     const thickness = sourceWall?.thickness ?? 0.16;
     if (!isPortal) wall(a, b, 0, height, plaster, "rear-wall", thickness);
-    wall(
-      a,
-      b,
-      height,
-      height + r.roofThickness,
-      cap,
-      "extension-roof-edge",
-      thickness,
-    );
+    roofWalls.push({ a, b, thickness, openings: [] });
     if (
+      !junction &&
       Math.abs(a[1] - r.shellStartZ) < 0.01 &&
       Math.abs(b[1] - r.shellStartZ) < 0.01
     )
@@ -569,6 +577,40 @@ export function rearExterior(
         plaster,
         "extension-junction",
       );
+  }
+  const slab = new THREE.Mesh(
+    filledSlabGeometry(footprint, roofWalls, r.roofThickness),
+    [cap, plaster],
+  );
+  slab.position.y = height;
+  slab.castShadow = slab.receiveShadow = true;
+  slab.userData.role = "extension-roof";
+  group.add(slab);
+  const foundation = new THREE.Mesh(
+    filledSlabGeometry(footprint, roofWalls, 0.12),
+    [inner, plaster],
+  );
+  foundation.position.y = -0.12;
+  foundation.castShadow = foundation.receiveShadow = true;
+  foundation.userData.role = "rear-room-floor";
+  group.add(foundation);
+  if (junction) {
+    const [a, b] = junction,
+      base = height + r.roofThickness;
+    const geometry = new THREE.BufferGeometry();
+    const points = [b.clone().setY(base), a.clone().setY(base), a, b];
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(
+        [0, 1, 2, 0, 2, 3].flatMap((i) => points[i].toArray()),
+        3,
+      ),
+    );
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, plaster);
+    mesh.userData.role = "extension-junction";
+    mesh.castShadow = mesh.receiveShadow = true;
+    group.add(mesh);
   }
   if (portal) {
     const length = Math.hypot(

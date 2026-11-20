@@ -10,6 +10,8 @@ Aanvulling 20 november 2026: de gebruiker heeft twee gevelbeelden aangeleverd. E
 
 ## Structuur
 
+Wandaansluitingen worden opgebouwd door `planArchitecture.ts`: doorsneden per hoogte, verenigde polygonen, begrensde verstekken en alleen zichtbare grensvlakken. Interieur en achterbouw delen deze constructie. De vloer heeft een doorlopende onderlaag onder de kamerafwerkingen; plinten houden openingen vrij. Zie [3D quality](3d-quality.md) voor het modelcontract en de verificatie.
+
 Een tweede aanvulling op 20 november 2026 gebruikt een PDOK-luchtfoto op dakvlakken en een handmatig overgetrokken plattegrond als los interieur. Beide profielen blijven in de privémap en in de volledige export. `InteriorViewer.tsx` leest uitsluitend profielgeometrie; `walkthrough.ts` verzorgt botsingen met wanden, doorgangen, vaste inrichting en de buitengrens. Kleine bewegingsstappen voorkomen dat een vertraagd frame een muur overslaat. De loopstand werkt met toetsen, slepen en zichtbare aanraakknoppen. De woonlaag is niet ingemeten gekoppeld aan het BAG-buitenmodel; er zijn geen andere verdiepingen afgeleid. De bron en aannames zijn vanuit de interface leesbaar.
 
 Een Node-proces serveert de lokale API en de webinterface. React/TypeScript verzorgt de interface; Three.js verzorgt alleen de weergave. Express valideert mutaties met Zod. Node SQLite bewaart records en losse bestanden bewaren de originelen. De keuze voor SQLite maakt deze versie eenvoudig op één computer te gebruiken; netwerkhosting of meerdere accounts vraagt een apart ontwerp en is geen impliciete vervolgfunctionaliteit.

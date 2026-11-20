@@ -66,9 +66,9 @@ export function wallSolids(
   const length = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
   let cursor = 0;
   const intervals: [number, number][] = [];
-  for (const opening of wall.openings.filter(
-    (o) => o.kind === "door" && o.sill < 0.05 && o.height >= 1.9,
-  )) {
+  for (const opening of [...wall.openings]
+    .sort((a, b) => a.offset - b.offset)
+    .filter((o) => o.kind === "door" && o.sill < 0.05 && o.height >= 1.9)) {
     if (
       opening.joinery &&
       !(doors[opening.joinery.id] ?? opening.joinery.defaultOpen)

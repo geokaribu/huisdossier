@@ -22,6 +22,7 @@ import {
 } from "./walkthrough";
 import type { DoorState } from "./walkthrough";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings";
+import { architectureGeometry } from "./planArchitecture";
 import {
   glazedDoors,
   pavingTexture,
@@ -147,6 +148,7 @@ export function InteriorViewer({
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     const canvas = renderer.domElement;
     canvas.tabIndex = 0;
     canvas.setAttribute(
@@ -156,23 +158,32 @@ export function InteriorViewer({
     container.appendChild(canvas);
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#eee9de");
-    scene.add(new THREE.HemisphereLight("#fffdf4", "#b5b6aa", 1.8));
+    scene.add(new THREE.HemisphereLight("#fffdf4", "#b5b6aa", 1.35));
     const sun = new THREE.DirectionalLight("#fff3d9", 2);
     sun.position.set(-5, 14, -9);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, {
-      left: -15,
-      right: 15,
-      top: 15,
-      bottom: -15,
+      left: -10,
+      right: 10,
+      top: 10,
+      bottom: -10,
       near: 0.1,
       far: 45,
     });
     sun.shadow.bias = -0.0003;
+    sun.shadow.normalBias = 0.015;
+    const modelCenter = new THREE.Vector3(
+      (bounds[0] + bounds[2]) / 2,
+      0,
+      (bounds[1] + bounds[3]) / 2,
+    );
+    sun.position.add(modelCenter);
+    sun.target.position.copy(modelCenter);
+    scene.add(sun.target);
     scene.add(sun);
     for (const room of plan.rooms.filter((r) => !r.outside)) {
-      const light = new THREE.PointLight("#fff9ee", 3.5, 5, 1);
+      const light = new THREE.PointLight("#fff9ee", 2.2, 4, 2);
       light.position.set(room.center[0], 2.35, room.center[1]);
       scene.add(light);
     }
@@ -230,6 +241,7 @@ export function InteriorViewer({
       color: "#a8c5cf",
       transparent: true,
       opacity: 0.32,
+      depthWrite: false,
       roughness: 0.16,
       metalness: 0.2,
       side: THREE.DoubleSide,
@@ -273,11 +285,28 @@ export function InteriorViewer({
       scene.add(mesh);
       return mesh;
     }
+    const slab = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(
+        new THREE.Shape(plan.outline.map(([x, z]) => new THREE.Vector2(x, -z))),
+        { depth: 0.12, bevelEnabled: false },
+      ),
+      new THREE.MeshStandardMaterial({ color: "#c4c1b3", roughness: 1 }),
+    );
+    slab.rotation.x = -Math.PI / 2;
+    slab.position.y = -0.12;
+    slab.receiveShadow = true;
+    scene.add(slab);
+    // Continuous subfloor closes tracing margins and thresholds under individual room finishes.
     scene.add(
       floorShape(
-        plan.outline,
-        new THREE.MeshStandardMaterial({ color: "#c4c1b3", roughness: 1 }),
-        -0.04,
+        plan.ceiling,
+        new THREE.MeshStandardMaterial({
+          color:
+            plan.rooms.find((r) => !r.outside && r.floorColor)?.floorColor ??
+            "#e8e5de",
+          roughness: 0.9,
+        }),
+        0,
       ),
     );
     for (const room of plan.rooms) {
@@ -327,6 +356,29 @@ export function InteriorViewer({
       if (wall.climber) scene.add(climbingPlants(wall, index));
     }
     for (const item of plan.decorations ?? []) scene.add(terraceObject(item));
+    const wallGroups = new Map<THREE.Material, PlanWall[]>();
+    for (const wall of plan.walls) {
+      const mat = finishes.get(wall) ?? plaster;
+      wallGroups.set(mat, [...(wallGroups.get(mat) ?? []), wall]);
+    }
+    for (const [mat, walls] of wallGroups) {
+      const mesh = new THREE.Mesh(
+        architectureGeometry(walls, plan.ceilingHeight),
+        [mat, cut],
+      );
+      mesh.castShadow = mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
+    const skirting = new THREE.Mesh(
+      architectureGeometry(
+        plan.walls.filter((w) => !w.outsideRoomId),
+        plan.ceilingHeight,
+        true,
+      ),
+      trim,
+    );
+    skirting.castShadow = skirting.receiveShadow = true;
+    scene.add(skirting);
     function wallPiece(
       wall: PlanWall,
       from: number,
@@ -335,39 +387,8 @@ export function InteriorViewer({
       top: number,
     ) {
       if (to - from < 0.005 || top - bottom < 0.005) return;
-      const dx = wall.b[0] - wall.a[0],
-        dz = wall.b[1] - wall.a[1],
-        length = Math.hypot(dx, dz),
-        t = (from + to) / 2 / length;
-      const angle = -Math.atan2(dz, dx);
-      const x = wall.a[0] + dx * t,
-        z = wall.a[1] + dz * t;
-      const piece = box(
-        x,
-        (bottom + top) / 2,
-        z,
-        to - from,
-        top - bottom,
-        wall.thickness,
-        finishes.get(wall) ?? plaster,
-        angle,
-      );
       if (wall.coatings?.length)
         scene.add(wallCoatings(wall, from, to, bottom, top, paintMaps));
-      if (wall.finish) {
-        const positions = piece.geometry.getAttribute("position"),
-          uv = [];
-        for (let i = 0; i < positions.count; i++)
-          uv.push(positions.getX(i), positions.getY(i));
-        piece.geometry.setAttribute(
-          "uv",
-          new THREE.Float32BufferAttribute(uv, 2),
-        );
-      }
-      if (bottom === 0)
-        box(x, 0.045, z, to - from, 0.09, wall.thickness + 0.025, trim, angle);
-      if (top === (wall.height ?? plan.ceilingHeight))
-        box(x, top + 0.004, z, to - from, 0.012, wall.thickness, cut, angle);
     }
     for (const wall of plan.walls) {
       const dx = wall.b[0] - wall.a[0],
@@ -375,7 +396,9 @@ export function InteriorViewer({
         length = Math.hypot(dx, dz),
         height = wall.height ?? plan.ceilingHeight;
       let end = 0;
-      for (const opening of wall.openings) {
+      for (const opening of [...wall.openings].sort(
+        (a, b) => a.offset - b.offset,
+      )) {
         wallPiece(wall, end, opening.offset, 0, height);
         wallPiece(
           wall,
@@ -550,9 +573,10 @@ export function InteriorViewer({
         side: THREE.DoubleSide,
         roughness: 1,
       }),
-      plan.ceilingHeight + 0.015,
+      plan.ceilingHeight,
     );
     ceiling.visible = false;
+    ceiling.castShadow = true;
     scene.add(ceiling);
     const center = new THREE.Vector3(
       (bounds[0] + bounds[2]) / 2,

@@ -4,10 +4,12 @@ import type {
   Floorplan,
   Point,
   PlanPoint,
+  PlanWall,
   Surface,
 } from "./types";
 import { frontFrame } from "./appearance.ts";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings.ts";
+import { architectureGeometry } from "./planArchitecture.ts";
 import {
   glazedDoors,
   terraceObject,
@@ -502,6 +504,13 @@ export function rearExterior(
     (footprint[0][1] + r.shellStartZ) / 2,
   );
   group.add(roomLight);
+  const wallBatches: {
+    walls: PlanWall[];
+    lo: number;
+    hi: number;
+    mat: THREE.Material;
+    role: string;
+  }[] = [];
   function wall(
     a: PlanPoint,
     b: PlanPoint,
@@ -509,21 +518,18 @@ export function rearExterior(
     hi: number,
     mat = plaster,
     role = "rear-wall",
+    thickness = 0.16,
   ) {
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
     if (length < 0.005 || hi <= lo) return;
-    box(
-      group,
-      (a[0] + b[0]) / 2,
-      (lo + hi) / 2,
-      (a[1] + b[1]) / 2,
-      length,
-      hi - lo,
-      0.16,
-      mat,
-      role,
-      -Math.atan2(b[1] - a[1], b[0] - a[0]),
+    let batch = wallBatches.find(
+      (b) => b.lo === lo && b.hi === hi && b.mat === mat && b.role === role,
     );
+    if (!batch) {
+      batch = { walls: [], lo, hi, mat, role };
+      wallBatches.push(batch);
+    }
+    batch.walls.push({ a, b, thickness, height: hi - lo, openings: [] });
   }
   for (let i = 0; i < footprint.length; i++) {
     const a = footprint[i],
@@ -532,8 +538,25 @@ export function rearExterior(
       portal &&
       Math.abs(a[1] - portal.a[1]) < 0.01 &&
       Math.abs(b[1] - portal.b[1]) < 0.01;
-    if (!isPortal) wall(a, b, 0, height);
-    wall(a, b, height, height + r.roofThickness, cap, "extension-roof-edge");
+    const sourceWall = plan.walls.find((w) =>
+      [w.a, w.b].every(
+        (p) =>
+          Math.abs(
+            (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]),
+          ) < 1e-5,
+      ),
+    );
+    const thickness = sourceWall?.thickness ?? 0.16;
+    if (!isPortal) wall(a, b, 0, height, plaster, "rear-wall", thickness);
+    wall(
+      a,
+      b,
+      height,
+      height + r.roofThickness,
+      cap,
+      "extension-roof-edge",
+      thickness,
+    );
     if (
       Math.abs(a[1] - r.shellStartZ) < 0.01 &&
       Math.abs(b[1] - r.shellStartZ) < 0.01
@@ -557,9 +580,35 @@ export function rearExterior(
         portal.a[1] + ((portal.b[1] - portal.a[1]) * t) / length,
       ];
     let end = 0;
-    for (const o of portal.openings) {
-      wall(at(end), at(o.offset), 0, height);
-      wall(at(o.offset), at(o.offset + o.width), o.height, height);
+    for (const o of [...portal.openings].sort((a, b) => a.offset - b.offset)) {
+      wall(
+        at(end),
+        at(o.offset),
+        0,
+        height,
+        plaster,
+        "rear-wall",
+        portal.thickness,
+      );
+      wall(
+        at(o.offset),
+        at(o.offset + o.width),
+        o.height + o.sill,
+        height,
+        plaster,
+        "rear-wall",
+        portal.thickness,
+      );
+      if (o.sill > 0)
+        wall(
+          at(o.offset),
+          at(o.offset + o.width),
+          0,
+          o.sill,
+          plaster,
+          "rear-wall",
+          portal.thickness,
+        );
       if (o.joinery) {
         const doors = glazedDoors(portal, o, {
           ...o.joinery,
@@ -569,7 +618,7 @@ export function rearExterior(
       }
       end = o.offset + o.width;
     }
-    wall(at(end), portal.b, 0, height);
+    wall(at(end), portal.b, 0, height, plaster, "rear-wall", portal.thickness);
   }
   for (const room of plan.rooms.filter((room) => room.id === r.outsideRoomId)) {
     const map =
@@ -606,6 +655,7 @@ export function rearExterior(
           roughness: 1,
         }),
         "terrace-boundary",
+        w.thickness,
       );
       if (w.climber) group.add(climbingPlants(w, i));
     }
@@ -620,9 +670,35 @@ export function rearExterior(
           : Math.max(0, Math.min(1, (r.shellStartZ - w.a[1]) / dz)) * length;
       const start = w.a[1] <= r.shellStartZ ? 0 : cross,
         end = w.b[1] <= r.shellStartZ ? length : cross;
-      if (w !== portal)
-        group.add(wallCoatings(w, start, end, 0, height, paintMaps));
+      // Paint follows the solid wall intervals, including lintels, rather than covering openings.
+      if (w !== portal) {
+        let cursor = start;
+        for (const o of [...w.openings].sort((a, b) => a.offset - b.offset)) {
+          const a = Math.max(start, o.offset),
+            b = Math.min(end, o.offset + o.width);
+          if (b <= a) continue;
+          if (a > cursor)
+            group.add(wallCoatings(w, cursor, a, 0, height, paintMaps));
+          group.add(wallCoatings(w, a, b, 0, o.sill, paintMaps));
+          group.add(
+            wallCoatings(w, a, b, o.sill + o.height, height, paintMaps),
+          );
+          cursor = b;
+        }
+        if (cursor < end)
+          group.add(wallCoatings(w, cursor, end, 0, height, paintMaps));
+      }
     }
+  for (const batch of wallBatches) {
+    const mesh = new THREE.Mesh(
+      architectureGeometry(batch.walls, batch.hi - batch.lo),
+      [batch.mat, batch.mat],
+    );
+    mesh.position.y = batch.lo;
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.userData.role = batch.role;
+    group.add(mesh);
+  }
   for (const item of plan.decorations ?? []) group.add(terraceObject(item));
   mark(group);
   group.traverse((o) => {

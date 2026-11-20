@@ -269,6 +269,7 @@ export interface PlanDecoration {
   shade?: boolean;
   /** Scenario values, not measured photometry. Only used for pendants. */
   light?: { color: string; intensity: number; distance: number };
+  artwork?: { texture: string; attribution: string; generated: boolean };
 }
 export interface PlanWall {
   outsideRoomId?: string;

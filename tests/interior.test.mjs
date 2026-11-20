@@ -206,6 +206,20 @@ test("private floor plans remain isolated per house and are retained in a dossie
     ],
     decorations: [
       {
+        id: "painting",
+        kind: "picture-frame",
+        center: [1, 2],
+        size: [0.8, 0.055],
+        height: 1.12,
+        base: 1.1,
+        solid: false,
+        artwork: {
+          texture: "painting.png",
+          attribution: "Synthetic edited test image",
+          generated: true,
+        },
+      },
+      {
         id: "table",
         kind: "patio-table",
         center: [5, 4],
@@ -273,6 +287,10 @@ test("private floor plans remain isolated per house and are retained in a dossie
   };
   await writeFile(path.join(folder, "plan.json"), JSON.stringify(savedPlan));
   await writeFile(
+    path.join(folder, "painting.png"),
+    "synthetic-painting-bytes",
+  );
+  await writeFile(
     path.join(folder, "wallpaper.png"),
     "synthetic-pattern-bytes",
   );
@@ -291,9 +309,21 @@ test("private floor plans remain isolated per house and are retained in a dossie
     const response = await fetch(`${base}/koekoekstraat-17/floorplan`);
     assert.equal(response.headers.get("cache-control"), "no-store");
     const servedPlan = structuredClone(savedPlan);
+    servedPlan.decorations[0].artwork.texture =
+      "/api/houses/koekoekstraat-17/floorplan/textures/painting.png";
     servedPlan.walls[0].coatings[0].pattern.texture =
       "/api/houses/koekoekstraat-17/floorplan/textures/wallpaper.png";
     assert.deepEqual(await response.json(), servedPlan);
+    assert.equal(
+      await (
+        await fetch(`${base}/koekoekstraat-17/floorplan/textures/painting.png`)
+      ).text(),
+      "synthetic-painting-bytes",
+    );
+    assert.equal(
+      (await fetch(`${base}/other/floorplan/textures/painting.png`)).status,
+      404,
+    );
     assert.equal(
       await (
         await fetch(`${base}/koekoekstraat-17/floorplan/textures/wallpaper.png`)
@@ -352,6 +382,10 @@ test("private floor plans remain isolated per house and are retained in a dossie
       {
         name: "wallpaper.png",
         base64: Buffer.from("synthetic-pattern-bytes").toString("base64"),
+      },
+      {
+        name: "painting.png",
+        base64: Buffer.from("synthetic-painting-bytes").toString("base64"),
       },
     ]);
   } finally {

@@ -16,6 +16,7 @@ import {
 } from "./houseFrame.ts";
 export { facadeTransform, planToExterior } from "./houseFrame.ts";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings.ts";
+import { loadArtworkTextures } from "./framedArtwork.ts";
 import {
   architectureGeometry,
   filledSlabGeometry,
@@ -441,6 +442,10 @@ export function rearExterior(
     ? loadCoatingTextures(plan, onLoad)
     : new Map<string, THREE.Texture>();
   textures.push(...paintMaps.values());
+  const artworkMaps = withTextures
+    ? loadArtworkTextures(plan, onLoad)
+    : new Map<string, THREE.Texture>();
+  textures.push(...artworkMaps.values());
   group.applyMatrix4(planToExterior(profile, origin));
   const r = profile.rear!,
     height = plan.ceilingHeight,
@@ -741,7 +746,8 @@ export function rearExterior(
     mesh.userData.role = batch.role;
     group.add(mesh);
   }
-  for (const item of plan.decorations ?? []) group.add(terraceObject(item));
+  for (const item of plan.decorations ?? [])
+    group.add(terraceObject(item, false, artworkMaps));
   mark(group);
   group.traverse((o) => {
     if (o.userData.role?.includes("roof"))

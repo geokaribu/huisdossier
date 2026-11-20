@@ -26,6 +26,7 @@ import type {
 import { createLightingRig } from "./lightingScene";
 import { interiorLights } from "./interiorLights";
 import { disposeFurnitureReflection } from "./bedroomFurniture";
+import { loadArtworkTextures } from "./framedArtwork";
 import {
   canStand,
   insidePolygon,
@@ -258,6 +259,8 @@ export function InteriorViewer({
     const privateTextures: THREE.Texture[] = [];
     const paintMaps = loadCoatingTextures(plan, invalidate);
     privateTextures.push(...paintMaps.values());
+    const artworkMaps = loadArtworkTextures(plan, invalidate);
+    privateTextures.push(...artworkMaps.values());
     let doorState: DoorState = Object.fromEntries(
       plan.walls.flatMap((w) =>
         w.openings.flatMap((o) =>
@@ -423,7 +426,7 @@ export function InteriorViewer({
       if (wall.climber) scene.add(climbingPlants(wall, index));
     }
     for (const item of plan.decorations ?? [])
-      scene.add(terraceObject(item, true));
+      scene.add(terraceObject(item, true, artworkMaps));
     const wallGroups = new Map<THREE.Material, PlanWall[]>();
     for (const wall of plan.walls) {
       const mat = finishes.get(wall) ?? plaster;

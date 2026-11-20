@@ -2,9 +2,14 @@ import * as THREE from "three";
 import type { PlanDecoration } from "./types";
 import { interiorFurniture } from "./interiorFurniture.ts";
 import { pendantBulbOffsets } from "./interiorLights.ts";
+import { framedArtwork } from "./framedArtwork.ts";
 
 /** Photo-observed furnishings with positions and dimensions supplied per house. */
-export function livingFurniture(item: PlanDecoration) {
+export function livingFurniture(
+  item: PlanDecoration,
+  maps: Map<string, THREE.Texture> = new Map(),
+) {
+  if (item.kind === "picture-frame") return framedArtwork(item, maps);
   if (item.kind === "recliner")
     return interiorFurniture({ ...item, kind: "armchair" });
   const group = new THREE.Group();
@@ -210,12 +215,6 @@ export function livingFurniture(item: PlanDecoration) {
         group.add(shade);
       }
     }
-  } else if (item.kind === "picture-frame") {
-    box(0, h / 2, 0, w, h, 0.025, mat("#4a5140"));
-    const gold = mat("#907044", 0.4, 0.3);
-    for (const x of [-w / 2, w / 2])
-      box(x, h / 2, 0.025, 0.035, h + 0.04, 0.04, gold);
-    for (const y of [0, h]) box(0, y, 0.025, w, 0.035, 0.04, gold);
   } else if (item.kind === "wall-shelf") {
     box(0, 0, 0, w, 0.025, d, black);
     for (let i = 0; i < 3; i++)

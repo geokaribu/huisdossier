@@ -248,6 +248,15 @@ const schema = z.object({
           mirrorPanel: z.number().int().min(0).max(7).optional(),
           bulbs: z.number().int().min(1).max(4).optional(),
           shade: z.boolean().optional(),
+          artwork: z
+            .object({
+              texture: z
+                .string()
+                .regex(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/),
+              attribution: z.string(),
+              generated: z.boolean(),
+            })
+            .optional(),
           light: z
             .object({
               color,
@@ -295,13 +304,16 @@ export async function readFloorplan(directory, houseId) {
 
 export function floorplanTextureNames(plan) {
   return [
-    ...new Set(
-      (plan?.walls ?? []).flatMap((w) =>
+    ...new Set([
+      ...(plan?.walls ?? []).flatMap((w) =>
         (w.coatings ?? []).flatMap((c) =>
           c.pattern ? [c.pattern.texture] : [],
         ),
       ),
-    ),
+      ...(plan?.decorations ?? []).flatMap((item) =>
+        item.artwork ? [item.artwork.texture] : [],
+      ),
+    ]),
   ];
 }
 
@@ -309,6 +321,17 @@ export function clientFloorplan(plan, houseId) {
   if (!plan) return null;
   return {
     ...plan,
+    decorations: plan.decorations?.map((item) => ({
+      ...item,
+      ...(item.artwork
+        ? {
+            artwork: {
+              ...item.artwork,
+              texture: `/api/houses/${houseId}/floorplan/textures/${item.artwork.texture}`,
+            },
+          }
+        : {}),
+    })),
     walls: plan.walls.map((w) => ({
       ...w,
       ...(w.coatings

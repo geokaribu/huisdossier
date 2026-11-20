@@ -312,7 +312,11 @@ export function climbingPlants(wall: PlanWall, index: number) {
 }
 
 /** Reusable objects, parameterized by private positions, sizes and colours. */
-export function terraceObject(item: PlanDecoration, reflections = false) {
+export function terraceObject(
+  item: PlanDecoration,
+  reflections = false,
+  maps: Map<string, THREE.Texture> = new Map(),
+) {
   if (
     [
       "bed",
@@ -357,7 +361,7 @@ export function terraceObject(item: PlanDecoration, reflections = false) {
       "recliner",
     ].includes(item.kind)
   )
-    return livingFurniture(item);
+    return livingFurniture(item, maps);
   if (["barbecue", "storage-cabinet", "hanging-planter"].includes(item.kind))
     return gardenFurniture(item);
   if (item.kind === "utility-niche") return utilityNiche(item);

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+/data/
+.env
+*.log
+test-results/
+.playwright-mcp/
+huisdossier-*.png
+.DS_Store

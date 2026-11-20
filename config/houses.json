@@ -1,0 +1,29 @@
+[
+  {
+    "id": "koekoekstraat-17",
+    "name": "Ons huis",
+    "query": "Koekoekstraat 17 Utrecht",
+    "vboId": "0344010000061984",
+    "address": "Koekoekstraat 17",
+    "postcode": "3514 CS",
+    "city": "Utrecht",
+    "rd": [136707.04, 456693.097],
+    "starterAssets": [
+      {
+        "slug": "ventilation",
+        "name": "Ventilatie slaapkamer",
+        "description": "Eerste dossieronderdeel uit de projectcontext. Type, verdieping en exacte plek nog vast te leggen."
+      },
+      {
+        "slug": "electrical",
+        "name": "Elektriciteitskast",
+        "description": "Locatie en installatiegegevens nog vast te leggen."
+      },
+      {
+        "slug": "oven",
+        "name": "Oven",
+        "description": "Merk, type en exacte plek nog vast te leggen."
+      }
+    ]
+  }
+]

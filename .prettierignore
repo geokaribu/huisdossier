@@ -1,0 +1,7 @@
+public/data/
+package-lock.json
+dist/
+data/
+node_modules/
+test-results/
+.playwright-mcp/

@@ -42,6 +42,7 @@ const schema = z.object({
         outside: z.boolean().optional(),
         shared: z.boolean().optional(),
         floor: z.enum(["wood", "tile"]).optional(),
+        floorColor: color.optional(),
         paving: z
           .object({ size: z.number().positive().max(2), color })
           .optional(),
@@ -61,6 +62,24 @@ const schema = z.object({
           finish: z
             .object({ color, texture: z.enum(["stucco", "brick"]) })
             .optional(),
+          coatings: z
+            .array(
+              z.object({
+                side: z.enum(["positive", "negative"]),
+                from: z.number().nonnegative(),
+                to: z.number().positive(),
+                color,
+                lower: z
+                  .object({
+                    color,
+                    height: z.number().positive().max(3),
+                    railColor: color,
+                  })
+                  .optional(),
+              }),
+            )
+            .max(30)
+            .optional(),
           climber: z
             .object({
               top: z.number().positive().max(4),
@@ -76,6 +95,7 @@ const schema = z.object({
                 sill: z.number().nonnegative(),
                 height: z.number().positive(),
                 kind: z.enum(["door", "window"]),
+                frameColor: color.optional(),
                 joinery: joinery.optional(),
               }),
             )
@@ -88,6 +108,28 @@ const schema = z.object({
           );
           if (length < 0.01)
             ctx.addIssue({ code: "custom", message: "Wand heeft geen lengte" });
+          for (const coat of wall.coatings ?? []) {
+            if (
+              coat.to <= coat.from ||
+              coat.to > length + 0.01 ||
+              (coat.lower && coat.lower.height >= (wall.height ?? 5))
+            )
+              ctx.addIssue({
+                code: "custom",
+                message: "Wandkleur valt buiten de wand",
+              });
+            for (const other of wall.coatings ?? [])
+              if (
+                other !== coat &&
+                other.side === coat.side &&
+                coat.from < other.to &&
+                other.from < coat.to
+              )
+                ctx.addIssue({
+                  code: "custom",
+                  message: "Wandkleuren overlappen",
+                });
+          }
           let end = 0;
           for (const opening of wall.openings) {
             if (

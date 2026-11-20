@@ -35,7 +35,16 @@ const plan = {
       a: [3, 0],
       b: [3, 5],
       thickness: 0.12,
-      openings: [{ offset: 2, width: 1, sill: 0, height: 2.1, kind: "door" }],
+      openings: [
+        {
+          offset: 2,
+          width: 1,
+          sill: 0,
+          height: 2.1,
+          kind: "door",
+          frameColor: "#eee9df",
+        },
+      ],
     },
   ],
 };
@@ -144,6 +153,15 @@ test("private floor plans remain isolated per house and are retained in a dossie
       {
         ...plan.walls[0],
         finish: { color: "#eeeecc", texture: "stucco" },
+        coatings: [
+          {
+            side: "positive",
+            from: 0,
+            to: 5,
+            color: "#eee9df",
+            lower: { color: "#a04e36", height: 1.18, railColor: "#89432f" },
+          },
+        ],
         climber: { top: 2, coverage: 0.8, trellis: true },
         openings: [{ ...plan.walls[0].openings[0], joinery }],
       },

@@ -191,9 +191,17 @@ export interface PlanWall {
     sill: number;
     height: number;
     kind: "door" | "window";
+    frameColor?: string;
     joinery?: GlazedJoinery;
   }[];
   finish?: { color: string; texture: "stucco" | "brick" };
+  coatings?: {
+    side: "positive" | "negative";
+    from: number;
+    to: number;
+    color: string;
+    lower?: { color: string; height: number; railColor: string };
+  }[];
   climber?: { top: number; coverage: number; trellis: boolean };
 }
 export interface Floorplan {
@@ -215,6 +223,7 @@ export interface Floorplan {
     outside?: boolean;
     shared?: boolean;
     floor?: "wood" | "tile";
+    floorColor?: string;
     paving?: { size: number; color: string };
     viewYaw?: number;
     viewPitch?: number;

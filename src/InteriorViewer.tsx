@@ -15,6 +15,7 @@ import {
 import type { Floorplan, PlanPoint, PlanWall } from "./types";
 import { canStand, insidePolygon, moveInside } from "./walkthrough";
 import type { DoorState } from "./walkthrough";
+import { wallCoatings } from "./wallCoatings";
 import {
   glazedDoors,
   pavingTexture,
@@ -245,24 +246,28 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
     for (const room of plan.rooms) {
       const tiled = room.floor === "tile" || room.outside || room.shared;
       const mat = new THREE.MeshStandardMaterial({
-        color: room.paving
-          ? "#ffffff"
-          : room.outside
-            ? "#b4b6ac"
-            : room.shared
-              ? "#c5c8c4"
-              : tiled
-                ? "#d9e2df"
-                : "#ffffff",
-        map: room.paving
-          ? (() => {
-              const map = pavingTexture(room.paving.size, room.paving.color);
-              privateTextures.push(map);
-              return map;
-            })()
-          : tiled
-            ? tile
-            : wood,
+        color:
+          room.floorColor ??
+          (room.paving
+            ? "#ffffff"
+            : room.outside
+              ? "#b4b6ac"
+              : room.shared
+                ? "#c5c8c4"
+                : tiled
+                  ? "#d9e2df"
+                  : "#ffffff"),
+        map: room.floorColor
+          ? null
+          : room.paving
+            ? (() => {
+                const map = pavingTexture(room.paving.size, room.paving.color);
+                privateTextures.push(map);
+                return map;
+              })()
+            : tiled
+              ? tile
+              : wood,
         roughness: 0.9,
         side: THREE.DoubleSide,
       });
@@ -310,6 +315,8 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
         finishes.get(wall) ?? plaster,
         angle,
       );
+      if (wall.coatings?.length)
+        scene.add(wallCoatings(wall, from, to, bottom, top));
       if (wall.finish) {
         const positions = piece.geometry.getAttribute("position"),
           uv = [];
@@ -355,6 +362,12 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
           continue;
         }
         const ang = -Math.atan2(dz, dx);
+        const openingFrame = opening.frameColor
+          ? new THREE.MeshStandardMaterial({
+              color: opening.frameColor,
+              roughness: 0.55,
+            })
+          : frameMaterial;
         const at = (
           offset: number,
           y: number,
@@ -378,14 +391,14 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
             opening.sill + opening.height / 2,
             0.045,
             opening.height,
-            frameMaterial,
+            openingFrame,
           );
         at(
           opening.offset + opening.width / 2,
           opening.sill + opening.height,
           opening.width,
           0.045,
-          frameMaterial,
+          openingFrame,
         );
         if (opening.kind === "window") {
           at(
@@ -393,7 +406,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
             opening.sill,
             opening.width,
             0.045,
-            frameMaterial,
+            openingFrame,
           );
           at(
             opening.offset + opening.width / 2,
@@ -407,7 +420,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
             opening.sill + opening.height * 0.78,
             opening.width,
             0.035,
-            frameMaterial,
+            openingFrame,
           );
         }
         end = opening.offset + opening.width;

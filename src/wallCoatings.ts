@@ -72,6 +72,27 @@ export function wallCoatings(
       group.add(panel);
     }
     paint(coat.lower?.height ?? bottom, top, coat.color, true);
+    if (coat.skirtingColor && bottom < 0.094) {
+      const lo = Math.max(0, bottom),
+        hi = Math.min(0.094, top);
+      if (hi > lo) {
+        const skirt = new THREE.Mesh(
+          new THREE.BoxGeometry(end - start, hi - lo, 0.021),
+          new THREE.MeshStandardMaterial({
+            color: coat.skirtingColor,
+            roughness: 0.7,
+          }),
+        );
+        skirt.position.set(
+          (start + end) / 2,
+          (lo + hi) / 2,
+          sign * (wall.thickness / 2 + 0.007),
+        );
+        skirt.castShadow = skirt.receiveShadow = true;
+        skirt.userData.role = "wall-skirting";
+        group.add(skirt);
+      }
+    }
     if (coat.lower) {
       paint(bottom, coat.lower.height, coat.lower.color);
       const lo = Math.max(bottom, coat.lower.height - 0.018),

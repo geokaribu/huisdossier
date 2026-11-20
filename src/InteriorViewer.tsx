@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   ArrowDown,
   ArrowLeft,
@@ -23,6 +24,7 @@ import {
 import type { DoorState } from "./walkthrough";
 import { wallCoatings, loadCoatingTextures } from "./wallCoatings";
 import { architectureGeometry } from "./planArchitecture";
+import { wallSanitary } from "./sanitary";
 import {
   glazedDoors,
   pavingTexture,
@@ -82,6 +84,29 @@ function floorTexture(tile = false) {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(tile ? 1.2 : 0.8, tile ? 1.2 : 0.8);
   texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function tileFinish(size: number, color: string, groutColor: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 256;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 256, 256);
+  let seed = 81;
+  for (let i = 0; i < 3000; i++) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    ctx.fillStyle = i % 2 ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.035)";
+    ctx.fillRect(seed % 256, (seed >>> 8) % 256, 1, 1);
+  }
+  ctx.strokeStyle = groutColor;
+  ctx.lineWidth = Math.max(1, (256 * 0.003) / size);
+  ctx.strokeRect(0, 0, 256, 256);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1 / size, 1 / size);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -157,6 +182,14 @@ export function InteriorViewer({
     );
     container.appendChild(canvas);
     const scene = new THREE.Scene();
+    // Neutral studio reflections make chrome/ceramic readable; this is illustrative lighting.
+    const environmentScene = new RoomEnvironment(),
+      pmrem = new THREE.PMREMGenerator(renderer);
+    const environment = pmrem.fromScene(environmentScene, 0.04);
+    scene.environment = environment.texture;
+    scene.environmentIntensity = 0.35;
+    environmentScene.dispose();
+    pmrem.dispose();
     scene.background = new THREE.Color("#eee9de");
     scene.add(new THREE.HemisphereLight("#fffdf4", "#b5b6aa", 1.35));
     const sun = new THREE.DirectionalLight("#fff3d9", 2);
@@ -313,7 +346,7 @@ export function InteriorViewer({
       const tiled = room.floor === "tile" || room.outside || room.shared;
       const mat = new THREE.MeshStandardMaterial({
         color:
-          room.floorColor ??
+          (room.floorTiling ? "#ffffff" : room.floorColor) ??
           (room.paving
             ? "#ffffff"
             : room.outside
@@ -323,17 +356,30 @@ export function InteriorViewer({
                 : tiled
                   ? "#d9e2df"
                   : "#ffffff"),
-        map: room.floorColor
-          ? null
-          : room.paving
-            ? (() => {
-                const map = pavingTexture(room.paving.size, room.paving.color);
-                privateTextures.push(map);
-                return map;
-              })()
-            : tiled
-              ? tile
-              : wood,
+        map: room.floorTiling
+          ? (() => {
+              const map = tileFinish(
+                room.floorTiling.size,
+                room.floorColor ?? "#777777",
+                room.floorTiling.groutColor,
+              );
+              privateTextures.push(map);
+              return map;
+            })()
+          : room.floorColor
+            ? null
+            : room.paving
+              ? (() => {
+                  const map = pavingTexture(
+                    room.paving.size,
+                    room.paving.color,
+                  );
+                  privateTextures.push(map);
+                  return map;
+                })()
+              : tiled
+                ? tile
+                : wood,
         roughness: 0.9,
         side: THREE.DoubleSide,
       });
@@ -489,6 +535,13 @@ export function InteriorViewer({
       wallPiece(wall, end, length, 0, height);
     }
     for (const f of plan.fixtures) {
+      if (
+        f.mounting === "wall" &&
+        (f.kind === "toilet" || f.kind === "basin" || f.kind === "sink")
+      ) {
+        scene.add(wallSanitary(f));
+        continue;
+      }
       const [x, z] = f.center,
         [w, d] = f.size,
         h = f.height;
@@ -836,6 +889,7 @@ export function InteriorViewer({
       wood.dispose();
       tile.dispose();
       privateTextures.forEach((t) => t.dispose());
+      environment.dispose();
       renderer.dispose();
       canvas.remove();
     };

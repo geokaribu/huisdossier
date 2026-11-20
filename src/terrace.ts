@@ -312,6 +312,23 @@ export function climbingPlants(wall: PlanWall, index: number) {
 
 /** Reusable objects, parameterized by private positions, sizes and colours. */
 export function terraceObject(item: PlanDecoration) {
+  if (item.kind === "built-in") {
+    const group = new THREE.Group();
+    group.position.set(item.center[0], item.base ?? 0, item.center[1]);
+    group.rotation.y = item.rotation ?? 0;
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(item.size[0], item.height, item.size[1]),
+      new THREE.MeshStandardMaterial({
+        color: item.color ?? "#f0ece3",
+        roughness: 0.9,
+      }),
+    );
+    mesh.position.y = item.height / 2;
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.userData.role = "built-in";
+    group.add(mesh);
+    return group;
+  }
   if (
     [
       "bookcase",

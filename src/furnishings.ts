@@ -8,6 +8,7 @@ const fixedKinds = new Set<PlanDecoration["kind"]>([
   "kitchen-cabinet",
   "wall-shelf",
   "range-cooker",
+  "built-in",
 ]);
 
 /** Both views derive from one plan: room IDs, finishes and document links stay identical. */

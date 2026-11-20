@@ -43,6 +43,9 @@ const schema = z.object({
         shared: z.boolean().optional(),
         floor: z.enum(["wood", "tile"]).optional(),
         floorColor: color.optional(),
+        floorTiling: z
+          .object({ size: z.number().min(0.1).max(2), groutColor: color })
+          .optional(),
         paving: z
           .object({ size: z.number().positive().max(2), color })
           .optional(),
@@ -71,6 +74,7 @@ const schema = z.object({
                 from: z.number().nonnegative(),
                 to: z.number().positive(),
                 color,
+                skirtingColor: color.optional(),
                 pattern: z
                   .object({
                     texture: z
@@ -183,6 +187,8 @@ const schema = z.object({
         size: positiveSize,
         height: z.number().positive().max(3),
         fixed: z.boolean().optional(),
+        mounting: z.literal("wall").optional(),
+        rotation: z.number().finite().optional(),
       }),
     )
     .max(100),
@@ -217,6 +223,7 @@ const schema = z.object({
           "wall-shelf",
           "range-cooker",
           "recliner",
+          "built-in",
         ]),
         center: point,
         size: positiveSize,

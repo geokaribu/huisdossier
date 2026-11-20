@@ -200,7 +200,8 @@ export interface PlanDecoration {
     | "kitchen-cabinet"
     | "wall-shelf"
     | "range-cooker"
-    | "recliner";
+    | "recliner"
+    | "built-in";
   center: PlanPoint;
   size: PlanPoint;
   height: number;
@@ -233,6 +234,7 @@ export interface PlanWall {
     from: number;
     to: number;
     color: string;
+    skirtingColor?: string;
     lower?: { color: string; height: number; railColor: string };
     pattern?: {
       texture: string;
@@ -263,6 +265,7 @@ export interface Floorplan {
     shared?: boolean;
     floor?: "wood" | "tile";
     floorColor?: string;
+    floorTiling?: { size: number; groutColor: string };
     paving?: { size: number; color: string };
     viewYaw?: number;
     viewPitch?: number;
@@ -283,6 +286,8 @@ export interface Floorplan {
     size: PlanPoint;
     height: number;
     fixed?: boolean;
+    mounting?: "wall";
+    rotation?: number;
   }[];
   decorations?: PlanDecoration[];
 }

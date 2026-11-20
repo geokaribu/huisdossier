@@ -134,8 +134,17 @@ export function canStand(
     }
   }
   for (const f of plan.fixtures) {
-    const dx = Math.max(Math.abs(p[0] - f.center[0]) - f.size[0] / 2, 0);
-    const dz = Math.max(Math.abs(p[1] - f.center[1]) - f.size[1] / 2, 0);
+    const angle = f.rotation ?? 0,
+      x = p[0] - f.center[0],
+      z = p[1] - f.center[1];
+    const dx = Math.max(
+      Math.abs(Math.cos(angle) * x - Math.sin(angle) * z) - f.size[0] / 2,
+      0,
+    );
+    const dz = Math.max(
+      Math.abs(Math.sin(angle) * x + Math.cos(angle) * z) - f.size[1] / 2,
+      0,
+    );
     if (Math.hypot(dx, dz) < radius) return false;
   }
   return true;

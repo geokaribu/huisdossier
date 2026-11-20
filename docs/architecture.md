@@ -10,6 +10,8 @@ Aanvulling 20 november 2026: de gebruiker heeft twee gevelbeelden aangeleverd. E
 
 ## Structuur
 
+Optionele sanitairprofielen gebruiken `mounting: "wall"` en `rotation` voor hangtoiletten en wandfonteinen; dezelfde rotatie bepaalt hun loopcontour. `built-in`-objecten beschrijven vaste betimmering en koven. Kamerafwerking kan een eigen tegelmaat/voegkleur en plintkleur per wandzijde krijgen. Deze opties blijven behouden in API, export en de oningerichte weergave; alle plaatsingen en fotoafgeleide kleuren blijven privéprofieldata.
+
 Wandaansluitingen worden opgebouwd door `planArchitecture.ts`: doorsneden per hoogte, verenigde polygonen, begrensde verstekken en alleen zichtbare grensvlakken. Interieur en achterbouw delen deze constructie. De vloer heeft een doorlopende onderlaag onder de kamerafwerkingen; plinten houden openingen vrij. Zie [3D quality](3d-quality.md) voor het modelcontract en de verificatie.
 
 Een tweede aanvulling op 20 november 2026 gebruikt een PDOK-luchtfoto op dakvlakken en een handmatig overgetrokken plattegrond als los interieur. Beide profielen blijven in de privémap en in de volledige export. `InteriorViewer.tsx` leest uitsluitend profielgeometrie; `walkthrough.ts` verzorgt botsingen met wanden, doorgangen, vaste inrichting en de buitengrens. Kleine bewegingsstappen voorkomen dat een vertraagd frame een muur overslaat. De loopstand werkt met toetsen, slepen en zichtbare aanraakknoppen. De woonlaag is niet ingemeten gekoppeld aan het BAG-buitenmodel; er zijn geen andere verdiepingen afgeleid. De bron en aannames zijn vanuit de interface leesbaar.

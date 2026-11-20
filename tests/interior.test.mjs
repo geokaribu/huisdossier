@@ -149,6 +149,16 @@ test("private floor plans remain isolated per house and are retained in a dossie
   await mkdir(folder, { recursive: true });
   const savedPlan = {
     ...plan,
+    fixtures: [
+      {
+        kind: "toilet",
+        center: [4, 1],
+        size: [0.4, 0.55],
+        height: 0.45,
+        mounting: "wall",
+        rotation: Math.PI,
+      },
+    ],
     rooms: [
       {
         id: "entry",
@@ -157,6 +167,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
         center: [1, 1],
         color: "#eeeeee",
         floorColor: "#eee9df",
+        floorTiling: { size: 0.4, groutColor: "#888888" },
         viewFov: 100,
       },
     ],
@@ -171,6 +182,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
             from: 0,
             to: 5,
             color: "#eee9df",
+            skirtingColor: "#333333",
             pattern: {
               texture: "wallpaper.png",
               tileSize: [1.4, 1.4],
@@ -202,6 +214,16 @@ test("private floor plans remain isolated per house and are retained in a dossie
         height: 2.5,
         rotation: -Math.PI / 2,
         solid: true,
+        fixed: true,
+      },
+      {
+        id: "casing",
+        kind: "built-in",
+        center: [4, 2],
+        size: [0.8, 0.2],
+        height: 0.3,
+        base: 2.1,
+        color: "#225566",
         fixed: true,
       },
       ...["barbecue", "storage-cabinet", "hanging-planter"].map((kind, i) => ({
@@ -265,7 +287,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
     assert.deepEqual(exported.floorplanVariants.furnished, savedPlan);
     assert.deepEqual(
       exported.floorplanVariants.unfurnished.decorations.map((d) => d.id),
-      ["utility"],
+      ["utility", "casing"],
     );
     assert.equal(
       exported.floorplanVariants.unfurnished.decorations[0].contents,
@@ -281,7 +303,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
     assert.deepEqual(empty.rooms, savedPlan.rooms);
     assert.deepEqual(
       empty.decorations.map((d) => d.id),
-      ["utility"],
+      ["utility", "casing"],
     );
     assert.equal(
       (await fetch(`${base}/koekoekstraat-17/floorplan?view=invalid`)).status,

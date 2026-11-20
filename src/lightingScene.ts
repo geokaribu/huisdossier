@@ -189,6 +189,10 @@ export function createLightingRig(
     visible: boolean;
   }[] = [];
   const glass: { mesh: THREE.Mesh; cast: boolean }[] = [];
+  const indoorBulbs: {
+    material: THREE.MeshStandardMaterial;
+    intensity: number;
+  }[] = [];
   const photographed = new Map<THREE.MeshStandardMaterial, THREE.Texture>();
   scene.traverse((o) => {
     if (o instanceof THREE.Light)
@@ -209,6 +213,11 @@ export function createLightingRig(
           material.map?.userData.bakedLighting
         )
           photographed.set(material, material.map);
+        if (
+          o.userData.indoorBulb &&
+          material instanceof THREE.MeshStandardMaterial
+        )
+          indoorBulbs.push({ material, intensity: material.emissiveIntensity });
       }
   });
   const original = {
@@ -282,6 +291,9 @@ export function createLightingRig(
         }
       });
     group.visible = on;
+    indoorBulbs.forEach(({ material, intensity }) => {
+      material.emissiveIntensity = !on || settings.indoorLights ? intensity : 0;
+    });
     if (!on) {
       baseline.forEach(({ light, intensity, visible }) => {
         light.intensity = intensity;

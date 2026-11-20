@@ -24,6 +24,8 @@ import type {
   LightingSettings,
 } from "./types";
 import { createLightingRig } from "./lightingScene";
+import { interiorLights } from "./interiorLights";
+import { disposeFurnitureReflection } from "./bedroomFurniture";
 import {
   canStand,
   insidePolygon,
@@ -238,11 +240,7 @@ export function InteriorViewer({
     sun.target.position.copy(modelCenter);
     scene.add(sun.target);
     scene.add(sun);
-    for (const room of plan.rooms.filter((r) => !r.outside)) {
-      const light = new THREE.PointLight("#fff9ee", 2.2, 4, 2);
-      light.position.set(room.center[0], 2.35, room.center[1]);
-      scene.add(light);
-    }
+    scene.add(interiorLights(plan));
     const camera = new THREE.PerspectiveCamera(58, 1, 0.045, 100);
     camera.rotation.order = "YXZ";
     const controls = new OrbitControls(camera, canvas);
@@ -424,7 +422,8 @@ export function InteriorViewer({
       }
       if (wall.climber) scene.add(climbingPlants(wall, index));
     }
-    for (const item of plan.decorations ?? []) scene.add(terraceObject(item));
+    for (const item of plan.decorations ?? [])
+      scene.add(terraceObject(item, true));
     const wallGroups = new Map<THREE.Material, PlanWall[]>();
     for (const wall of plan.walls) {
       const mat = finishes.get(wall) ?? plaster;
@@ -916,6 +915,7 @@ export function InteriorViewer({
       controls.removeEventListener("change", invalidate);
       const materials = new Set<THREE.Material>();
       scene.traverse((o) => {
+        disposeFurnitureReflection(o);
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose();
           for (const mat of Array.isArray(o.material)

@@ -244,6 +244,11 @@ export interface PlanDecoration {
     | "wall-shelf"
     | "range-cooker"
     | "recliner"
+    | "bed"
+    | "sliding-wardrobe"
+    | "low-cabinet"
+    | "laundry-hamper"
+    | "potted-dracaena"
     | "built-in";
   center: PlanPoint;
   size: PlanPoint;
@@ -255,6 +260,15 @@ export interface PlanDecoration {
   solid?: boolean;
   fixed?: boolean;
   contents?: boolean;
+  secondaryColor?: string;
+  topColor?: string;
+  panelCount?: number;
+  /** Zero-based panel index; omitted means the centre panel. */
+  mirrorPanel?: number;
+  bulbs?: number;
+  shade?: boolean;
+  /** Scenario values, not measured photometry. Only used for pendants. */
+  light?: { color: string; intensity: number; distance: number };
 }
 export interface PlanWall {
   outsideRoomId?: string;

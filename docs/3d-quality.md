@@ -4,6 +4,10 @@ The private plan remains the authority for this dwelling. A visual correction is
 
 ## Geometry and junctions
 
+Bedroom furniture is profile-driven through `bedroomFurniture.ts`: a storage bed with supported mattress, folded bedding and throw, sliding wardrobe with configurable panel count/mirror index, framed low cabinet with procedural marble approximation, hamper and potted plant. Loose objects retain IDs but are removed, including their collisions, in the unfurnished view. Explicit fixed ceiling fixtures remain. Furniture dimensions and paint colours inferred from photos stay approximate; warm photographic lighting is not evidence of a different paint colour.
+
+The interior wardrobe mirror uses one bounded 512 × 1024 planar reflection target, only when the mirror faces the camera; the exterior uses a passive material. The interior releases the reflection target when rebuilding or leaving the view. Pendant bulb geometry and light positions share one layout function. Authored pendant sources replace the illustrative room light, so a single-bulb fixture never silently gets a second room source. The night switch also extinguishes bulb emission. Light intensity is a scenario value, not measured photometry.
+
 `planArchitecture.ts` constructs wall cross-sections at each sill, lintel and wall-height transition. Polygon unions remove overlapping faces inside T junctions. Connected corners use bounded miters; source endpoints are never automatically snapped. Horizontal faces are emitted only where material actually begins or ends. This avoids stacked wall caps, flickering coplanar surfaces and tiny artificial ridges.
 
 The interior uses the same construction for skirting, excluding garden boundaries and retaining doorway gaps. A 12 cm display slab and continuous interior subfloor close tracing margins beneath room finishes. The slab thickness is a display convention, not surveyed construction. The walking ceiling meets the wall height directly.

@@ -197,6 +197,15 @@ test("one registered rig switches day/night, limits shadowed sources and restore
   const scene = new THREE.Scene(),
     oldLight = new THREE.DirectionalLight("white", 2);
   scene.add(oldLight);
+  const indoorBulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.04),
+    new THREE.MeshStandardMaterial({
+      emissive: "#ffac40",
+      emissiveIntensity: 1.4,
+    }),
+  );
+  indoorBulb.userData.indoorBulb = true;
+  scene.add(indoorBulb);
   scene.background = new THREE.Color("#eee9de");
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(),
@@ -234,6 +243,7 @@ test("one registered rig switches day/night, limits shadowed sources and restore
   });
   assert.equal(lights.length, 3);
   assert.equal(oldLight.visible, false);
+  assert.equal(indoorBulb.material.emissiveIntensity, 0);
   assert.equal(glass.castShadow, false);
   assert.equal(photo.material.map, null);
   assert.equal(lights[0].getWorldPosition(new THREE.Vector3()).y, 4);
@@ -245,6 +255,7 @@ test("one registered rig switches day/night, limits shadowed sources and restore
   });
   assert.equal(count, 0);
   rig.update(profile, { ...settings, enabled: false });
+  assert.equal(indoorBulb.material.emissiveIntensity, 1.4);
   assert.equal(oldLight.visible, true);
   assert.equal(oldLight.intensity, 2);
   assert.equal(glass.castShadow, true);

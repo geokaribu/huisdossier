@@ -242,6 +242,33 @@ test("private floor plans remain isolated per house and are retained in a dossie
         height: 0.8,
         solid: false,
       })),
+      ...[
+        "bed",
+        "sliding-wardrobe",
+        "low-cabinet",
+        "laundry-hamper",
+        "potted-dracaena",
+        "pendant",
+      ].map((kind, i) => ({
+        id: `bedroom-${i}`,
+        kind,
+        center: [1, 2],
+        size: [1, 0.5],
+        height: 1,
+        fixed: false,
+        ...(kind === "bed" ? { secondaryColor: "#cc4488" } : {}),
+        ...(kind === "sliding-wardrobe"
+          ? { panelCount: 3, mirrorPanel: 1 }
+          : {}),
+        ...(kind === "low-cabinet" ? { topColor: "#665544" } : {}),
+        ...(kind === "pendant"
+          ? {
+              bulbs: 1,
+              shade: true,
+              light: { color: "#ffd79a", intensity: 8, distance: 5 },
+            }
+          : {}),
+      })),
     ],
   };
   await writeFile(path.join(folder, "plan.json"), JSON.stringify(savedPlan));

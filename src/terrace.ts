@@ -4,6 +4,7 @@ import { interiorFurniture } from "./interiorFurniture.ts";
 import { utilityNiche } from "./utilityNiche.ts";
 import { gardenFurniture } from "./gardenFurniture.ts";
 import { livingFurniture } from "./livingFurniture.ts";
+import { bedroomFurniture } from "./bedroomFurniture.ts";
 
 function box(
   parent: THREE.Object3D,
@@ -311,7 +312,17 @@ export function climbingPlants(wall: PlanWall, index: number) {
 }
 
 /** Reusable objects, parameterized by private positions, sizes and colours. */
-export function terraceObject(item: PlanDecoration) {
+export function terraceObject(item: PlanDecoration, reflections = false) {
+  if (
+    [
+      "bed",
+      "sliding-wardrobe",
+      "low-cabinet",
+      "laundry-hamper",
+      "potted-dracaena",
+    ].includes(item.kind)
+  )
+    return bedroomFurniture(item, reflections);
   if (item.kind === "built-in") {
     const group = new THREE.Group();
     group.position.set(item.center[0], item.base ?? 0, item.center[1]);

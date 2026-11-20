@@ -195,48 +195,83 @@ const schema = z.object({
     .max(100),
   decorations: z
     .array(
-      z.object({
-        id: z.string(),
-        kind: z.enum([
-          "patio-table",
-          "patio-chair",
-          "plant-shelf",
-          "planter",
-          "rain-pipe",
-          "sofa",
-          "armchair",
-          "coffee-table",
-          "indoor-plant",
-          "utility-niche",
-          "barbecue",
-          "storage-cabinet",
-          "hanging-planter",
-          "bookcase",
-          "dining-table",
-          "dining-chair",
-          "fridge",
-          "curtain",
-          "footstool",
-          "pendant",
-          "picture-frame",
-          "kitchen-run",
-          "kitchen-cabinet",
-          "wall-shelf",
-          "range-cooker",
-          "recliner",
-          "built-in",
-        ]),
-        center: point,
-        size: positiveSize,
-        height: z.number().positive().max(4),
-        rotation: z.number().finite().optional(),
-        base: z.number().nonnegative().max(3).optional(),
-        color: color.optional(),
-        plant: z.enum(["flowers", "shrub"]).optional(),
-        solid: z.boolean().optional(),
-        fixed: z.boolean().optional(),
-        contents: z.boolean().optional(),
-      }),
+      z
+        .object({
+          id: z.string(),
+          kind: z.enum([
+            "patio-table",
+            "patio-chair",
+            "plant-shelf",
+            "planter",
+            "rain-pipe",
+            "sofa",
+            "armchair",
+            "coffee-table",
+            "indoor-plant",
+            "utility-niche",
+            "barbecue",
+            "storage-cabinet",
+            "hanging-planter",
+            "bookcase",
+            "dining-table",
+            "dining-chair",
+            "fridge",
+            "curtain",
+            "footstool",
+            "pendant",
+            "picture-frame",
+            "kitchen-run",
+            "kitchen-cabinet",
+            "wall-shelf",
+            "range-cooker",
+            "recliner",
+            "bed",
+            "sliding-wardrobe",
+            "low-cabinet",
+            "laundry-hamper",
+            "potted-dracaena",
+            "built-in",
+          ]),
+          center: point,
+          size: positiveSize,
+          height: z.number().positive().max(4),
+          rotation: z.number().finite().optional(),
+          base: z.number().nonnegative().max(3).optional(),
+          color: color.optional(),
+          plant: z.enum(["flowers", "shrub"]).optional(),
+          solid: z.boolean().optional(),
+          fixed: z.boolean().optional(),
+          contents: z.boolean().optional(),
+          secondaryColor: color.optional(),
+          topColor: color.optional(),
+          panelCount: z.number().int().min(2).max(8).optional(),
+          mirrorPanel: z.number().int().min(0).max(7).optional(),
+          bulbs: z.number().int().min(1).max(4).optional(),
+          shade: z.boolean().optional(),
+          light: z
+            .object({
+              color,
+              intensity: z.number().positive().max(100),
+              distance: z.number().positive().max(30),
+            })
+            .optional(),
+        })
+        .superRefine((item, ctx) => {
+          if (
+            item.kind === "sliding-wardrobe" &&
+            (item.mirrorPanel ?? Math.floor((item.panelCount ?? 3) / 2)) >=
+              (item.panelCount ?? 3)
+          )
+            ctx.addIssue({
+              code: "custom",
+              message: "Spiegelpaneel valt buiten de kast",
+            });
+          if (item.light && item.kind !== "pendant")
+            ctx.addIssue({
+              code: "custom",
+              message: "Lichtbron hoort bij een hanglamp",
+            });
+        }),
     )
     .max(100)
     .optional(),

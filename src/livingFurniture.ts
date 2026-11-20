@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { PlanDecoration } from "./types";
 import { interiorFurniture } from "./interiorFurniture.ts";
+import { pendantBulbOffsets } from "./interiorLights.ts";
 
 /** Photo-observed furnishings with positions and dimensions supplied per house. */
 export function livingFurniture(item: PlanDecoration) {
@@ -170,7 +171,7 @@ export function livingFurniture(item: PlanDecoration) {
     box(0, h * 0.48, 0, 0.055, h * 0.7, 0.055, timber);
     box(0, h * 0.86, 0, w, h * 0.25, d, mat(item.color ?? "#8f654b"));
   } else if (item.kind === "pendant") {
-    for (const x of [-w * 0.3, w * 0.3]) {
+    for (const x of pendantBulbOffsets(item)) {
       cylinder(x, h / 2 + 0.06, 0, 0.006, h - 0.12, black);
       cylinder(x, 0.12, 0, 0.027, 0.065, steel);
       const bulb = new THREE.Mesh(
@@ -182,7 +183,32 @@ export function livingFurniture(item: PlanDecoration) {
         }),
       );
       bulb.position.set(x, 0.055, 0);
+      bulb.userData.indoorBulb = true;
+      bulb.castShadow = false;
       group.add(bulb);
+      cylinder(x, h - 0.015, 0, 0.055, 0.03, black);
+      if (item.shade) {
+        const shade = new THREE.Mesh(
+          new THREE.LatheGeometry(
+            [
+              new THREE.Vector2(0.028, 0.18),
+              new THREE.Vector2(0.045, 0.13),
+              new THREE.Vector2(w * 0.2, 0.065),
+              new THREE.Vector2(w * 0.46, 0.012),
+              new THREE.Vector2(w / 2, 0),
+            ],
+            40,
+          ),
+          new THREE.MeshStandardMaterial({
+            color: item.color ?? "#b99890",
+            roughness: 0.7,
+            side: THREE.DoubleSide,
+          }),
+        );
+        shade.position.set(x, 0.07, 0);
+        shade.castShadow = shade.receiveShadow = true;
+        group.add(shade);
+      }
     }
   } else if (item.kind === "picture-frame") {
     box(0, h / 2, 0, w, h, 0.025, mat("#4a5140"));

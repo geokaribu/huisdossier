@@ -149,6 +149,17 @@ test("private floor plans remain isolated per house and are retained in a dossie
   await mkdir(folder, { recursive: true });
   const savedPlan = {
     ...plan,
+    rooms: [
+      {
+        id: "entry",
+        name: "Entry",
+        polygon: plan.outline,
+        center: [1, 1],
+        color: "#eeeeee",
+        floorColor: "#eee9df",
+        viewFov: 100,
+      },
+    ],
     walls: [
       {
         ...plan.walls[0],
@@ -173,6 +184,15 @@ test("private floor plans remain isolated per house and are retained in a dossie
         center: [5, 4],
         size: [0.8, 0.8],
         height: 0.7,
+        solid: true,
+      },
+      {
+        id: "utility",
+        kind: "utility-niche",
+        center: [5, 1],
+        size: [1.5, 0.6],
+        height: 2.5,
+        rotation: -Math.PI / 2,
         solid: true,
       },
     ],

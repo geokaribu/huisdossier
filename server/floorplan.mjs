@@ -48,6 +48,7 @@ const schema = z.object({
           .optional(),
         viewYaw: z.number().finite().optional(),
         viewPitch: z.number().min(-1.25).max(1.25).optional(),
+        viewFov: z.number().min(45).max(110).optional(),
       }),
     )
     .max(100),
@@ -187,6 +188,7 @@ const schema = z.object({
           "armchair",
           "coffee-table",
           "indoor-plant",
+          "utility-niche",
         ]),
         center: point,
         size: positiveSize,

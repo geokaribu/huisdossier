@@ -26,7 +26,7 @@ import {
 
 interface InteriorApi {
   walk: (enabled: boolean) => void;
-  room: (point: PlanPoint, yaw?: number, pitch?: number) => void;
+  room: (point: PlanPoint, yaw?: number, pitch?: number, fov?: number) => void;
   door: (id: string, open: boolean) => void;
   reset: (top?: boolean) => void;
 }
@@ -527,6 +527,8 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
       pitch = 0,
       dragged = false;
     const frame = (top = false) => {
+      camera.fov = 58;
+      camera.updateProjectionMatrix();
       dirty = true;
       controls.target.copy(center);
       controls.target.y = 0.2;
@@ -568,11 +570,13 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
         yaw = pitch = 0;
         frame(top);
       },
-      room: (point, viewYaw = 0, viewPitch = 0) => {
+      room: (point, viewYaw = 0, viewPitch = 0, viewFov = 58) => {
         if (!canStand(plan, point, 0.16, doorState)) return;
         p = [...point];
         yaw = viewYaw;
         pitch = viewPitch;
+        camera.fov = viewFov;
+        camera.updateProjectionMatrix();
         setPosition([...p]);
         setWalk(true);
       },
@@ -890,7 +894,12 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
               key={room.id}
               className={walking && activeRoom?.id === room.id ? "active" : ""}
               onClick={() =>
-                api.current?.room(room.center, room.viewYaw, room.viewPitch)
+                api.current?.room(
+                  room.center,
+                  room.viewYaw,
+                  room.viewPitch,
+                  room.viewFov,
+                )
               }
             >
               <span>

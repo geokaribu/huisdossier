@@ -170,7 +170,8 @@ export interface PlanDecoration {
     | "sofa"
     | "armchair"
     | "coffee-table"
-    | "indoor-plant";
+    | "indoor-plant"
+    | "utility-niche";
   center: PlanPoint;
   size: PlanPoint;
   height: number;
@@ -227,6 +228,7 @@ export interface Floorplan {
     paving?: { size: number; color: string };
     viewYaw?: number;
     viewPitch?: number;
+    viewFov?: number;
   }[];
   walls: PlanWall[];
   fixtures: {

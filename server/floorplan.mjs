@@ -182,6 +182,7 @@ const schema = z.object({
         center: point,
         size: positiveSize,
         height: z.number().positive().max(3),
+        fixed: z.boolean().optional(),
       }),
     )
     .max(100),
@@ -225,6 +226,8 @@ const schema = z.object({
         color: color.optional(),
         plant: z.enum(["flowers", "shrub"]).optional(),
         solid: z.boolean().optional(),
+        fixed: z.boolean().optional(),
+        contents: z.boolean().optional(),
       }),
     )
     .max(100)

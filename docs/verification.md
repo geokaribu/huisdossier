@@ -2,6 +2,8 @@
 
 Gecontroleerd op 20 november 2026, lokaal op Windows met Node 24.
 
+Ingericht/oningericht: achttien tests geslaagd, met controle dat losse meubels en hun botsingen verdwijnen, vaste onderdelen behouden blijven en het bronprofiel niet wijzigt. De trapnis verliest apparaten en opslag, maar behoudt ombouw en plank. API en export bewaren beide varianten, expliciete `fixed`-keuzes en dezelfde kamer-ID's/afwerking. Browsercontrole op desktop en 390 px: wisselen, rondlopen, deurstand, behoud van camera/ruimte en navigatie tussen binnen- en buitenweergave.
+
 Dossieruitbreiding: zeventien tests slagen, waaronder migratie van bestaande versie-1-data, idempotente documentimport, behoud van eigen bewerkingen en afgeronde taken, inhoudszoeken, tekstuploads, bronkoppelingen, optionele datums, vastlegging van de echte afronddatum, PDF-preview en huisisolatie. Productiebuild en TypeScript slagen. Browserproeven met een aparte database: onderdeel maken, melding zonder datum/eigenaar/wachtstatus bewaren, datum/eigenaar wijzigen, afronden, tekstupload lezen en documentmetadata wijzigen. Desktop en 390 px: kamer ↔ dossier, zoeken in documentinhoud, reader en originele PDF werken zonder horizontale overloop. Privédocumenten, manifests en testbestanden blijven buiten Git.
 
 - `npm test`: vijftien tests geslaagd. Bewaren na heropenen, bestandsinhoud, volledige export, huisisolatie, ongeldige invoer, BAG-geometrie, doorlopende gevel-UV's, luchtfoto-UV's, loopbotsingen, doorgangen en privéprofielen gecontroleerd. Extra controles: vaste glaspanelen, open/gesloten deurvleugels, gedraaide meubelcontouren en behoud van terrasparameters in API/export.

@@ -12,7 +12,7 @@ import {
   RotateCcw,
   DoorOpen,
 } from "lucide-react";
-import type { Floorplan, PlanPoint, PlanWall } from "./types";
+import type { Floorplan, PlanPoint, PlanWall, Point } from "./types";
 import {
   canStand,
   insidePolygon,
@@ -98,6 +98,16 @@ export function InteriorViewer({
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<InteriorApi | null>(null);
   const movement = useRef(new Set<string>());
+  const sceneState = useRef<{
+    position: PlanPoint;
+    walking: boolean;
+    yaw: number;
+    pitch: number;
+    fov: number;
+    doors: DoorState;
+    camera: Point;
+    target: Point;
+  } | null>(null);
   const [walking, setWalking] = useState(false);
   const [position, setPosition] = useState<PlanPoint>(plan.spawn);
   const [failed, setFailed] = useState(false);
@@ -186,10 +196,19 @@ export function InteriorViewer({
     let doorState: DoorState = Object.fromEntries(
       plan.walls.flatMap((w) =>
         w.openings.flatMap((o) =>
-          o.joinery ? [[o.joinery.id, o.joinery.defaultOpen]] : [],
+          o.joinery
+            ? [
+                [
+                  o.joinery.id,
+                  sceneState.current?.doors[o.joinery.id] ??
+                    o.joinery.defaultOpen,
+                ],
+              ]
+            : [],
         ),
       ),
     );
+    setDoors({ ...doorState });
     const doorModels = new Map<string, ReturnType<typeof glazedDoors>>();
     const plaster = new THREE.MeshStandardMaterial({
       color: "#f4f0e7",
@@ -374,6 +393,7 @@ export function InteriorViewer({
         );
         if (opening.joinery) {
           const model = glazedDoors(wall, opening, opening.joinery);
+          model.setOpen(doorState[opening.joinery.id]);
           doorModels.set(opening.joinery.id, model);
           scene.add(model.group);
           end = opening.offset + opening.width;
@@ -612,8 +632,29 @@ export function InteriorViewer({
       },
     };
     frame();
+    const saved = sceneState.current;
     const initial = plan.rooms.find((r) => r.id === initialRoomId);
-    if (initial)
+    if (saved) {
+      const safePoint = canStand(plan, saved.position, 0.16, doorState)
+        ? saved.position
+        : (plan.rooms.find(
+            (r) =>
+              insidePolygon(saved.position, r.polygon) &&
+              canStand(plan, r.center, 0.16, doorState),
+          )?.center ?? plan.spawn);
+      p = [...safePoint];
+      yaw = saved.yaw;
+      pitch = saved.pitch;
+      camera.fov = saved.fov;
+      camera.updateProjectionMatrix();
+      setPosition([...p]);
+      setWalk(saved.walking);
+      if (!saved.walking) {
+        camera.position.fromArray(saved.camera);
+        controls.target.fromArray(saved.target);
+        controls.update();
+      }
+    } else if (initial)
       api.current.room(
         initial.center,
         initial.viewYaw,
@@ -733,6 +774,16 @@ export function InteriorViewer({
     };
     frameId = requestAnimationFrame(tick);
     return () => {
+      sceneState.current = {
+        position: [...p],
+        walking: walk,
+        yaw,
+        pitch,
+        fov: camera.fov,
+        doors: { ...doorState },
+        camera: camera.position.toArray() as Point,
+        target: controls.target.toArray() as Point,
+      };
       cancelAnimationFrame(frameId);
       resize.disconnect();
       keys.clear();

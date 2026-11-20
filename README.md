@@ -33,6 +33,7 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 - Het volledige dossier exporteren, inclusief model, metadata en originele bestandsinhoud als base64 in één JSON-bestand.
 - Op smalle schermen navigeren met het menu bovenaan.
 - **Binnen kijken**: een open 3D-overzicht van de aangeleverde woonlaag, kamerkeuze en rondlopen met WASD/pijltjes of de loopknoppen. Sleep om te kijken; Escape keert terug naar het overzicht. Muren en vaste inrichting begrenzen het lopen; deuropeningen zijn doorgangen.
+- **Ingericht / Oningericht**: dezelfde plattegrond met of zonder losse meubels, spullen en terrasmeubilair. Vaste keuken, sanitair, trapnis en afwerking blijven behouden. Beide varianten werken binnen en buiten, behouden kamerkoppelingen en gaan mee in de export. De keuze wordt per woning als browservoorkeur onthouden.
 
 ## Wat het model voorstelt
 

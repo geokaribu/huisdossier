@@ -6,6 +6,7 @@ import { mkdirSync } from "node:fs";
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createStore } from "./store.mjs";
+import { floorplanForView } from "../src/furnishings.ts";
 import {
   readFloorplan,
   clientFloorplan,
@@ -80,14 +81,18 @@ export function createApp({ directory, houses, root }) {
   app.get("/api/houses/:houseId/dossier", (req, res) =>
     res.json(store.dossier(req.params.houseId)),
   );
-  app.get("/api/houses/:houseId/floorplan", async (req, res) =>
+  app.get("/api/houses/:houseId/floorplan", async (req, res) => {
+    const view = z
+      .enum(["furnished", "unfurnished"])
+      .parse(req.query.view ?? "furnished");
+    const plan = await readFloorplan(directory, req.params.houseId);
     res.json(
       clientFloorplan(
-        await readFloorplan(directory, req.params.houseId),
+        plan ? floorplanForView(plan, view) : null,
         req.params.houseId,
       ),
-    ),
-  );
+    );
+  });
   app.get("/api/houses/:houseId/floorplan/textures/:file", async (req, res) => {
     const plan = await readFloorplan(directory, req.params.houseId);
     if (!floorplanTextureNames(plan).includes(req.params.file))
@@ -283,6 +288,7 @@ export function createApp({ directory, houses, root }) {
       "Content-Disposition",
       `attachment; filename="${houseId}-huisdossier.json"`,
     );
+    const plan = await readFloorplan(directory, houseId);
     res.json({
       schemaVersion: 1,
       exportedAt: new Date().toISOString(),
@@ -290,7 +296,13 @@ export function createApp({ directory, houses, root }) {
       dossier: store.dossier(houseId),
       files,
       appearance: await exportAppearance(directory, houseId),
-      floorplan: await readFloorplan(directory, houseId),
+      floorplan: plan,
+      floorplanVariants: plan
+        ? {
+            furnished: plan,
+            unfurnished: floorplanForView(plan, "unfurnished"),
+          }
+        : null,
       floorplanFiles: await exportFloorplanFiles(directory, houseId),
     });
   });

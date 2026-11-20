@@ -80,6 +80,7 @@ export function Viewer({
   const host = useRef<HTMLDivElement>(null);
   const north = useRef<HTMLDivElement>(null);
   const api = useRef<ViewerApi | null>(null);
+  const sceneView = useRef<{ camera: number[]; target: number[] } | null>(null);
   const callbacks = useRef({ onSelect, onPlace, placing });
   callbacks.current = { onSelect, onPlace, placing };
   const [context, setContext] = useState(false);
@@ -434,6 +435,11 @@ export function Viewer({
       frame(false, side === "front", side === "roof");
     };
     frame(false, false);
+    if (sceneView.current) {
+      camera.position.fromArray(sceneView.current.camera);
+      controls.target.fromArray(sceneView.current.target);
+      controls.update();
+    }
     let animationFrame = 0;
     const requestRender = () => {
       if (animationFrame) return;
@@ -624,6 +630,10 @@ export function Viewer({
     resize.observe(container);
     requestRender();
     return () => {
+      sceneView.current = {
+        camera: camera.position.toArray(),
+        target: controls.target.toArray(),
+      };
       resize.disconnect();
       cancelAnimationFrame(animationFrame);
       controls.removeEventListener("change", requestRender);
@@ -651,7 +661,7 @@ export function Viewer({
   }, [data, appearance, floorplan, onError]);
   useEffect(() => {
     api.current?.update(context, wire, selected, assets, styled);
-  }, [context, wire, selected, assets, data, appearance, styled]);
+  }, [context, wire, selected, assets, data, appearance, floorplan, styled]);
   return (
     <section
       className={`viewer ${placing ? "placing" : ""}`}

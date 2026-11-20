@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
@@ -36,6 +37,9 @@ import {
 import { request } from "./api";
 import { DocumentReader, categoryName } from "./DocumentReader";
 import { DossierHome } from "./DossierHome";
+import { FurnishingChoice } from "./FurnishingChoice";
+import { floorplanForView } from "./furnishings";
+import type { FurnishingView } from "./furnishings";
 import { assetIcon, kindName } from "./dossierDisplay";
 import type {
   HouseData,
@@ -74,6 +78,12 @@ const fileSize = (n: number) =>
     : `${(n / 1024 / 1024).toFixed(1)} MB`;
 function App() {
   const [floorplan, setFloorplan] = useState<Floorplan | null>(null);
+  const [furnishingView, setFurnishingView] =
+    useState<FurnishingView>("furnished");
+  const displayPlan = useMemo(
+    () => (floorplan ? floorplanForView(floorplan, furnishingView) : null),
+    [floorplan, furnishingView],
+  );
   const [appearance, setAppearance] = useState<HouseAppearance | null>(null);
   const [houseId, setHouseId] = useState("");
   const [houses, setHouses] = useState<
@@ -126,6 +136,15 @@ function App() {
   }, []);
   useEffect(() => {
     if (!houseId) return;
+    try {
+      setFurnishingView(
+        localStorage.getItem(`huisdossier:view:${houseId}`) === "unfurnished"
+          ? "unfurnished"
+          : "furnished",
+      );
+    } catch {
+      setFurnishingView("furnished");
+    }
     let cancelled = false;
     setData(null);
     setAppearance(null);
@@ -634,6 +653,19 @@ function App() {
           </div>
         ) : (
           <>
+            {floorplan && (page === "model" || page === "interior") && (
+              <FurnishingChoice
+                value={furnishingView}
+                onChange={(view) => {
+                  setFurnishingView(view);
+                  try {
+                    localStorage.setItem(`huisdossier:view:${houseId}`, view);
+                  } catch {
+                    /* The view still works when browser storage is disabled. */
+                  }
+                }}
+              />
+            )}
             {page === "dossier" && (
               <DossierHome
                 dossier={dossier}
@@ -671,7 +703,7 @@ function App() {
                 >
                   <InteriorViewer
                     key={`${houseId}:${initialRoom ?? "overview"}`}
-                    plan={floorplan}
+                    plan={displayPlan!}
                     initialRoomId={initialRoom}
                     onDossier={(roomId) => {
                       const asset = dossier.assets.find(
@@ -705,7 +737,7 @@ function App() {
                     <Viewer
                       data={data}
                       appearance={appearance}
-                      floorplan={floorplan}
+                      floorplan={displayPlan}
                       onInterior={() => setPage("interior")}
                       assets={dossier.assets}
                       selected={selected}

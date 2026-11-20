@@ -192,6 +192,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
         size: [0.8, 0.8],
         height: 0.7,
         solid: true,
+        fixed: false,
       },
       {
         id: "utility",
@@ -201,6 +202,7 @@ test("private floor plans remain isolated per house and are retained in a dossie
         height: 2.5,
         rotation: -Math.PI / 2,
         solid: true,
+        fixed: true,
       },
       ...["barbecue", "storage-cabinet", "hanging-planter"].map((kind, i) => ({
         id: `garden-${i}`,
@@ -260,6 +262,35 @@ test("private floor plans remain isolated per house and are retained in a dossie
       await fetch(`${base}/koekoekstraat-17/export`)
     ).json();
     assert.deepEqual(exported.floorplan, savedPlan);
+    assert.deepEqual(exported.floorplanVariants.furnished, savedPlan);
+    assert.deepEqual(
+      exported.floorplanVariants.unfurnished.decorations.map((d) => d.id),
+      ["utility"],
+    );
+    assert.equal(
+      exported.floorplanVariants.unfurnished.decorations[0].contents,
+      false,
+    );
+    const empty = await (
+      await fetch(`${base}/koekoekstraat-17/floorplan?view=unfurnished`)
+    ).json();
+    assert.deepEqual(
+      empty.walls,
+      (await (await fetch(`${base}/koekoekstraat-17/floorplan`)).json()).walls,
+    );
+    assert.deepEqual(empty.rooms, savedPlan.rooms);
+    assert.deepEqual(
+      empty.decorations.map((d) => d.id),
+      ["utility"],
+    );
+    assert.equal(
+      (await fetch(`${base}/koekoekstraat-17/floorplan?view=invalid`)).status,
+      400,
+    );
+    assert.equal(
+      await (await fetch(`${base}/other/floorplan?view=unfurnished`)).json(),
+      null,
+    );
     assert.deepEqual(exported.floorplanFiles, [
       {
         name: "wallpaper.png",

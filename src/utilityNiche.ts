@@ -50,6 +50,18 @@ export function utilityNiche(item: PlanDecoration) {
       "stair-soffit",
     );
   slope.rotation.z = -Math.atan2(drop, w);
+  box(
+    -w * 0.31,
+    h * 0.77,
+    -0.025,
+    w * 0.38,
+    0.035,
+    d * 0.86,
+    timber,
+    "utility-shelf",
+  );
+  group.userData.role = "utility-niche";
+  if (item.contents === false) return group;
   const aw = w * 0.38,
     ah = h * 0.34,
     ad = d * 0.88,
@@ -207,16 +219,6 @@ export function utilityNiche(item: PlanDecoration) {
   );
   bin(washerX, ah + 0.02, 0, aw * 0.9, ah * 0.19, ad * 0.8, red, false);
   bin(w * 0.415, 0, front * 0.15, w * 0.15, ah * 0.44, ad * 0.68, blue, false);
-  box(
-    -w * 0.31,
-    h * 0.77,
-    -0.025,
-    w * 0.38,
-    0.035,
-    d * 0.86,
-    timber,
-    "utility-shelf",
-  );
   bin(
     -w * 0.32,
     h * 0.785,

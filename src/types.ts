@@ -209,6 +209,8 @@ export interface PlanDecoration {
   color?: string;
   plant?: "flowers" | "shrub";
   solid?: boolean;
+  fixed?: boolean;
+  contents?: boolean;
 }
 export interface PlanWall {
   outsideRoomId?: string;
@@ -280,6 +282,7 @@ export interface Floorplan {
     center: PlanPoint;
     size: PlanPoint;
     height: number;
+    fixed?: boolean;
   }[];
   decorations?: PlanDecoration[];
 }

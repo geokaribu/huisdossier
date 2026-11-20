@@ -62,15 +62,13 @@ export function createStore(directory, houses) {
       "Nieuwe informatie waarvan de juiste plek nog niet bekend is. Koppel ze later aan een ruimte of onderdeel.",
       null,
     );
-    for (const { slug, name, description } of house.starterAssets ?? [])
-      add.run(
-        `${house.id}:${slug}`,
-        house.id,
-        name,
-        "installatie",
-        description,
-        null,
-      );
+    for (const {
+      slug,
+      name,
+      description,
+      kind = "installatie",
+    } of house.starterAssets ?? [])
+      add.run(`${house.id}:${slug}`, house.id, name, kind, description, null);
   }
   const assetRow = (r) => ({
     id: r.id,

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createStore } from "../server/store.mjs";
 import { importDossier } from "../server/import-dossier.mjs";
+import { loadRuntimeConfig } from "../server/runtime-config.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const [houseId, sourceRoot, manifestPath, sourceKey = "local-documents"] =
@@ -11,10 +12,7 @@ if (!houseId || !sourceRoot || !manifestPath)
   throw new Error(
     "Usage: npm run import:dossier -- <houseId> <sourceRoot> <private-manifest.json> [sourceKey]",
   );
-const directory = process.env.HUISDOSSIER_DATA_DIR ?? path.join(root, "data");
-const houses = JSON.parse(
-  await readFile(path.join(root, "config/houses.json"), "utf8"),
-);
+const { directory, houses } = await loadRuntimeConfig(root);
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const store = createStore(directory, houses);
 try {

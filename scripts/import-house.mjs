@@ -1,6 +1,7 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { loadRuntimeConfig } from "../server/runtime-config.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 async function json(url) {
@@ -58,15 +59,15 @@ function unpack(response, targetId) {
   });
 }
 
-const houses = JSON.parse(
-  await readFile(path.join(root, "config/houses.json"), "utf8"),
-);
-const config = houses.find(
-  (h) => h.id === (process.argv[2] ?? "koekoekstraat-17"),
-);
+const { houses, modelDirectory } = await loadRuntimeConfig(root);
+if (!process.argv[2])
+  throw new Error(
+    "Geef expliciet een dossier-ID mee: npm run import:house -- <id>.",
+  );
+const config = houses.find((h) => h.id === process.argv[2]);
 if (!config)
   throw new Error(
-    "Onbekende woning. Voeg deze eerst toe aan config/houses.json.",
+    "Onbekend dossier. Voeg dit eerst toe aan de ingestelde dossierconfiguratie.",
   );
 if (config.provider === "vlaanderen") {
   await import("./import-flemish-house.mjs");
@@ -137,9 +138,9 @@ const output = {
   },
   buildings: [...buildings.values()],
 };
-await mkdir(path.join(root, "public/data"), { recursive: true });
+await mkdir(modelDirectory, { recursive: true });
 await writeFile(
-  path.join(root, `public/data/${config.id}.json`),
+  path.join(modelDirectory, `${config.id}.json`),
   JSON.stringify(output),
 );
 console.log(

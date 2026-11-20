@@ -2,7 +2,7 @@
 
 Een lokale Geokari-app. Start met `npm ci` en `npm run dev` (Node 24+).
 
-- Woningconfiguratie staat in `config/houses.json`; vermijd adressen en kamerindelingen in generieke componenten.
+- Woningconfiguratie staat standaard in `config/houses.json`; `server/runtime-config.mjs` deelt validatie en eventuele installatiegebonden catalogus-, opslag- en modellenpaden met de importers. Vermijd adressen en kamerindelingen in generieke componenten.
 - Privé-inhoud staat alleen in `data/` en mag nooit naar Git. Gebruik geïsoleerde testdata voor browserproeven.
 - Modelleer geen ramen, materialen of interieur als geverifieerd zonder bronmateriaal. 3DBAG is een gereconstrueerde buitenzijde van een BAG-pand; het pand kan meerdere woningen bevatten.
 - Dossierkoppelingen gebruiken vaste onderdeel-ID's, geen mesh-indexen. Posities zijn optionele RD/NAP-markeringen met herkenbare herkomst.

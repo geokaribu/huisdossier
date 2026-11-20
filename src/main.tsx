@@ -275,7 +275,7 @@ function App() {
     setSearchHits(null);
     setInitialRoom(undefined);
     Promise.all([
-      request<HouseData>(`/data/${houseId}.json`),
+      request<HouseData>(`/api/houses/${houseId}/model`),
       request<Dossier>(`/api/houses/${houseId}/dossier`),
       request<HouseAppearance | null>(`/api/houses/${houseId}/appearance`),
       request<Floorplan | null>(`/api/houses/${houseId}/floorplan`),

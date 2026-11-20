@@ -1,5 +1,6 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { loadRuntimeConfig } from "../server/runtime-config.mjs";
 import { fileURLToPath } from "node:url";
 import {
   containsPoint,
@@ -8,9 +9,11 @@ import {
   extrudeFootprint,
 } from "./flemish-geometry.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
-const configs = JSON.parse(
-  await readFile(path.join(root, "config/houses.json"), "utf8"),
-);
+const {
+  houses: configs,
+  directory,
+  modelDirectory,
+} = await loadRuntimeConfig(root);
 const config = configs.find((c) => c.id === process.argv[2]);
 if (!config || config.provider !== "vlaanderen")
   throw Error("Kies een Vlaamse woning uit de configuratie.");
@@ -172,14 +175,14 @@ const output = {
   },
   buildings,
 };
-await mkdir(path.join(root, "public/data"), { recursive: true });
+await mkdir(modelDirectory, { recursive: true });
 await writeFile(
-  path.join(root, `public/data/${config.id}.json`),
+  path.join(modelDirectory, `${config.id}.json`),
   JSON.stringify(output),
 );
-await mkdir(path.join(root, `data/imports/${config.id}`), { recursive: true });
+await mkdir(path.join(directory, "imports", config.id), { recursive: true });
 await writeFile(
-  path.join(root, `data/imports/${config.id}/source.json`),
+  path.join(directory, "imports", config.id, "source.json"),
   JSON.stringify(
     { address, footprint: target, height: targetHeight, heightUrls, omitted },
     null,

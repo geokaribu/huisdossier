@@ -56,10 +56,23 @@ const updateSchema = z.object({
   roomId: text.nullable().optional(),
 });
 
-export function createApp({ directory, houses, root }) {
+export function createApp({
+  directory,
+  houses,
+  root,
+  modelDirectory = path.join(root, "public/data"),
+}) {
   const app = express();
   const store = createStore(directory, houses);
   const uploadDir = path.join(directory, "uploads");
+  const modelFor = async (houseId) => {
+    const model = JSON.parse(
+      await readFile(path.join(modelDirectory, `${houseId}.json`), "utf8"),
+    );
+    if (model.house?.id !== houseId)
+      throw new Error("Model en dossier-ID komen niet overeen.");
+    return model;
+  };
   mkdirSync(uploadDir, { recursive: true });
   app.disable("x-powered-by");
   app.use((req, res, next) => {
@@ -77,10 +90,17 @@ export function createApp({ directory, houses, root }) {
   });
   app.use(express.json({ limit: "100kb" }));
   app.get("/api/houses", (_req, res) => res.json(houses));
+  const configuredIds = new Set(houses.map((house) => house.id));
   app.use("/api/houses/:houseId", (req, res, next) => {
-    if (!store.houseExists(req.params.houseId))
+    if (
+      !configuredIds.has(req.params.houseId) ||
+      !store.houseExists(req.params.houseId)
+    )
       return res.status(404).json({ error: "Woning niet gevonden." });
     next();
+  });
+  app.get("/api/houses/:houseId/model", async (req, res) => {
+    res.json(await modelFor(req.params.houseId));
   });
   app.get("/api/houses/:houseId/dossier", (req, res) =>
     res.json(store.dossier(req.params.houseId)),
@@ -296,9 +316,7 @@ export function createApp({ directory, houses, root }) {
   });
   app.get("/api/houses/:houseId/export", async (req, res) => {
     const houseId = req.params.houseId;
-    const model = JSON.parse(
-      await readFile(path.join(root, "public/data", `${houseId}.json`), "utf8"),
-    );
+    const model = await modelFor(houseId);
     const files = [];
     for (const file of store.allFiles(houseId))
       files.push({

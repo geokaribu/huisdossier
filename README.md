@@ -8,6 +8,10 @@ De werkruimte groepeert dossier, documenten en onderhoud; buiten- en binnenweerg
 
 **Iets toevoegen** begeleidt bewoners bij een melding, notitie, bestand of uitgevoerd werk. **Beheer** bevat personen per woning, terugkerende onderhoudsafspraken en een controle op open aandachtspunten. Concepttekst blijft tijdens de browsersessie bewaard; onbekende plekken kunnen eerst bij **Nog te ordenen**. Personen zijn lokale dossierprofielen, geen logins. Zie [invoer en beheer voor bewoners](docs/resident-management.md).
 
+Voor hergebruik als product: [diepgaande audit en prioriteiten](docs/product-readiness.md) en [herhaalbare lokale installatie](docs/installation.md). Een eigen catalogus, privémap en modellenmap kunnen via omgevingsinstellingen buiten de code worden bewaard. `npm run check:installation` controleert de lokale installatiebestanden. Er is nog geen klantaccountplatform of start zonder gebouwmodel.
+
+De beoogde productvormen zijn Geokari-beheer, zelf online starten en een eigen klantinstallatie, vanuit dezelfde productkern. De audit maakt onderscheid tussen deze gewenste vormen en wat lokaal al werkt.
+
 **Balleistraat 57, 1790 Affligem** gebruikt Vlaamse bronnen: de exacte adreslocatie uit de Vlaamse geolocatiedienst, een GRB-gebouwcontour en de overeenkomstige 3D GRB-hoogte op basis van DHMV II. `npm run import:house -- balleistraat-57` gebruikt via `provider: "vlaanderen"` de Vlaamse importer. Het objectnummer wordt in beide bronnen gecontroleerd. Het resultaat is een LoD 1-volumemodel met een vlak bovenvlak; dakvorm, geveldetails en interieur zijn nog niet gereconstrueerd. De hoogteopname is van 2014 en de contour heeft een eigen brondatum. Bronvermelding, coördinatenstelsel en beperkingen staan bij de woning onder **Bronnen & model**. Alleen buren met een bijpassende, positieve bronhoogte worden opgenomen; ontbrekende hoogten worden niet verzonnen.
 
 ## Starten
@@ -124,6 +128,8 @@ npm run import:house -- woning-id
 ```
 
 Herstart de server. Het tweede huis krijgt eigen records en bestanden; API-toegang wordt per woning begrensd. Je kunt per woning eigen `starterAssets` configureren; ventilatie, elektriciteitskast en oven zijn alleen voor Koekoekstraat ingesteld. Dit is een herbruikbare lokale app, nog geen platform voor meerdere accounts.
+
+Voor nieuwe klantinstallaties kan `HUISDOSSIER_HOUSES_FILE` een eigen catalogus aanwijzen en `HUISDOSSIER_MODELS_DIR` een eigen modellenmap; `HUISDOSSIER_DATA_DIR` bepaalt de privéopslag. Server, importers en installatiecontrole delen dezelfde validatie en paden. Startonderdelen kunnen met `kind` ook ruimtes of onderwerpen zijn. Configuratie uit beheer nemen verwijdert geen data, maar sluit het dossier wel uit van de huisgebonden API. Volg de [installatiehandleiding](docs/installation.md), inclusief de herstelgrenzen.
 
 Een herimport vervangt alleen het openbare gebouwmodel. Dossierrecords en bestandskoppelingen gebruiken vaste onderdeel-ID's en blijven bestaan. Handmatige markeringen blijven op RD/NAP-coördinaten staan; controleer ze bij een gewijzigd model.
 

@@ -3,12 +3,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readLighting, lightingProfileSchema } from "../server/lighting.mjs";
 import { activeLightMasts } from "./lighting-source.mjs";
+import { loadRuntimeConfig } from "../server/runtime-config.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url)),
-  configs = JSON.parse(
-    await fs.readFile(path.join(root, "config/houses.json"), "utf8"),
-  ),
+  { houses: configs, directory } = await loadRuntimeConfig(root),
   house = configs.find((h) => h.id === process.argv[2]);
 if (!house) throw new Error("Geef een woning-ID uit config/houses.json mee.");
+if (house.provider !== "bag")
+  throw new Error(
+    "Lichtimport ondersteunt alleen de Nederlandse BAG/BGT-bron; voor dit dossier is geen passende lichtimporter beschikbaar.",
+  );
 const radius = 50,
   [x, y] = house.rd;
 const url = `https://api.pdok.nl/lv/bgt/ogc/v1/collections/paal/items?bbox=${x - radius},${y - radius},${x + radius},${y + radius}&bbox-crs=http://www.opengis.net/def/crs/EPSG/0/28992&crs=http://www.opengis.net/def/crs/EPSG/0/28992&limit=1000&f=json`;
@@ -38,8 +41,7 @@ const vbo = await json(
   )?.geometry;
 if (point?.type !== "Point" || Math.abs(point.coordinates[0]) > 180)
   throw new Error("Geen geverifieerde WGS84-locatie.");
-const directory = path.join(root, "data"),
-  old = await readLighting(directory, house.id),
+const old = await readLighting(directory, house.id),
   lamps = [...active.values()]
     .sort(
       (a, b) =>

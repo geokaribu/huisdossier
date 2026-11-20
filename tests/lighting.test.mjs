@@ -300,7 +300,7 @@ test("lighting API validates scenarios, isolates houses and preserves source fac
   await mkdir(path.join(root, "public", "data"), { recursive: true });
   await writeFile(
     path.join(root, "public", "data", "synthetic.json"),
-    JSON.stringify(data),
+    JSON.stringify({ ...data, house: { ...data.house, id: "synthetic" } }),
   );
   const { app, store } = createApp({
     directory,

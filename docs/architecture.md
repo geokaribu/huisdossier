@@ -1,5 +1,7 @@
 # Eerste versie: lokaal huis inspecteren
 
+Voor de actuele beoordeling als herhaalbaar product voor woningen en kantoren: [productgereedheid, bewijs en vervolggrenzen](product-readiness.md). De lokale runtime gebruikt inmiddels één gevalideerde configuratielaag voor catalogus, privéopslag en modellenmap; zie [installatiecontract](installation.md). Dit wijzigt de hieronder beschreven herkomst van de eerste casus niet en voegt geen accounts of gedeelde hosting toe.
+
 ## Besloten scope
 
 Bron: gesprek met Karian/Kilian op 20 november 2026; het voorstel om een eerste inspecteerbare versie te maken is geaccepteerd. Eigen gebruik; Geokari-huisstijl. Bestaande conceptcontext: database eerst, geen permanente IoT, eigen huis gevolgd door het huis van de ouders.

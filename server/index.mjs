@@ -1,16 +1,13 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createApp } from "./app.mjs";
+import { loadRuntimeConfig } from "./runtime-config.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const houses = JSON.parse(
-  await readFile(path.join(root, "config/houses.json"), "utf8"),
-);
-const directory = process.env.HUISDOSSIER_DATA_DIR ?? path.join(root, "data");
-const { app } = createApp({ directory, houses, root });
+const { houses, directory, modelDirectory } = await loadRuntimeConfig(root);
+const { app } = createApp({ directory, houses, root, modelDirectory });
 const server = createServer(app);
 const port = Number(process.env.PORT ?? 4173);
 if (process.argv.includes("--production")) {

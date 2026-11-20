@@ -2,6 +2,8 @@
 
 Gecontroleerd op 20 november 2026, lokaal op Windows met Node 24.
 
+Dossieruitbreiding: zeventien tests slagen, waaronder migratie van bestaande versie-1-data, idempotente documentimport, behoud van eigen bewerkingen en afgeronde taken, inhoudszoeken, tekstuploads, bronkoppelingen, optionele datums, vastlegging van de echte afronddatum, PDF-preview en huisisolatie. Productiebuild en TypeScript slagen. Browserproeven met een aparte database: onderdeel maken, melding zonder datum/eigenaar/wachtstatus bewaren, datum/eigenaar wijzigen, afronden, tekstupload lezen en documentmetadata wijzigen. Desktop en 390 px: kamer ↔ dossier, zoeken in documentinhoud, reader en originele PDF werken zonder horizontale overloop. Privédocumenten, manifests en testbestanden blijven buiten Git.
+
 - `npm test`: vijftien tests geslaagd. Bewaren na heropenen, bestandsinhoud, volledige export, huisisolatie, ongeldige invoer, BAG-geometrie, doorlopende gevel-UV's, luchtfoto-UV's, loopbotsingen, doorgangen en privéprofielen gecontroleerd. Extra controles: vaste glaspanelen, open/gesloten deurvleugels, gedraaide meubelcontouren en behoud van terrasparameters in API/export.
 - `npm run build`: TypeScript en productiebuild geslaagd. De 3D-viewer wordt apart geladen; de standaard bundelgroottewaarschuwing voor Three.js is bekend (ongeveer 150 kB gzip).
 - Browser, productieversie op aparte testdatabase: onderdeel maken, melding maken/uitvoeren, foto en document uploaden, foto openen, export downloaden, herladen en data terugvinden geslaagd.

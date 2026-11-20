@@ -39,6 +39,7 @@ export interface Asset {
   description: string;
   position: Point | null;
   locationStatus: string;
+  roomId?: string | null;
 }
 export interface Attachment {
   id: string;
@@ -48,6 +49,12 @@ export interface Attachment {
   size: number;
   createdAt: string;
   url: string;
+  readable?: boolean;
+  category?: string;
+  summary?: string;
+  source?: string;
+  sourceDate?: string;
+  historical?: boolean;
 }
 export interface Task {
   id: string;
@@ -57,6 +64,12 @@ export interface Task {
   date: string;
   status: "open" | "done";
   createdAt: string;
+  owner?: string;
+  state?: "active" | "hold" | "verify";
+  source?: string;
+  sourceDate?: string;
+  sourceId?: string | null;
+  completedAt?: string;
 }
 export interface Dossier {
   assets: Asset[];

@@ -13,11 +13,20 @@ export function createStore(directory, houses) {
     CREATE TABLE IF NOT EXISTS attachments (id TEXT PRIMARY KEY, house_id TEXT NOT NULL REFERENCES houses(id), asset_id TEXT NOT NULL REFERENCES assets(id), name TEXT NOT NULL, type TEXT NOT NULL, size INTEGER NOT NULL, stored_name TEXT NOT NULL, created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, house_id TEXT NOT NULL REFERENCES houses(id), asset_id TEXT NOT NULL REFERENCES assets(id), title TEXT NOT NULL, description TEXT NOT NULL, date TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('open','done')), created_at TEXT NOT NULL);
     INSERT OR IGNORE INTO migrations VALUES (1);`);
+  if (!db.prepare("SELECT 1 FROM migrations WHERE version=2").get()) {
+    db.exec(`BEGIN;
+      ALTER TABLE assets ADD COLUMN room_id TEXT;
+      ALTER TABLE attachments ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}';
+      ALTER TABLE attachments ADD COLUMN text_content TEXT NOT NULL DEFAULT '';
+      ALTER TABLE tasks ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}';
+      CREATE TABLE imports (house_id TEXT NOT NULL, source_key TEXT NOT NULL, item_key TEXT NOT NULL, kind TEXT NOT NULL, record_id TEXT NOT NULL, snapshot TEXT NOT NULL, PRIMARY KEY(house_id,source_key,kind,item_key));
+      INSERT INTO migrations VALUES(2); COMMIT;`);
+  }
   const seed = db.prepare("INSERT OR IGNORE INTO houses VALUES (?, ?)");
   for (const house of houses) {
     seed.run(house.id, house.name);
     const add = db.prepare(
-      "INSERT OR IGNORE INTO assets VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT OR IGNORE INTO assets (id,house_id,name,kind,description,position) VALUES (?, ?, ?, ?, ?, ?)",
     );
     add.run(
       `${house.id}:building`,
@@ -58,6 +67,7 @@ export function createStore(directory, houses) {
     name: r.name,
     kind: r.kind,
     description: r.description,
+    roomId: r.room_id ?? null,
     position: r.position ? JSON.parse(r.position) : null,
     locationStatus: r.position
       ? "Aangewezen door bewoner"
@@ -70,6 +80,8 @@ export function createStore(directory, houses) {
     type: r.type,
     size: r.size,
     createdAt: r.created_at,
+    ...JSON.parse(r.metadata),
+    readable: Boolean(r.text_content),
     url: `/api/houses/${r.house_id}/files/${r.id}`,
   });
   const taskRow = (r) => ({
@@ -80,6 +92,7 @@ export function createStore(directory, houses) {
     date: r.date,
     status: r.status,
     createdAt: r.created_at,
+    ...JSON.parse(r.metadata),
   });
   return {
     db,
@@ -103,7 +116,7 @@ export function createStore(directory, houses) {
           .map(attachmentRow),
         tasks: db
           .prepare(
-            "SELECT * FROM tasks WHERE house_id=? ORDER BY date, created_at DESC",
+            "SELECT * FROM tasks WHERE house_id=? ORDER BY CASE WHEN date='' THEN 1 ELSE 0 END, date, created_at DESC",
           )
           .all(houseId)
           .map(taskRow),
@@ -111,29 +124,36 @@ export function createStore(directory, houses) {
     },
     addAsset(houseId, data) {
       const id = randomUUID();
-      db.prepare("INSERT INTO assets VALUES (?,?,?,?,?,NULL)").run(
+      db.prepare(
+        "INSERT INTO assets (id,house_id,name,kind,description,room_id) VALUES (?,?,?,?,?,?)",
+      ).run(
         id,
         houseId,
         data.name,
         data.kind,
         data.description,
+        data.roomId ?? null,
       );
       return id;
     },
     updateAsset(houseId, id, data) {
       db.prepare(
-        "UPDATE assets SET name=?,description=?,position=? WHERE house_id=? AND id=?",
+        "UPDATE assets SET name=?,description=?,position=?,room_id=CASE WHEN ?=1 THEN ? ELSE room_id END WHERE house_id=? AND id=?",
       ).run(
         data.name,
         data.description,
         data.position ? JSON.stringify(data.position) : null,
+        data.roomId === undefined ? 0 : 1,
+        data.roomId ?? null,
         houseId,
         id,
       );
     },
-    addAttachment(houseId, assetId, file) {
+    addAttachment(houseId, assetId, file, textContent = "") {
       const id = randomUUID();
-      db.prepare("INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?)").run(
+      db.prepare(
+        "INSERT INTO attachments (id,house_id,asset_id,name,type,size,stored_name,created_at,text_content) VALUES (?,?,?,?,?,?,?,?,?)",
+      ).run(
         id,
         houseId,
         assetId,
@@ -142,6 +162,7 @@ export function createStore(directory, houses) {
         file.size,
         file.filename,
         new Date().toISOString(),
+        textContent,
       );
       return id;
     },
@@ -151,9 +172,53 @@ export function createStore(directory, houses) {
         .get(houseId, id),
     allFiles: (houseId) =>
       db.prepare("SELECT * FROM attachments WHERE house_id=?").all(houseId),
+    updateAttachment(houseId, id, data) {
+      const file = db
+        .prepare("SELECT * FROM attachments WHERE house_id=? AND id=?")
+        .get(houseId, id);
+      if (!file) return 0;
+      const metadata = {
+        ...JSON.parse(file.metadata),
+        category: data.category,
+        summary: data.summary,
+      };
+      return db
+        .prepare(
+          "UPDATE attachments SET asset_id=?,metadata=? WHERE house_id=? AND id=?",
+        )
+        .run(data.assetId, JSON.stringify(metadata), houseId, id).changes;
+    },
+    searchFiles(houseId, query) {
+      const needle = query.trim().toLocaleLowerCase("nl-NL");
+      const terms = needle.split(/\s+/);
+      // A small local dossier: normalize in JS for Unicode accents/case, keep text out of list responses.
+      return db
+        .prepare(
+          "SELECT a.*,s.name AS asset_name FROM attachments a JOIN assets s ON a.asset_id=s.id WHERE a.house_id=?",
+        )
+        .all(houseId)
+        .flatMap((r) => {
+          const meta = JSON.parse(r.metadata);
+          const haystack = `${r.name}\n${r.asset_name}\n${meta.category ?? ""}\n${meta.summary ?? ""}\n${r.text_content}`;
+          const normalized = haystack.toLocaleLowerCase("nl-NL");
+          const index = normalized.indexOf(terms[0]);
+          return !terms.every((term) => normalized.includes(term))
+            ? []
+            : [
+                {
+                  id: r.id,
+                  snippet: haystack
+                    .slice(Math.max(0, index - 65), index + needle.length + 155)
+                    .replace(/\s+/g, " "),
+                },
+              ];
+        });
+    },
     addTask(houseId, data) {
       const id = randomUUID();
-      db.prepare("INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?)").run(
+      db.prepare(
+        "INSERT INTO tasks (id,house_id,asset_id,title,description,date,status,created_at,metadata) VALUES (?,?,?,?,?,?,?,?,?)",
+      ).run(
         id,
         houseId,
         data.assetId,
@@ -162,13 +227,39 @@ export function createStore(directory, houses) {
         data.date,
         "open",
         new Date().toISOString(),
+        JSON.stringify({
+          owner: data.owner ?? "",
+          state: data.state ?? "active",
+        }),
       );
       return id;
     },
-    setTask(houseId, id, status) {
+    updateTask(houseId, id, data) {
+      const current = db
+        .prepare("SELECT * FROM tasks WHERE house_id=? AND id=?")
+        .get(houseId, id);
+      if (!current) return 0;
+      const meta = JSON.parse(current.metadata);
+      if (data.status === "done" && current.status !== "done")
+        meta.completedAt = new Date().toISOString();
+      if (data.status === "open" && current.status !== "open")
+        delete meta.completedAt;
+      for (const field of ["owner", "state"])
+        if (data[field] !== undefined) meta[field] = data[field];
       return db
-        .prepare("UPDATE tasks SET status=? WHERE house_id=? AND id=?")
-        .run(status, houseId, id).changes;
+        .prepare(
+          "UPDATE tasks SET asset_id=?,title=?,description=?,date=?,status=?,metadata=? WHERE house_id=? AND id=?",
+        )
+        .run(
+          data.assetId ?? current.asset_id,
+          data.title ?? current.title,
+          data.description ?? current.description,
+          data.date ?? current.date,
+          data.status ?? current.status,
+          JSON.stringify(meta),
+          houseId,
+          id,
+        ).changes;
     },
     close() {
       db.close();

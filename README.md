@@ -22,6 +22,9 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 
 ## Wat werkt
 
+- **Mijn huisdossier**: ruimtes en onderwerpen met notities, bestanden, open klussen en historie. Een ruimte is aan een vaste plattegrond-ID gekoppeld, met een directe overgang naar 3D en terug.
+- Documenten doorzoeken op inhoud, categorie en onderdeel; Markdown, tekst en geëxtraheerde documenttekst lokaal lezen en PDF-originelen bekijken. Nieuwe tekstuploads worden direct doorzoekbaar. Andere bestandsformaten houden hun originele download.
+- Klussen zonder verplichte datum vastleggen, een eigenaar kiezen, wachten of eerst controleren aangeven en de gegevens later bewerken. Bron en peildatum blijven bij geïmporteerde acties zichtbaar.
 - Het echte 3DBAG-pand draaien, zoomen, van boven bekijken, als draadmodel tonen en met/zonder omgeving inspecteren.
 - Dak- en gevelvlakken aanklikken; onderdelen ook via de lijst kiezen.
 - Eigen onderdelen aanmaken en bewerken; een plek op de buitenzijde markeren. Posities gebruiken RD + NAP, onafhankelijk van de viewer.
@@ -88,6 +91,16 @@ data/                      Privé runtimegegevens (gitignored)
 `data/huisdossier.sqlite` bevat het dossier; `data/uploads/` bevat originele bestanden. Deze map wordt nooit aan Git toegevoegd. `HUISDOSSIER_DATA_DIR` kan een andere absolute opslagmap aanwijzen. De UI gebruikt geen localStorage als primaire opslag.
 
 Maak een export via **Exporteer dossier**, of stop de server en kopieer de volledige `data/`-map als consistente back-up. Een volledige JSON-export bevat alle bestanden en kan daardoor groot worden. Een herstelknop voor JSON-exports is nog niet gebouwd; voor direct herstel met deze versie gebruik je een kopie van de volledige `data/`-map. Modeldata onder `public/data/` is openbare brondata, niet de privé-inhoud van het dossier.
+
+## Bestaande documenten verwerken
+
+Een lokale bronmap kan met een **privémanifest** aan een woning worden gekoppeld. De import kopieert originelen, bewaart bronpad/peildatum en optionele tekstextractie, en zet expliciet gekozen klussen en onderdelen klaar. Er wordt niets in de bronmap gewijzigd.
+
+```powershell
+npm run import:dossier -- woning-id "C:\pad\naar\bronnen" "data\imports\manifest.json" bron-naam
+```
+
+Zie [documentimport](docs/document-import.md) voor het formaat. Herhalen maakt geen duplicaten. Gewijzigde broninhoud wordt alleen bijgewerkt wanneer het eerdere importrecord in de app ongewijzigd is; eigen bewerkingen en afgeronde klussen blijven behouden. De import rapporteert overgeslagen records en ontbrekende bestanden. PDF/DOCX/XLSX-tekstextractie wordt vooraf in het manifest aangeleverd; de app voert geen OCR of externe AI-aanvragen uit.
 
 ## Een volgend huis
 

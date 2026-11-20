@@ -32,12 +32,15 @@ const taskSchema = z.object({
   assetId: text,
   title: text,
   description: z.string().trim().max(10000).default(""),
-  date,
+  date: z.union([date, z.literal("")]).default(""),
+  owner: z.string().trim().max(200).default(""),
+  state: z.enum(["active", "hold", "verify"]).default("active"),
 });
 const assetSchema = z.object({
   name: text,
   kind: z.enum(["gebouw", "dak", "gevel", "ruimte", "installatie", "overig"]),
   description: z.string().trim().max(10000).default(""),
+  roomId: text.nullable().optional(),
 });
 const updateSchema = z.object({
   name: text,
@@ -45,6 +48,7 @@ const updateSchema = z.object({
   position: z
     .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
     .nullable(),
+  roomId: text.nullable().optional(),
 });
 
 export function createApp({ directory, houses, root }) {
@@ -135,6 +139,9 @@ export function createApp({ directory, houses, root }) {
           req.params.houseId,
           req.params.assetId,
           req.file,
+          /\.(md|txt|csv)$/i.test(req.file.originalname)
+            ? (await readFile(req.file.path, "utf8")).slice(0, 2_000_000)
+            : "",
         );
         res.status(201).json({ id });
       } catch (error) {
@@ -143,11 +150,43 @@ export function createApp({ directory, houses, root }) {
       }
     },
   );
+  app.get("/api/houses/:houseId/search", (req, res) => {
+    const query = z
+      .string()
+      .trim()
+      .max(200)
+      .parse(req.query.q ?? "");
+    res.json(query ? store.searchFiles(req.params.houseId, query) : []);
+  });
+  app.get("/api/houses/:houseId/files/:id/text", (req, res) => {
+    const file = store.file(req.params.houseId, req.params.id);
+    if (!file) return res.status(404).json({ error: "Bestand niet gevonden." });
+    res.json({ text: file.text_content });
+  });
+  app.patch("/api/houses/:houseId/files/:id", (req, res) => {
+    const data = z
+      .object({
+        assetId: text,
+        category: z.string().trim().max(100),
+        summary: z.string().trim().max(10000),
+      })
+      .parse(req.body);
+    if (!store.asset(req.params.houseId, data.assetId))
+      return res.status(404).json({ error: "Onderdeel niet gevonden." });
+    if (!store.updateAttachment(req.params.houseId, req.params.id, data))
+      return res.status(404).json({ error: "Bestand niet gevonden." });
+    res.json({ ok: true });
+  });
   app.get("/api/houses/:houseId/files/:id", (req, res) => {
     const file = store.file(req.params.houseId, req.params.id);
     if (!file) return res.status(404).json({ error: "Bestand niet gevonden." });
     const location = path.join(uploadDir, file.stored_name);
-    if (
+    if (file.type === "application/pdf" && req.query.preview === "1") {
+      res
+        .type("application/pdf")
+        .set("Content-Disposition", "inline")
+        .sendFile(location);
+    } else if (
       [
         "image/jpeg",
         "image/png",
@@ -167,8 +206,21 @@ export function createApp({ directory, houses, root }) {
     res.status(201).json({ id: store.addTask(req.params.houseId, data) });
   });
   app.patch("/api/houses/:houseId/tasks/:id", (req, res) => {
-    const data = z.object({ status: z.enum(["open", "done"]) }).parse(req.body);
-    if (!store.setTask(req.params.houseId, req.params.id, data.status))
+    const data = z
+      .object({
+        assetId: text.optional(),
+        title: text.optional(),
+        description: z.string().trim().max(10000).optional(),
+        date: z.union([date, z.literal("")]).optional(),
+        owner: z.string().trim().max(200).optional(),
+        state: z.enum(["active", "hold", "verify"]).optional(),
+        status: z.enum(["open", "done"]).optional(),
+      })
+      .refine((v) => Object.keys(v).length > 0)
+      .parse(req.body);
+    if (data.assetId && !store.asset(req.params.houseId, data.assetId))
+      return res.status(404).json({ error: "Onderdeel niet gevonden." });
+    if (!store.updateTask(req.params.houseId, req.params.id, data))
       return res.status(404).json({ error: "Melding niet gevonden." });
     res.json({ ok: true });
   });
@@ -221,6 +273,8 @@ export function createApp({ directory, houses, root }) {
         id: file.id,
         name: file.name,
         type: file.type,
+        metadata: JSON.parse(file.metadata),
+        text: file.text_content,
         base64: (
           await readFile(path.join(uploadDir, file.stored_name))
         ).toString("base64"),

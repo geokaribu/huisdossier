@@ -84,7 +84,17 @@ function floorTexture(tile = false) {
   return texture;
 }
 
-export function InteriorViewer({ plan }: { plan: Floorplan }) {
+export function InteriorViewer({
+  plan,
+  initialRoomId,
+  onDossier,
+  dossierRooms = [],
+}: {
+  plan: Floorplan;
+  initialRoomId?: string;
+  onDossier?: (roomId: string) => void;
+  dossierRooms?: string[];
+}) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<InteriorApi | null>(null);
   const movement = useRef(new Set<string>());
@@ -124,7 +134,7 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setClearColor("#eee9de");
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     const canvas = renderer.domElement;
@@ -602,6 +612,14 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
       },
     };
     frame();
+    const initial = plan.rooms.find((r) => r.id === initialRoomId);
+    if (initial)
+      api.current.room(
+        initial.center,
+        initial.viewYaw,
+        initial.viewPitch,
+        initial.viewFov,
+      );
     const keys = movement.current;
     const keydown = (e: KeyboardEvent) => {
       if (
@@ -918,36 +936,49 @@ export function InteriorViewer({ plan }: { plan: Floorplan }) {
         </svg>
         <div className="interior-rooms">
           {plan.rooms.map((room) => (
-            <button
-              key={room.id}
-              className={walking && activeRoom?.id === room.id ? "active" : ""}
-              onClick={() =>
-                api.current?.room(
-                  room.center,
-                  room.viewYaw,
-                  room.viewPitch,
-                  room.viewFov,
-                )
-              }
-            >
-              <span>
-                <span
-                  className="room-swatch"
-                  style={{ background: room.color }}
-                />
-                {room.name}
-              </span>
-              <small>
-                {room.area
-                  ? `${room.area.toLocaleString("nl-NL")} m²`
-                  : room.shared
-                    ? "gedeeld"
-                    : room.outside
-                      ? "buiten"
-                      : ""}
-                <ArrowRight size={14} />
-              </small>
-            </button>
+            <div className="interior-room-row" key={room.id}>
+              <button
+                key={room.id}
+                className={
+                  walking && activeRoom?.id === room.id ? "active" : ""
+                }
+                onClick={() =>
+                  api.current?.room(
+                    room.center,
+                    room.viewYaw,
+                    room.viewPitch,
+                    room.viewFov,
+                  )
+                }
+              >
+                <span>
+                  <span
+                    className="room-swatch"
+                    style={{ background: room.color }}
+                  />
+                  {room.name}
+                </span>
+                <small>
+                  {room.area
+                    ? `${room.area.toLocaleString("nl-NL")} m²`
+                    : room.shared
+                      ? "gedeeld"
+                      : room.outside
+                        ? "buiten"
+                        : ""}
+                  <ArrowRight size={14} />
+                </small>
+              </button>
+              {dossierRooms.includes(room.id) && (
+                <button
+                  className="room-dossier-button"
+                  aria-label={`Open dossier ${room.name}`}
+                  onClick={() => onDossier?.(room.id)}
+                >
+                  Dossier →
+                </button>
+              )}
+            </div>
           ))}
         </div>
         <div className="interior-provenance">

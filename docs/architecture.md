@@ -14,15 +14,21 @@ Een tweede aanvulling op 20 november 2026 gebruikt een PDOK-luchtfoto op dakvlak
 
 Een Node-proces serveert de lokale API en de webinterface. React/TypeScript verzorgt de interface; Three.js verzorgt alleen de weergave. Express valideert mutaties met Zod. Node SQLite bewaart records en losse bestanden bewaren de originelen. De keuze voor SQLite maakt deze versie eenvoudig op één computer te gebruiken; netwerkhosting of meerdere accounts vraagt een apart ontwerp en is geen impliciete vervolgfunctionaliteit.
 
-De gegevensrelatie is `woning → onderdeel → bestanden / onderhoud`. Een onderdeel heeft een vast ID en optioneel een RD/NAP-positie. Een ruimte is een onderdeeltype; een ingemeten verdiepings- en ruimtehiërarchie kan worden toegevoegd wanneer er een plattegrond beschikbaar is. De viewer bezit geen dossierinhoud. Daarmee kan een later GLB- of splatmodel dezelfde dossierkoppelingen gebruiken.
+De gegevensrelatie is `woning → onderdeel → bestanden / onderhoud`. Een onderdeel heeft een vast ID en optioneel een RD/NAP-positie. Een ruimteonderdeel kan met een vaste `room_id` aan de plattegrond worden gekoppeld. De viewer bezit geen dossierinhoud. Daarmee kan een later GLB- of splatmodel dezelfde dossierkoppelingen gebruiken.
 
 De importer controleert het BAG-verblijfsobject, volgt de officiële pandrelatie en haalt dat exacte pand op bij 3DBAG. Bij een onduidelijke meervoudige pandrelatie stopt de import. CityJSON-oppervlakken behouden hun semantiek; RD/NAP-coördinaten worden in de viewer lokaal rond het huis verschoven om precisieverlies te voorkomen. Concave vlakken en gaten worden via vlakprojectie en Earcut getrianguleerd.
 
 ## Grenzen en vervolgstappen
 
+Het dossier heeft nu een eigen ingang naast het 3D-model. Ruimteonderdelen verwijzen met `room_id` naar het privéplattegrondprofiel; dezelfde ID laat de gebruiker van kamer naar dossier en terug gaan. De viewer blijft onafhankelijk van documentinhoud. De nieuwe dossierpagina en documentreader zijn afzonderlijke React-componenten.
+
+SQLite-migratie 2 voegt ruimtekoppelingen, documentmetadata/zoektekst, taakmetadata en importsnapshots toe zonder bestaande records te vervangen. De leeslijst bevat geen volledige documenttekst; inhoud zoeken en lezen gebruikt aparte huisgebonden endpoints. Tekst wordt veilig als tekst/React-elementen weergegeven, nooit als door de gebruiker aangeleverde HTML. PDF-originelen krijgen een expliciete lokale preview; andere originelen blijven downloads. Nieuwe tekstuploads worden lokaal geïndexeerd, binaire extractie is een expliciete importstap.
+
+De documentimport gebruikt vaste sleutels en inhoudschecksums. Herhalen behoudt eigen bewerkingen en afgeronde taken. Bronbestanden, manifest, samenvattingen en tekstextracties blijven uitsluitend in de privéopslag. Onbekende deadlines blijven leeg; bronstatus en verantwoordelijkheid zijn los van de open/afgerond-status bewaard. Dit voegt geen automatische herhaling, herinneringsdienst of externe synchronisatie toe.
+
 1. Eerste inspectie met bewoners: model en adresrelatie beoordelen, oorspronkelijke tekeningen en gevelbeelden verzamelen.
 2. Foto's van ventilatie, elektriciteitskast en oven toevoegen; merk/type en echte plek vastleggen.
-3. De uitgewerkte plattegrond controleren met de bewoners, maten verifiëren en interieurfoto's toevoegen voor echte materialen; ruimte-ID's koppelen aan dossieronderdelen wanneer die hiërarchie wordt uitgewerkt.
+3. De uitgewerkte plattegrond en ruimtekoppelingen controleren met de bewoners; maten en materialen ter plaatse verifiëren.
 4. Eén ruimte of gevel met eigen opnames reconstrueren; fotogrammetrie en splats vergelijken op uiterlijk, bestandsomvang en browsergebruik.
 5. Back-upherstel via export, versiegeschiedenis en overdracht uitwerken voordat data op een gedeelde server komt.
 

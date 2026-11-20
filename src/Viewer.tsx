@@ -107,7 +107,7 @@ export function Viewer({
     renderer.setClearColor("#F6F2E7");
     renderer.shadowMap.enabled = true;
     renderer.localClippingEnabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;

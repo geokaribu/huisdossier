@@ -25,6 +25,410 @@
   --green: #2d8659;
   --paper: #fdfcf9;
 }
+.dossier-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  margin: 4px 0 26px;
+}
+.dossier-intro h2 {
+  font-size: 1.65rem;
+  letter-spacing: -0.04em;
+  margin: 6px 0;
+}
+.dossier-intro p {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0;
+}
+.dossier-stats {
+  display: flex;
+  gap: 22px;
+  flex-shrink: 0;
+}
+.dossier-stats button {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--orange);
+  padding: 0 0 0 16px;
+  display: grid;
+}
+.dossier-stats strong {
+  font-size: 1.9rem;
+  letter-spacing: -0.05em;
+  line-height: 1.2;
+}
+.dossier-stats span {
+  color: var(--muted);
+  font-size: 0.73rem;
+  margin-top: 5px;
+}
+.dossier-directory {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 9px;
+  margin-bottom: 25px;
+}
+.dossier-tile {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 7px;
+  padding: 15px 14px;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: center;
+  gap: 5px 8px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.dossier-tile strong {
+  font-size: 0.8rem;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.dossier-tile > svg {
+  color: #7b878c;
+}
+.dossier-tile > span {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+.dossier-tile:hover {
+  background: var(--cream);
+  border-color: #c7c8c2;
+}
+.dossier-tile.active {
+  border-color: #c36d1b;
+  background: #fff4e7;
+}
+.dossier-tile.active > svg {
+  color: #b65e0d;
+}
+.detail-actions,
+.document-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.dossier-notes {
+  white-space: pre-wrap;
+  line-height: 1.75;
+  font-size: 0.9rem;
+  max-width: 85ch;
+  overflow-wrap: anywhere;
+  margin: 0 0 28px;
+}
+.dossier-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  border-top: 1px solid var(--line);
+  padding-top: 17px;
+}
+.dossier-columns > div {
+  min-width: 0;
+}
+.dossier-column-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.dossier-column-heading h3 {
+  font-size: 0.88rem;
+  margin: 8px 0;
+}
+.dossier-column-heading h3 span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.dossier-column-heading .text-link {
+  font-size: 0.74rem;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.document-links {
+  margin-bottom: 16px;
+}
+.document-links button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  width: 100%;
+  padding: 14px 0;
+  text-align: left;
+}
+.document-links button:hover {
+  color: #a45408;
+}
+.document-links button > span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+}
+.document-links strong {
+  font-size: 0.79rem;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+.document-links small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.document-links svg {
+  flex-shrink: 0;
+}
+.dossier-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 22px;
+}
+.dossier-filters label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  max-width: 100%;
+}
+.dossier-filters select {
+  padding: 9px 28px 9px 11px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--navy);
+  max-width: 100%;
+}
+.dossier-filters > span {
+  font-size: 0.73rem;
+  color: var(--muted);
+  padding: 10px 0;
+  margin-left: auto;
+}
+.task-filter.segmented {
+  flex-wrap: wrap;
+}
+.task-source {
+  font-size: 0.7rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  margin-top: 7px;
+}
+.task-source .text-link {
+  font-size: inherit;
+}
+.file-preview {
+  border: 0;
+  width: 100%;
+}
+.file-preview:hover {
+  background: #eee9dd;
+}
+.file-info .file-summary {
+  font-size: 0.73rem;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 5px 0 9px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.file-info .file-category {
+  color: #8c4a0c;
+  font-size: 0.68rem;
+}
+.file-info > .text-link {
+  text-align: left;
+  font-size: 0.74rem;
+  margin: 4px 0;
+}
+.file-info .search-snippet {
+  font-size: 0.73rem;
+  line-height: 1.6;
+  margin: 8px 0;
+  color: var(--navy);
+  background: var(--cream);
+  padding: 9px;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+.document-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.document-summary {
+  white-space: pre-wrap;
+  padding: 17px 20px;
+  border-left: 3px solid var(--orange);
+  background: var(--cream);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  margin-bottom: 17px;
+  overflow-wrap: anywhere;
+}
+.document-origin {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 17px;
+  overflow-wrap: anywhere;
+}
+.document-toolbar {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 17px;
+  margin-bottom: 20px;
+}
+.document-toolbar .button {
+  font-size: 0.75rem;
+  padding: 9px 11px;
+}
+.document-toolbar .text-button {
+  font-size: 0.75rem;
+}
+.document-text {
+  font-size: 0.85rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.document-text p {
+  white-space: pre-wrap;
+  margin: 0 0 18px;
+}
+.document-text h3 {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  margin: 24px 0 12px;
+}
+.document-table {
+  max-width: 100%;
+  overflow: auto;
+  margin-bottom: 20px;
+}
+.document-table table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.76rem;
+}
+.document-table th,
+.document-table td {
+  text-align: left;
+  vertical-align: top;
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  min-width: 110px;
+}
+.document-table th {
+  background: var(--cream);
+}
+.document-pdf {
+  width: 100%;
+  height: 65vh;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.document-edit {
+  background: var(--cream);
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+}
+.interior-room-row {
+  border-bottom: 1px solid var(--line);
+}
+.interior-rooms .interior-room-row > button {
+  width: 100%;
+}
+.interior-rooms .interior-room-row > .room-dossier-button {
+  font-size: 0.7rem;
+  color: #a5540a;
+  padding: 0 12px 10px;
+  justify-content: flex-end;
+  border-bottom: 0;
+}
+@media (max-width: 1100px) {
+  .dossier-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .dossier-columns {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .dossier-directory {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .dossier-tile {
+    padding: 12px 10px;
+    grid-template-columns: 18px 1fr;
+    gap: 5px 7px;
+  }
+  .dossier-tile strong {
+    font-size: 0.73rem;
+  }
+  .dossier-tile > span {
+    font-size: 0.6rem;
+  }
+  .dossier-stats {
+    gap: 25px;
+  }
+  .dossier-stats strong {
+    font-size: 1.7rem;
+  }
+  .dossier-detail .section-heading {
+    align-items: flex-start;
+  }
+  .dossier-detail .detail-actions .button {
+    font-size: 0.72rem;
+    padding: 9px;
+  }
+  .dossier-filters label {
+    flex: 1;
+    min-width: 130px;
+  }
+  .dossier-filters > span {
+    width: 100%;
+    padding: 0;
+  }
+  .task-row {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .task-row > .badge {
+    margin-left: 30px;
+  }
+  .task-row > .icon-button {
+    margin-left: auto;
+  }
+  .document-summary {
+    padding: 13px;
+  }
+  .document-reader .document-toolbar {
+    gap: 7px;
+  }
+}
 * {
   box-sizing: border-box;
 }
@@ -326,12 +730,19 @@ select {
   max-width: 2000px;
 }
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  background: var(--paper);
   height: 70px;
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+.dossier-detail {
+  scroll-margin-top: 85px;
 }
 .breadcrumb {
   display: flex;

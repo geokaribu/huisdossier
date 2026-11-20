@@ -12,6 +12,7 @@
     "start": "node server/index.mjs --production",
     "test": "node --test tests/*.test.mjs",
     "import:house": "node scripts/import-house.mjs",
+    "import:dossier": "node scripts/import-dossier.mjs",
     "format": "prettier --write config docs scripts server src tests index.html *.json *.ts *.md"
   },
   "dependencies": {

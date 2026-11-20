@@ -31,11 +31,12 @@ import {
   Info,
   Menu,
   LoaderCircle,
-  Building2,
-  Layers3,
   Footprints,
 } from "lucide-react";
 import { request } from "./api";
+import { DocumentReader, categoryName } from "./DocumentReader";
+import { DossierHome } from "./DossierHome";
+import { assetIcon, kindName } from "./dossierDisplay";
 import type {
   HouseData,
   HouseAppearance,
@@ -55,37 +56,22 @@ const InteriorViewer = lazy(() =>
   })),
 );
 
-type Page = "model" | "interior" | "files" | "tasks" | "sources";
-type Modal = "asset" | "upload" | "task" | "edit" | null;
-const localDate = () => new Date().toLocaleDateString("sv-SE");
+type Page = "dossier" | "model" | "interior" | "files" | "tasks" | "sources";
+type Modal = "asset" | "upload" | "task" | "task-edit" | "edit" | null;
 const formatDate = (date: string) =>
-  new Date(date.length === 10 ? `${date}T12:00:00` : date).toLocaleDateString(
-    "nl-NL",
-    { day: "numeric", month: "short", year: "numeric" },
-  );
+  !date
+    ? "Nog te plannen"
+    : new Date(
+        date.length === 10 ? `${date}T12:00:00` : date,
+      ).toLocaleDateString("nl-NL", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
 const fileSize = (n: number) =>
   n < 1024 * 1024
     ? `${Math.max(1, Math.round(n / 1024))} kB`
     : `${(n / 1024 / 1024).toFixed(1)} MB`;
-const kindName: Record<string, string> = {
-  gebouw: "Gebouw",
-  dak: "Dak",
-  gevel: "Gevel",
-  ruimte: "Ruimte",
-  installatie: "Installatie",
-  overig: "Onderdeel",
-};
-const assetIcon = (kind: string, size = 18) =>
-  kind === "gebouw" ? (
-    <Building2 size={size} />
-  ) : kind === "installatie" ? (
-    <Wrench size={size} />
-  ) : kind === "ruimte" ? (
-    <House size={size} />
-  ) : (
-    <Layers3 size={size} />
-  );
-
 function App() {
   const [floorplan, setFloorplan] = useState<Floorplan | null>(null);
   const [appearance, setAppearance] = useState<HouseAppearance | null>(null);
@@ -100,7 +86,7 @@ function App() {
     tasks: [],
   });
   const [selectedId, setSelectedId] = useState("");
-  const [page, setPage] = useState<Page>("model");
+  const [page, setPage] = useState<Page>("dossier");
   const [modal, setModal] = useState<Modal>(null);
   const [inspectorTab, setInspectorTab] = useState("details");
   const [placing, setPlacing] = useState(false);
@@ -111,6 +97,17 @@ function App() {
   const [taskFilter, setTaskFilter] = useState("open");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [lightbox, setLightbox] = useState<Attachment | null>(null);
+  const [readerId, setReaderId] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [scope, setScope] = useState("");
+  const [category, setCategory] = useState("");
+  const [searchHits, setSearchHits] = useState<
+    { id: string; snippet: string }[] | null
+  >(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [initialRoom, setInitialRoom] = useState<string | undefined>();
+  const reader = dossier.attachments.find((f) => f.id === readerId);
   const selected = dossier.assets.find((a) => a.id === selectedId);
   const api = `/api/houses/${houseId}`;
   const reportError = useCallback((message: string) => setError(message), []);
@@ -135,6 +132,14 @@ function App() {
     setFloorplan(null);
     setDossier({ assets: [], attachments: [], tasks: [] });
     setPlacing(false);
+    setReaderId(null);
+    setLightbox(null);
+    setModal(null);
+    setQuery("");
+    setScope("");
+    setCategory("");
+    setSearchHits(null);
+    setInitialRoom(undefined);
     Promise.all([
       request<HouseData>(`/data/${houseId}.json`),
       request<Dossier>(`/api/houses/${houseId}/dossier`),
@@ -159,15 +164,71 @@ function App() {
     };
   }, [houseId]);
   useEffect(() => {
+    if (!houseId || page !== "files" || !query.trim()) {
+      setSearchHits(null);
+      setSearching(false);
+      setSearchError("");
+      return;
+    }
+    const controller = new AbortController();
+    setSearching(true);
+    setSearchError("");
+    setSearchHits(null);
+    const timer = setTimeout(() => {
+      request<{ id: string; snippet: string }[]>(
+        `${api}/search?q=${encodeURIComponent(query.trim())}`,
+        { signal: controller.signal },
+      )
+        .then(setSearchHits)
+        .catch((e) => {
+          if (!controller.signal.aborted) setSearchError(e.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setSearching(false);
+        });
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [houseId, api, page, query, dossier.attachments]);
+  useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [page]);
 
   const select = (id: string) => {
     setSelectedId(id);
     setPlacing(false);
     setInspectorTab("details");
+  };
+  const openDossier = (id: string) => {
+    select(id);
+    setPage("dossier");
+    setMobileMenu(false);
+    requestAnimationFrame(() =>
+      document.getElementById("dossier-detail")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+        block: "start",
+      }),
+    );
+  };
+  const showFiles = (assetId = "") => {
+    setScope(assetId);
+    setQuery("");
+    setCategory("");
+    setPage("files");
+  };
+  const showTasks = (assetId = "") => {
+    setScope(assetId);
+    setQuery("");
+    setPage("tasks");
   };
   const openModal = (type: Modal) => {
     setError("");
@@ -251,14 +312,50 @@ function App() {
               {task.description && <p>{task.description}</p>}
               <span className="task-meta">
                 {dossier.assets.find((a) => a.id === task.assetId)?.name}{" "}
-                <span>·</span> {formatDate(task.date)}
+                <span>·</span>{" "}
+                {task.status === "done"
+                  ? `Afgerond: ${task.completedAt || task.date ? formatDate(task.completedAt || task.date) : "datum niet vastgelegd"}`
+                  : formatDate(task.date)}
+                {task.owner && <> · {task.owner}</>}
               </span>
+              {task.source && (
+                <div className="task-source">
+                  {task.sourceId &&
+                  dossier.attachments.some((f) => f.id === task.sourceId) ? (
+                    <button
+                      className="text-link"
+                      onClick={() => setReaderId(task.sourceId!)}
+                    >
+                      Bekijk bron
+                    </button>
+                  ) : (
+                    <span>Bron: {task.source}</span>
+                  )}
+                  {task.sourceDate && <span> · {task.sourceDate}</span>}
+                </div>
+              )}
             </div>
             <span
               className={`badge ${task.status === "done" ? "green" : "amber"}`}
             >
-              {task.status === "done" ? "Uitgevoerd" : "Open"}
+              {task.status === "done"
+                ? "Afgerond"
+                : task.state === "hold"
+                  ? "Wacht op"
+                  : task.state === "verify"
+                    ? "Controleren"
+                    : "Open"}
             </span>
+            <button
+              className="icon-button"
+              aria-label={`Bewerk ${task.title}`}
+              onClick={() => {
+                setEditingTask(task);
+                openModal("task-edit");
+              }}
+            >
+              <Pencil size={16} />
+            </button>
           </article>
         ))}
       </div>
@@ -291,12 +388,16 @@ function App() {
                 <img src={file.url} alt={file.name} loading="lazy" />
               </button>
             ) : (
-              <div className="file-preview">
+              <button
+                className="file-preview"
+                onClick={() => setReaderId(file.id)}
+                aria-label={`Lees ${file.name}`}
+              >
                 <FileText size={30} strokeWidth={1.2} />
                 <span>
                   {file.name.split(".").pop()?.toUpperCase().slice(0, 8)}
                 </span>
-              </div>
+              </button>
             )}
             <div className="file-info">
               <strong title={file.name}>{file.name}</strong>
@@ -308,6 +409,24 @@ function App() {
                   {dossier.assets.find((a) => a.id === file.assetId)?.name}
                 </span>
               )}
+              {file.category && (
+                <span className="file-category">
+                  {categoryName[file.category] ?? file.category}
+                  {file.historical ? " · historisch" : ""}
+                </span>
+              )}
+              {file.summary && <p className="file-summary">{file.summary}</p>}
+              {searchHits?.find((h) => h.id === file.id)?.snippet && (
+                <p className="search-snippet">
+                  {searchHits.find((h) => h.id === file.id)!.snippet}
+                </p>
+              )}
+              <button
+                className="text-link"
+                onClick={() => setReaderId(file.id)}
+              >
+                Open dossierstuk →
+              </button>
               <a href={`${file.url}?download=1`} download>
                 <Download size={14} /> Download
               </a>
@@ -317,15 +436,23 @@ function App() {
       </div>
     );
   }
-  const filteredFiles = dossier.attachments.filter((f) =>
-    `${f.name} ${dossier.assets.find((a) => a.id === f.assetId)?.name}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  const filteredFiles = dossier.attachments
+    .filter((f) => !scope || f.assetId === scope)
+    .filter((f) => !category || f.category === category)
+    .filter((f) => !query.trim() || searchHits?.some((h) => h.id === f.id));
   const filteredTasks = dossier.tasks
-    .filter((t) => taskFilter === "all" || t.status === taskFilter)
+    .filter((t) => !scope || t.assetId === scope)
+    .filter(
+      (t) =>
+        taskFilter === "all" ||
+        (taskFilter === "hold" || taskFilter === "verify"
+          ? t.status === "open" && t.state === taskFilter
+          : t.status === taskFilter),
+    )
     .filter((t) =>
-      `${t.title} ${t.description}`.toLowerCase().includes(query.toLowerCase()),
+      `${t.title} ${t.description} ${t.owner ?? ""} ${dossier.assets.find((a) => a.id === t.assetId)?.name}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
     );
   const openTasks = dossier.tasks.filter((t) => t.status === "open");
   const relatedFiles = dossier.attachments.filter(
@@ -365,6 +492,7 @@ function App() {
         <nav>
           {(
             [
+              { id: "dossier", label: "Mijn huisdossier", Icon: House },
               { id: "model", label: "Huis bekijken", Icon: Box },
               { id: "interior", label: "Binnen kijken", Icon: Footprints },
               { id: "files", label: "Foto’s & documenten", Icon: FolderOpen },
@@ -377,7 +505,10 @@ function App() {
               className={page === id ? "nav-link active" : "nav-link"}
               onClick={() => {
                 setPage(id);
+                window.scrollTo({ top: 0, behavior: "instant" });
                 setQuery("");
+                setScope("");
+                setCategory("");
                 setMobileMenu(false);
               }}
               aria-current={page === id ? "page" : undefined}
@@ -407,9 +538,7 @@ function App() {
               key={asset.id}
               className={selectedId === asset.id ? "part active" : "part"}
               onClick={() => {
-                select(asset.id);
-                setPage("model");
-                setMobileMenu(false);
+                openDossier(asset.id);
               }}
             >
               {assetIcon(asset.kind, 16)}
@@ -505,6 +634,31 @@ function App() {
           </div>
         ) : (
           <>
+            {page === "dossier" && (
+              <DossierHome
+                dossier={dossier}
+                selected={selected}
+                floorplan={floorplan}
+                onSelect={openDossier}
+                onFiles={showFiles}
+                onTasks={(id, filter = "open") => {
+                  setTaskFilter(filter);
+                  showTasks(id);
+                }}
+                onUpload={() => openModal("upload")}
+                onTask={() => {
+                  setEditingTask(null);
+                  openModal("task");
+                }}
+                onEdit={() => openModal("edit")}
+                onDocument={setReaderId}
+                onInterior={(id) => {
+                  setInitialRoom(id);
+                  setPage("interior");
+                }}
+                renderTasks={(tasks) => <TaskList tasks={tasks} compact />}
+              />
+            )}
             {page === "interior" &&
               (floorplan ? (
                 <Suspense
@@ -515,7 +669,20 @@ function App() {
                     </div>
                   }
                 >
-                  <InteriorViewer key={houseId} plan={floorplan} />
+                  <InteriorViewer
+                    key={`${houseId}:${initialRoom ?? "overview"}`}
+                    plan={floorplan}
+                    initialRoomId={initialRoom}
+                    onDossier={(roomId) => {
+                      const asset = dossier.assets.find(
+                        (a) => a.kind === "ruimte" && a.roomId === roomId,
+                      );
+                      if (asset) openDossier(asset.id);
+                    }}
+                    dossierRooms={dossier.assets
+                      .filter((a) => a.kind === "ruimte" && a.roomId)
+                      .map((a) => a.roomId!)}
+                  />
                 </Suspense>
               ) : (
                 <div className="loading">
@@ -823,10 +990,60 @@ function App() {
                   <SearchField
                     value={query}
                     onChange={setQuery}
-                    placeholder="Zoek een bestand"
+                    placeholder="Zoek ook in de inhoud"
                   />
                 </div>
-                {filteredFiles.length ? (
+                <div className="dossier-filters">
+                  <label>
+                    Onderdeel
+                    <select
+                      value={scope}
+                      onChange={(e) => setScope(e.target.value)}
+                    >
+                      <option value="">Alle onderdelen</option>
+                      {dossier.assets.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Categorie
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
+                      <option value="">Alle categorieën</option>
+                      {[
+                        ...new Set(
+                          dossier.attachments
+                            .map((f) => f.category)
+                            .filter((v): v is string => Boolean(v)),
+                        ),
+                      ]
+                        .sort()
+                        .map((c) => (
+                          <option key={c} value={c}>
+                            {categoryName[c] ?? c}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <span role="status">
+                    {searching
+                      ? "Inhoud doorzoeken…"
+                      : `${filteredFiles.length} stukken`}
+                  </span>
+                </div>
+                {searchError && (
+                  <p className="alert error" role="alert">
+                    Zoeken mislukt: {searchError}
+                  </p>
+                )}
+                {searching ? (
+                  <p className="form-note">Documenten doorzoeken…</p>
+                ) : filteredFiles.length ? (
                   <Files files={filteredFiles} />
                 ) : (
                   <Empty
@@ -860,6 +1077,23 @@ function App() {
                     placeholder="Zoek in onderhoud"
                   />
                 </div>
+                <div className="dossier-filters">
+                  <label>
+                    Onderdeel
+                    <select
+                      value={scope}
+                      onChange={(e) => setScope(e.target.value)}
+                    >
+                      <option value="">Alle onderdelen</option>
+                      {dossier.assets.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span>{filteredTasks.length} aandachtspunten</span>
+                </div>
                 <div className="task-filter segmented">
                   {[
                     ["open", `Open (${openTasks.length})`],
@@ -868,6 +1102,8 @@ function App() {
                       `Uitgevoerd (${dossier.tasks.length - openTasks.length})`,
                     ],
                     ["all", "Alles"],
+                    ["hold", "Wacht op"],
+                    ["verify", "Controleren"],
                   ].map(([id, label]) => (
                     <button
                       className={taskFilter === id ? "active" : ""}
@@ -1128,6 +1364,7 @@ function App() {
               asset: "Onderdeel toevoegen",
               upload: "Bestanden toevoegen",
               task: "Onderhoud of melding",
+              "task-edit": "Melding bewerken",
               edit: "Onderdeel bewerken",
             }[modal]
           }
@@ -1155,14 +1392,17 @@ function App() {
                         name: form.get("name"),
                         kind: form.get("kind"),
                         description: form.get("description"),
+                        ...(floorplan
+                          ? { roomId: form.get("roomId") || null }
+                          : {}),
                       }),
                     },
                   );
                   createdId = result.id;
                 }, "Onderdeel toegevoegd");
                 if (ok) {
-                  select(createdId);
-                  setPage("model");
+                  if (page === "model") select(createdId);
+                  else openDossier(createdId);
                 }
               } else if (modal === "edit" && selected)
                 await save(
@@ -1173,22 +1413,30 @@ function App() {
                         name: form.get("name"),
                         description: form.get("description"),
                         position: selected.position,
+                        ...(floorplan
+                          ? { roomId: form.get("roomId") || null }
+                          : {}),
                       }),
                     }),
                   "Onderdeel bijgewerkt",
                 );
-              else if (modal === "task")
+              else if (modal === "task" || modal === "task-edit")
                 await save(
                   () =>
-                    request(`${api}/tasks`, {
-                      method: "POST",
-                      body: JSON.stringify({
-                        title: form.get("title"),
-                        description: form.get("description"),
-                        date: form.get("date"),
-                        assetId: form.get("assetId"),
-                      }),
-                    }),
+                    request(
+                      `${api}/tasks${modal === "task-edit" ? `/${editingTask!.id}` : ""}`,
+                      {
+                        method: modal === "task-edit" ? "PATCH" : "POST",
+                        body: JSON.stringify({
+                          title: form.get("title"),
+                          description: form.get("description"),
+                          date: form.get("date"),
+                          assetId: form.get("assetId"),
+                          owner: form.get("owner"),
+                          state: form.get("state"),
+                        }),
+                      },
+                    ),
                   "Melding opgeslagen",
                 );
               else if (modal === "upload") {
@@ -1220,10 +1468,18 @@ function App() {
               }
             }}
           >
-            {(modal === "upload" || modal === "task") && (
+            {(modal === "upload" ||
+              modal === "task" ||
+              modal === "task-edit") && (
               <label>
                 Bij welk onderdeel?
-                <select name="assetId" defaultValue={selectedId} required>
+                <select
+                  name="assetId"
+                  defaultValue={
+                    modal === "task-edit" ? editingTask?.assetId : selectedId
+                  }
+                  required
+                >
                   {dossier.assets.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -1257,12 +1513,33 @@ function App() {
                 </select>
               </label>
             )}
-            {modal === "task" && (
+            {(modal === "asset" || modal === "edit") && floorplan && (
+              <label>
+                Ruimte in de plattegrond (optioneel)
+                <select
+                  name="roomId"
+                  defaultValue={
+                    modal === "edit" ? (selected?.roomId ?? "") : ""
+                  }
+                >
+                  <option value="">Geen kamer gekoppeld</option>
+                  {floorplan.rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {(modal === "task" || modal === "task-edit") && (
               <>
                 <label>
                   Wat moet er gebeuren?
                   <input
                     name="title"
+                    defaultValue={
+                      modal === "task-edit" ? editingTask?.title : ""
+                    }
                     placeholder="Bijvoorbeeld: ventilatie controleren"
                     maxLength={200}
                     required
@@ -1270,24 +1547,59 @@ function App() {
                   />
                 </label>
                 <label>
-                  Datum
+                  Datum uit planning of bron (optioneel)
                   <input
                     type="date"
                     name="date"
-                    defaultValue={localDate()}
-                    required
+                    defaultValue={
+                      modal === "task-edit" ? editingTask?.date : ""
+                    }
                   />
+                </label>
+                <label>
+                  Wie pakt het op?
+                  <input
+                    name="owner"
+                    maxLength={200}
+                    defaultValue={
+                      modal === "task-edit" ? editingTask?.owner : ""
+                    }
+                    placeholder="Nog niet afgesproken"
+                  />
+                </label>
+                <label>
+                  Opvolging
+                  <select
+                    name="state"
+                    defaultValue={
+                      modal === "task-edit"
+                        ? (editingTask?.state ?? "active")
+                        : "active"
+                    }
+                  >
+                    <option value="active">Open</option>
+                    <option value="hold">Wacht op iemand of budget</option>
+                    <option value="verify">Eerst controleren</option>
+                  </select>
                 </label>
               </>
             )}
             {modal !== "upload" && (
               <label>
-                {modal === "task" ? "Toelichting" : "Wat weet je al?"}
+                {modal === "task" || modal === "task-edit"
+                  ? "Toelichting"
+                  : "Wat weet je al?"}
                 <textarea
                   name="description"
                   rows={4}
                   maxLength={10000}
-                  defaultValue={modal === "edit" ? selected?.description : ""}
+                  defaultValue={
+                    modal === "edit"
+                      ? selected?.description
+                      : modal === "task-edit"
+                        ? editingTask?.description
+                        : ""
+                  }
                   placeholder={
                     modal === "task"
                       ? "Wat viel op? Wie gaat ermee aan de slag?"
@@ -1355,6 +1667,23 @@ function App() {
           >
             <Download size={16} /> Download origineel
           </a>
+        </Dialog>
+      )}
+      {reader && (
+        <Dialog title={reader.name} onClose={() => setReaderId(null)} wide>
+          <DocumentReader
+            key={reader.id}
+            file={reader}
+            assets={dossier.assets}
+            onSave={async (data) => {
+              await request(`${api}/files/${reader.id}`, {
+                method: "PATCH",
+                body: JSON.stringify(data),
+              });
+              await refresh();
+              setNotice("Documentkoppeling bijgewerkt");
+            }}
+          />
         </Dialog>
       )}
     </div>

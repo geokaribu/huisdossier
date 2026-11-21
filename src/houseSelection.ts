@@ -1,4 +1,5 @@
 export const housePages = [
+  "assistant",
   "dossier",
   "model",
   "interior",

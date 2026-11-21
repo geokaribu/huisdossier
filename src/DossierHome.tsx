@@ -1,15 +1,27 @@
 import { useState, type ReactNode } from "react";
 import {
   ChevronRight,
-  FileText,
-  Footprints,
-  Pencil,
   Plus,
   Search,
+  LayoutGrid,
+  House,
+  Building2,
+  LampDesk,
+  Shapes,
 } from "lucide-react";
-import type { Asset, Dossier, Floorplan, Task } from "./types";
-import { categoryName, InlineText } from "./DocumentReader";
-import { assetIcon, kindName } from "./dossierDisplay";
+import { HouseBookCover } from "./HouseBookCover";
+import type {
+  Asset,
+  Attachment,
+  Dossier,
+  Floorplan,
+  HouseData,
+  HouseAppearance,
+  Task,
+} from "./types";
+import { RoomDossier } from "./RoomDossier";
+import { placeIcon } from "./dossierDisplay";
+import { latestHousePhoto } from "./housePhotos";
 
 interface Props {
   dossier: Dossier;
@@ -23,9 +35,18 @@ interface Props {
   onEdit: () => void;
   onAdd: () => void;
   onDocument: (id: string) => void;
+  onPhoto: (file: Attachment) => void;
   onInterior: (roomId: string) => void;
+  onCapture: () => void;
+  onExplore: () => void;
+  detailOpen: boolean;
+  onBack: () => void;
   renderTasks: (tasks: Task[]) => ReactNode;
   contacts?: ReactNode;
+  spatialHome?: ReactNode;
+  data?: HouseData | null;
+  appearance?: HouseAppearance | null;
+  roomPreview?: ReactNode;
 }
 
 export function DossierHome({
@@ -40,261 +61,205 @@ export function DossierHome({
   onEdit,
   onAdd,
   onDocument,
+  onPhoto,
   onInterior,
+  onCapture,
+  onExplore,
+  detailOpen,
+  onBack,
   renderTasks,
   contacts,
+  spatialHome,
+  data,
+  appearance,
+  roomPreview,
 }: Props) {
   const openTasks = dossier.tasks.filter((t) => t.status === "open");
   const [search, setSearch] = useState("");
-  const files = dossier.attachments.filter((f) => f.assetId === selected?.id);
-  const tasks = dossier.tasks.filter((t) => t.assetId === selected?.id);
+  const [group, setGroup] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const groups = [
-    { name: "Ruimtes", kinds: ["ruimte"] },
-    { name: "Gebouw", kinds: ["gebouw", "dak", "gevel"] },
-    { name: "Installaties", kinds: ["installatie"] },
-    { name: "Onderwerpen", kinds: ["overig"] },
+    { name: "Kamers", kinds: ["ruimte"], Icon: House },
+    { name: "Gebouw", kinds: ["gebouw", "dak", "gevel"], Icon: Building2 },
+    { name: "Techniek", kinds: ["installatie"], Icon: LampDesk },
+    { name: "Overig", kinds: ["overig"], Icon: Shapes },
   ];
+  const matchingAssets = dossier.assets
+    .filter(
+      (asset) =>
+        (!group ||
+          groups
+            .find((item) => item.name === group)
+            ?.kinds.includes(asset.kind)) &&
+        asset.name
+          .toLocaleLowerCase("nl")
+          .includes(search.toLocaleLowerCase("nl")),
+    )
+    .sort(
+      (a, b) =>
+        groups.findIndex((item) => item.kinds.includes(a.kind)) -
+        groups.findIndex((item) => item.kinds.includes(b.kind)),
+    );
+  const visibleAssets =
+    search || group || showAll ? matchingAssets : matchingAssets.slice(0, 8);
   return (
     <section className="dossier-home">
-      <div className="dossier-overview">
-        <div>
-          <h2>In dit dossier</h2>
-          <p>{dossier.assets.length} ruimtes, onderdelen en onderwerpen</p>
-        </div>
-        <div className="dossier-stats">
-          <button onClick={() => onFiles()}>
-            <strong>{dossier.attachments.length}</strong>
-            <span>bestanden</span>
-          </button>
-          <button onClick={() => onTasks(undefined, "open")}>
-            <strong>{openTasks.length}</strong>
-            <span>open meldingen</span>
-          </button>
-        </div>
-      </div>
-      <div className="dossier-workbench">
-        <label className="mobile-part-picker">
-          Onderdeel
-          <select
-            aria-label="Kies een dossieronderdeel"
-            value={selected?.id ?? ""}
-            onChange={(event) => onSelect(event.target.value)}
-          >
-            {!selected && <option value="">Kies een onderdeel</option>}
-            {groups.map((group) => (
-              <optgroup label={group.name} key={group.name}>
-                {dossier.assets
-                  .filter((asset) => group.kinds.includes(asset.kind))
-                  .map((asset) => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <div
-          className="dossier-directory"
-          aria-label="Kies een dossieronderdeel"
-        >
-          <label className="directory-search">
-            <Search size={16} aria-hidden="true" />
-            <input
-              type="search"
-              name="parts"
-              autoComplete="off"
-              placeholder="Zoek een onderdeel…"
-              aria-label="Zoek een onderdeel"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
-          <div className="directory-groups">
-            {groups.map((group) => {
-              const items = dossier.assets.filter(
-                (asset) =>
-                  group.kinds.includes(asset.kind) &&
-                  asset.name
-                    .toLocaleLowerCase("nl")
-                    .includes(search.toLocaleLowerCase("nl")),
-              );
-              if (!items.length) return null;
-              return (
-                <details
-                  className="directory-group"
-                  key={group.name}
-                  open={
-                    Boolean(search) ||
-                    items.some((asset) => asset.id === selected?.id)
-                  }
+      {!detailOpen && (
+        <>
+          {spatialHome ?? (
+            <HouseBookCover onCapture={onCapture} onExplore={onExplore} />
+          )}
+          <div className="dossier-overview">
+            <div>
+              <h2>Jouw plekken</h2>
+            </div>
+          </div>
+          <div className="dossier-workbench">
+            <div
+              id="housebook-places"
+              tabIndex={-1}
+              className="dossier-directory housebook-directory"
+              aria-label="Kies een dossieronderdeel"
+            >
+              <label className="directory-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  type="search"
+                  name="parts"
+                  autoComplete="off"
+                  placeholder="Zoek een plek"
+                  aria-label="Zoek een onderdeel"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+              <div
+                className="place-choices"
+                role="group"
+                aria-label="Soort plek"
+              >
+                <button
+                  className="place-choice choice-all"
+                  aria-pressed={!group}
+                  onClick={() => setGroup("")}
                 >
-                  <summary>
-                    {group.name}
-                    <span>{items.length}</span>
-                  </summary>
-                  {items.map((a) => (
+                  <span>
+                    <LayoutGrid size={23} aria-hidden="true" />
+                  </span>
+                  Alles
+                </button>
+                {groups
+                  .filter((item) =>
+                    dossier.assets.some((asset) =>
+                      item.kinds.includes(asset.kind),
+                    ),
+                  )
+                  .map(({ name, Icon }) => (
+                    <button
+                      className={`place-choice choice-${name.toLowerCase()}`}
+                      key={name}
+                      aria-pressed={group === name}
+                      onClick={() => setGroup(name)}
+                    >
+                      <span>
+                        <Icon size={23} aria-hidden="true" />
+                      </span>
+                      {name}
+                    </button>
+                  ))}
+              </div>
+              <div className="place-grid" aria-live="polite">
+                {visibleAssets.map((a) => {
+                  const photo = latestHousePhoto(dossier.attachments, a.id);
+                  return (
                     <button
                       key={a.id}
-                      className={`dossier-tile ${selected?.id === a.id ? "active" : ""}`}
+                      className={`place-card place-${a.kind} ${selected?.id === a.id ? "active" : ""}`}
                       aria-pressed={selected?.id === a.id}
                       onClick={() => onSelect(a.id)}
                     >
-                      {assetIcon(a.kind, 16)}
-                      <strong>{a.name}</strong>
-                      <span>
-                        {
-                          dossier.attachments.filter((f) => f.assetId === a.id)
-                            .length
-                        }{" "}
-                        {dossier.attachments.filter((f) => f.assetId === a.id)
-                          .length === 1
-                          ? "bestand"
-                          : "bestanden"}
-                        {openTasks.some((t) => t.assetId === a.id) &&
-                          ` · ${openTasks.filter((t) => t.assetId === a.id).length} open`}
+                      <span className="place-drawing" aria-hidden="true">
+                        {photo ? (
+                          <img src={photo.url} alt="" loading="lazy" />
+                        ) : (
+                          placeIcon(a, 32)
+                        )}
                       </span>
+                      <strong>{a.name}</strong>
+                      {(dossier.attachments.some(
+                        (file) => file.assetId === a.id,
+                      ) ||
+                        openTasks.some((task) => task.assetId === a.id)) && (
+                        <small>
+                          {
+                            dossier.attachments.filter(
+                              (f) => f.assetId === a.id,
+                            ).length
+                          }{" "}
+                          {dossier.attachments.filter((f) => f.assetId === a.id)
+                            .length === 1
+                            ? "bestand"
+                            : "bestanden"}
+                          {openTasks.some((t) => t.assetId === a.id) &&
+                            ` · ${openTasks.filter((t) => t.assetId === a.id).length} open`}
+                        </small>
+                      )}
+                      <ChevronRight
+                        className="place-arrow"
+                        size={16}
+                        aria-hidden="true"
+                      />
                     </button>
-                  ))}
-                </details>
-              );
-            })}
-            {!dossier.assets.some((asset) =>
-              asset.name
-                .toLocaleLowerCase("nl")
-                .includes(search.toLocaleLowerCase("nl")),
-            ) && (
-              <p className="directory-empty">
-                Geen onderdeel gevonden. Probeer een andere naam.
-              </p>
-            )}
-          </div>
-          <button className="directory-add" onClick={onAdd}>
-            <Plus size={16} aria-hidden="true" />
-            Onderdeel toevoegen
-          </button>
-        </div>
-        {selected && (
-          <section
-            id="dossier-detail"
-            className="content-panel dossier-detail"
-            aria-label={`Dossier ${selected.name}`}
-          >
-            <div className="section-heading">
-              <div>
-                <span className="subtle-label">{kindName[selected.kind]}</span>
-                <h2>{selected.name}</h2>
+                  );
+                })}
+                {!visibleAssets.length && (
+                  <p className="directory-empty">
+                    Geen onderdeel gevonden. Probeer een andere naam.
+                  </p>
+                )}
               </div>
-              <div className="detail-actions">
-                {selected.roomId &&
-                  floorplan?.rooms.some((r) => r.id === selected.roomId) && (
-                    <button
-                      className="button secondary"
-                      onClick={() => onInterior(selected.roomId!)}
-                    >
-                      <Footprints size={16} /> Bekijk in 3D
-                    </button>
-                  )}
+              {!search && !group && matchingAssets.length > 8 && (
                 <button
-                  className="icon-button"
-                  aria-label="Onderdeel bewerken"
-                  onClick={onEdit}
+                  className="place-show-all"
+                  aria-expanded={showAll}
+                  onClick={() => setShowAll(!showAll)}
                 >
-                  <Pencil size={17} />
+                  {showAll
+                    ? "Minder plekken tonen"
+                    : `Alle ${matchingAssets.length} plekken tonen`}
                 </button>
-              </div>
+              )}
+              <button className="directory-add" onClick={onAdd}>
+                <Plus size={16} aria-hidden="true" />
+                Onderdeel toevoegen
+              </button>
             </div>
-            {selected.description && (
-              <details
-                className="dossier-background"
-                key={selected.id}
-                open={selected.description.length < 500}
-              >
-                <summary>
-                  Informatie over {selected.name.toLocaleLowerCase("nl")}
-                </summary>
-                <p className="dossier-notes">
-                  <InlineText text={selected.description} />
-                </p>
-              </details>
-            )}
-            {contacts}
-            <div className="dossier-columns">
-              <div>
-                <div className="dossier-column-heading">
-                  <h3>
-                    Documenten & foto's <span>({files.length})</span>
-                  </h3>
-                  <button className="text-link" onClick={onUpload}>
-                    <Plus size={15} /> Toevoegen
-                  </button>
-                </div>
-                {files.length ? (
-                  <div className="document-links">
-                    {files.slice(0, 6).map((f) => (
-                      <button key={f.id} onClick={() => onDocument(f.id)}>
-                        <FileText size={20} />
-                        <span>
-                          <strong>{f.name}</strong>
-                          <small>
-                            {categoryName[f.category ?? ""] ??
-                              f.category ??
-                              "Bestand"}
-                            {f.historical ? " · historisch" : ""}
-                          </small>
-                        </span>
-                        <ChevronRight size={16} />
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="form-note">
-                    Voeg een foto, handleiding of notitie toe aan deze plek.
-                  </p>
-                )}
-                {files.length > 6 && (
-                  <button
-                    className="text-link"
-                    onClick={() => onFiles(selected.id)}
-                  >
-                    Alle {files.length} stukken bekijken →
-                  </button>
-                )}
-              </div>
-              <div>
-                <div className="dossier-column-heading">
-                  <h3>
-                    Aandacht & historie <span>({tasks.length})</span>
-                  </h3>
-                  <button className="text-link" onClick={onTask}>
-                    <Plus size={15} /> Toevoegen
-                  </button>
-                </div>
-                {tasks.length ? (
-                  renderTasks(
-                    [
-                      ...tasks.filter((t) => t.status === "open"),
-                      ...tasks.filter((t) => t.status === "done"),
-                    ].slice(0, 4),
-                  )
-                ) : (
-                  <p className="form-note">
-                    Leg een klus of uitgevoerd onderhoud vast.
-                  </p>
-                )}
-                {tasks.length > 4 && (
-                  <button
-                    className="text-link"
-                    onClick={() => onTasks(selected.id, "all")}
-                  >
-                    Alle {tasks.length} aandachtspunten bekijken →
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-      </div>
+          </div>
+        </>
+      )}
+      {detailOpen && selected && (
+        <RoomDossier
+          key={selected.id}
+          dossier={dossier}
+          asset={selected}
+          floorplan={floorplan}
+          data={data}
+          appearance={appearance}
+          preview={roomPreview}
+          contacts={contacts}
+          onBack={onBack}
+          onExplore={onExplore}
+          onInterior={onInterior}
+          onEdit={onEdit}
+          onUpload={onUpload}
+          onTask={onTask}
+          onFiles={onFiles}
+          onTasks={onTasks}
+          onDocument={onDocument}
+          onPhoto={onPhoto}
+          renderTasks={renderTasks}
+        />
+      )}
     </section>
   );
 }

@@ -4,12 +4,12 @@
   --navy: #1f2b35;
   --orange: #f8891e;
   --cream: #f6f2e7;
-  --paper: #f7f8f7;
+  --paper: #faf8f2;
   --surface: #ffffff;
-  --surface-muted: #eef1f2;
-  --surface-hover: #e8edef;
+  --surface-muted: #f1efe7;
+  --surface-hover: #eae7dc;
   --surface-overlay: rgb(255 255 255 / 0.97);
-  --line: #dce1e3;
+  --line: #deddd3;
   --control-border: #7e8a91;
   --control-hover: #52616b;
   --muted: #52616b;
@@ -18,8 +18,8 @@
   --link-hover: #1f2b35;
   --accent-hover: #ff9b35;
   --accent-ink: #8a530f;
-  --selection: #fff3e3;
-  --selection-line: #a4601b;
+  --selection: #fff0d7;
+  --selection-line: #a76018;
   --focus: #1f2b35;
   --nav-hover: #2a3944;
   --nav-selection: #354752;
@@ -45,6 +45,16 @@
   --green: var(--success);
   --font-meta: 0.75rem;
   --font-body: 0.875rem;
-  --radius-control: 6px;
-  --radius-panel: 10px;
+  --radius-control: 12px;
+  --radius-panel: 20px;
+  --book-butter: #f8e8ab;
+  --book-lilac: #e8e3f3;
+  --book-sage: #dfebe1;
+  --book-peach: #f9deca;
+  --book-nav-hover: #e9e4d5;
+  --book-press-shadow: #d9b789;
+  --book-button-hover: #384b59;
+  --book-caption: #4f5545;
+  --book-card-hover: #fffdf7;
+  --book-card-active: #fffaf0;
 }

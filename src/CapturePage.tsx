@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   FileText,
-  FolderPlus,
+  Camera,
   Wrench,
   ClipboardCheck,
   Save,
@@ -11,6 +11,8 @@ import { request } from "./api";
 import { todayLocal } from "./residentWorkflows";
 import { parseCost } from "./planning";
 import type { Dossier } from "./types";
+import { PlaceFilter } from "./HouseAtlas";
+import { CaptureHelp } from "./CaptureHelp";
 
 type EntryKind = "task" | "note" | "file" | "completed";
 type Draft = {
@@ -27,7 +29,7 @@ type Draft = {
 };
 const blank = (house: string): Draft => ({
   requestId: crypto.randomUUID(),
-  kind: "task",
+  kind: "file",
   title: "",
   description: "",
   assetId: `${house}:inbox`,
@@ -116,27 +118,67 @@ export function CapturePage({
     setError("");
   };
   const active = (dossier.people ?? []).filter((person) => person.active);
+  const uploadField = (
+    <label className="capture-photo-input">
+      <Camera size={30} aria-hidden="true" />
+      <strong>
+        {draft.kind === "file"
+          ? "Kies een foto of document"
+          : "Foto of document (optioneel)"}
+      </strong>
+      <input
+        ref={fileInput}
+        name="file"
+        type="file"
+        required={draft.kind === "file"}
+        onChange={(event) => {
+          const chosen = event.target.files?.[0] ?? null;
+          setFile(chosen);
+          change({
+            ...(!chosen ||
+            !/^image\/(png|jpeg|webp|gif|avif)$/.test(chosen.type)
+              ? { category: "observations" }
+              : {}),
+            ...(chosen && !draft.title
+              ? { title: chosen.name.replace(/\.[^.]+$/, "") }
+              : {}),
+          });
+        }}
+      />
+      <small>Maximaal 25 MB. Na heropenen kies je een bijlage opnieuw.</small>
+    </label>
+  );
+  const photoChoice = file &&
+    /^image\/(png|jpeg|webp|gif|avif)$/.test(file.type) && (
+      <label className="resident-check capture-photo-choice">
+        <input
+          type="checkbox"
+          checked={draft.category === "photos"}
+          onChange={(event) =>
+            change({
+              category: event.target.checked ? "photos" : "observations",
+            })
+          }
+        />
+        <span>Ook in mijn fotohoekje tonen</span>
+      </label>
+    );
   return (
     <section className="capture-layout">
       <div className="content-panel capture-panel">
-        <h2>Wat wil je vastleggen?</h2>
+        <h2>Wat wil je bewaren?</h2>
         <div className="entry-kind" role="group" aria-label="Soort invoer">
           {(
             [
-              ["task", "Een melding", Wrench, "Iets vraagt aandacht"],
-              ["note", "Een notitie", FileText, "Iets om te onthouden"],
               [
                 "file",
-                "Een bestand",
-                FolderPlus,
-                "Foto, factuur of handleiding",
+                "Een foto of document",
+                Camera,
+                "Een plekje in je verzameling",
               ],
-              [
-                "completed",
-                "Uitgevoerd werk",
-                ClipboardCheck,
-                "Wat er is gedaan",
-              ],
+              ["note", "Een idee of notitie", FileText, "Iets om te onthouden"],
+              ["task", "Een klus", Wrench, "Iets voor je huis"],
+              ["completed", "Iets gedaan", ClipboardCheck, "Wat er is gedaan"],
             ] as const
           ).map(([kind, label, Icon, hint]) => (
             <button
@@ -214,11 +256,13 @@ export function CapturePage({
               }
             }}
           >
+            {draft.kind === "file" && uploadField}
+            {draft.kind === "file" && photoChoice}
             <p className="form-note">
               {draft.kind === "task"
                 ? "Schrijf kort wat je hebt gezien. Je kunt planning en opvolging later aanvullen."
                 : draft.kind === "note"
-                  ? "Een merk, meting, afspraak of werkwijze: schrijf op wat later nuttig is."
+                  ? "Een idee voor de tuin, die ene verfkleur of iets dat je later wilt onthouden."
                   : draft.kind === "completed"
                     ? "Bewaar het resultaat, de echte uitvoerdatum en eventueel een foto als bewijs."
                     : "Geef het bestand een herkenbare titel, zodat je het later terugvindt."}
@@ -235,25 +279,26 @@ export function CapturePage({
                 placeholder={
                   draft.kind === "task"
                     ? "Bijvoorbeeld: ventilator maakt geluid…"
-                    : "Bijvoorbeeld: handleiding van de oven…"
+                    : draft.kind === "note"
+                      ? "Bijvoorbeeld: ideeën voor het terras"
+                      : "Bijvoorbeeld: ons favoriete hoekje"
                 }
               />
             </label>
-            <label>
-              Waar hoort dit bij?
-              <select
-                name="assetId"
+            <fieldset className="capture-place">
+              <legend>Geef het een plek</legend>
+              <p className="capture-selected-place">
+                Gekozen:{" "}
+                {dossier.assets.find((asset) => asset.id === draft.assetId)
+                  ?.name ?? "Nog te ordenen"}
+              </p>
+              <PlaceFilter
+                assets={dossier.assets}
                 value={draft.assetId}
-                onChange={(event) => change({ assetId: event.target.value })}
-              >
-                {dossier.assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name}
-                  </option>
-                ))}
-              </select>
-              <small>Weet je het nog niet? Kies Nog te ordenen.</small>
-            </label>
+                all={false}
+                onChange={(assetId) => change({ assetId })}
+              />
+            </fieldset>
             <label>
               {draft.kind === "completed"
                 ? "Resultaat en bijzonderheden"
@@ -320,47 +365,30 @@ export function CapturePage({
                 </select>
               </label>
             )}
-            <label>
-              {draft.kind === "completed"
-                ? "Uitgevoerd door (optioneel)"
-                : "Ingevuld door (optioneel)"}
-              <select
-                name="recordedById"
-                value={draft.recordedById}
-                onChange={(event) =>
-                  change({ recordedById: event.target.value })
-                }
-              >
-                <option value="">Niet vastgelegd</option>
-                {active.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Foto of document {draft.kind === "file" ? "" : "(optioneel)"}
-              <input
-                ref={fileInput}
-                name="file"
-                type="file"
-                required={draft.kind === "file"}
-                onChange={(event) => {
-                  const chosen = event.target.files?.[0] ?? null;
-                  setFile(chosen);
-                  change({
-                    ...(chosen && !draft.title
-                      ? { title: chosen.name.replace(/\.[^.]+$/, "") }
-                      : {}),
-                  });
-                }}
-              />
-              <small>
-                Maximaal 25 MB. Na heropenen van een concept kies je een bijlage
-                opnieuw.
-              </small>
-            </label>
+            <details className="capture-extra">
+              <summary>Wie heeft dit bewaard?</summary>
+              <label>
+                {draft.kind === "completed"
+                  ? "Uitgevoerd door (optioneel)"
+                  : "Bewaard door (optioneel)"}
+                <select
+                  name="recordedById"
+                  value={draft.recordedById}
+                  onChange={(event) =>
+                    change({ recordedById: event.target.value })
+                  }
+                >
+                  <option value="">Niet vastgelegd</option>
+                  {active.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </details>
+            {draft.kind !== "file" && uploadField}
+            {draft.kind !== "file" && photoChoice}
             {error && (
               <p className="alert error" role="alert">
                 {error}
@@ -387,26 +415,15 @@ export function CapturePage({
                 Concept leegmaken
               </button>
             </div>
-            <p className="form-note">
-              De tekst van je concept blijft tijdens deze browsersessie op dit
-              toestel bewaard.
-            </p>
           </form>
         )}
       </div>
-      <aside className="capture-help">
-        <h2>Klein beginnen is genoeg</h2>
-        <ol>
-          <li>Kies wat je wilt bewaren</li>
-          <li>Geef het een herkenbare titel</li>
-          <li>Koppel het aan een plek, of kies Nog te ordenen</li>
-          <li>Sla het op; je kunt het later aanvullen</li>
-        </ol>
-        <p>
-          Een melding vraagt opvolging. Een notitie bewaart informatie.
-          Uitgevoerd werk komt direct in de onderhoudshistorie.
-        </p>
-      </aside>
+      {!saved && (
+        <CaptureHelp
+          kind={draft.kind}
+          asset={dossier.assets.find((asset) => asset.id === draft.assetId)}
+        />
+      )}
     </section>
   );
 }

@@ -1501,3 +1501,29 @@ h3 {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.export-link {
+  border: 0;
+  background: transparent;
+}
+.export-status {
+  position: fixed;
+  z-index: 100;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: min(480px, calc(100vw - 40px));
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 4px 20px var(--shadow-soft);
+  color: var(--navy);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.export-status .icon-button {
+  flex-shrink: 0;
+}

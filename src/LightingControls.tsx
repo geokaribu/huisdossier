@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Sun, Moon, Lamp, Check } from "lucide-react";
 import { activeLampIds, solarPosition } from "./lighting";
 import { request } from "./api";
+import { InformationBook } from "./InformationBook";
+import { ReadableText } from "./ReadableText";
 import type {
   HouseData,
   LampScenario,
@@ -336,26 +338,42 @@ export function LightingControls({
                 {new Date(profile.source.fetchedAt).toLocaleDateString("nl-NL")}
                 .
               </p>
-              <p>{profile.source.note}</p>
-              <p>
-                3DBAG bepaalt de gebouwen; de plattegrond is bij benadering
-                daarop uitgelijnd. De geladen omgeving beslaat circa 45 m rondom
-                het huis. Bomen en verder gelegen objecten ontbreken; lage zon
-                kan daardoor onvolledige schaduw geven. Zonstand: SunCalc,
-                Nederlandse winter- en zomertijd. In het herhaalde uur bij
-                wintertijd wordt één van beide tijdstippen gebruikt.
-              </p>
-              <p>
-                Foto's op gevel en dak worden tijdens de simulatie vervangen
-                door neutraal materiaal: foto's bevatten al schaduw en
-                belichting.
-              </p>
-              <p>
-                Dit is een visuele verkenning. Armatuurcurves (IES/LDT),
-                glastransmissie, gordijnen, strooilicht en dimschema's zijn niet
-                ingemeten. Geen betrouwbare luxmeting of voorspelling van
-                lichthinder. Beeldbelichting verandert alleen het beeld.
-              </p>
+              <ReadableText text={profile.source.note} />
+              <InformationBook
+                compact
+                title="Wat vertelt dit lichtbeeld?"
+                items={[
+                  {
+                    id: "light-environment",
+                    title: "Gebouwen en omgeving",
+                    topic: "layout",
+                    status: "approximate",
+                    value: "circa 45 m",
+                    text: "3DBAG bepaalt de gebouwen; de plattegrond is bij benadering daarop uitgelijnd. Bomen en verder gelegen objecten ontbreken; lage zon kan daardoor onvolledige schaduw geven.",
+                  },
+                  {
+                    id: "light-sun",
+                    title: "Zonstand en tijd",
+                    topic: "sources",
+                    status: "source",
+                    text: "Zonstand: SunCalc, Nederlandse winter- en zomertijd. In het herhaalde uur bij wintertijd wordt één van beide tijdstippen gebruikt.",
+                  },
+                  {
+                    id: "light-material",
+                    title: "Neutraal materiaal tijdens simulatie",
+                    topic: "finishes",
+                    status: "approximate",
+                    text: "Foto's op gevel en dak worden tijdens de simulatie vervangen door neutraal materiaal: foto's bevatten al schaduw en belichting.",
+                  },
+                  {
+                    id: "light-accuracy",
+                    title: "Visuele verkenning, geen luxmeting",
+                    topic: "accuracy",
+                    status: "unknown",
+                    text: "Armatuurcurves (IES/LDT), glastransmissie, gordijnen, strooilicht en dimschema's zijn niet ingemeten. Geen betrouwbare luxmeting of voorspelling van lichthinder. Beeldbelichting verandert alleen het beeld.",
+                  },
+                ]}
+              />
             </details>
             <p className="lighting-hint">
               {interiorAvailable

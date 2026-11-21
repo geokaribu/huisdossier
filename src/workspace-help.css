@@ -1,0 +1,225 @@
+.workspace-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.workspace-top-actions .export-link {
+  margin-left: 0;
+}
+.workspace-help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: 1px solid #ded6c5;
+  border-radius: 50%;
+  color: #35434b;
+  background: #f7f1e3;
+}
+.workspace-help-button:hover {
+  background: #f8e6bb;
+  border-color: #a78953;
+}
+.workspace-help-button:focus-visible {
+  outline: 2px solid #97621e;
+  outline-offset: 3px;
+}
+.workspace-help {
+  color: #1f2b35;
+}
+.workspace-help-close {
+  min-height: 48px;
+  margin-top: 22px;
+}
+.workspace-help-intro {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #655d51;
+}
+.workspace-help-topics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 24px;
+}
+.workspace-help-topics button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 13px 15px;
+  min-height: 64px;
+  border: 1px solid #e2dace;
+  border-radius: 14px;
+  background: #fffcf6;
+  color: #435147;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.workspace-help-topics button > svg {
+  flex-shrink: 0;
+}
+.workspace-help-topics button:hover {
+  background: #f3eedf;
+}
+.workspace-help-topics button[aria-pressed="true"] {
+  background: #f8e8ae;
+  color: #584323;
+  border-color: #a58b50;
+  font-weight: 600;
+}
+.workspace-help-story {
+  padding: 24px 28px;
+  background: #f1eddf;
+  border-radius: 22px;
+}
+.workspace-help-story.help-save {
+  background: #e9eef0;
+}
+.workspace-help-story.help-find {
+  background: #eee8f2;
+}
+.workspace-help-story.help-plan {
+  background: #faf0d5;
+}
+.workspace-help-story.help-people {
+  background: #e6eddf;
+}
+.workspace-help-story.help-ask {
+  background: #f6e6ce;
+}
+.workspace-help-story-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.workspace-help-story-heading > span {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  background: #fffcf399;
+  border-radius: 19px 24px 17px 22px;
+  color: #645438;
+}
+.workspace-help-story-heading h3 {
+  font-size: 24px;
+  letter-spacing: -0.6px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+.workspace-help-story ol {
+  list-style: none;
+  counter-reset: help-step;
+  padding: 0;
+  margin: 0 0 22px;
+  display: grid;
+  gap: 19px;
+}
+.workspace-help-story li {
+  counter-increment: help-step;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+.workspace-help-story li::before {
+  content: counter(help-step);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #bdac8e;
+  border-radius: 50%;
+  font-size: 12px;
+  color: #6b5635;
+  background: #fffcf366;
+}
+.workspace-help-story h4 {
+  margin: 2px 0 5px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.workspace-help-story p {
+  margin: 0;
+  max-width: 65ch;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #5c5549;
+}
+.workspace-help-story > .button {
+  min-height: 48px;
+}
+.workspace-help-footer {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 12px;
+  margin: 22px 4px 0;
+  color: #6b6255;
+}
+.workspace-help-footer > svg {
+  margin-top: 2px;
+}
+.workspace-help-footer p {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 85ch;
+}
+.workspace-help-footer strong {
+  color: #514a3f;
+  margin-right: 5px;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .workspace-top-actions {
+    gap: 2px;
+  }
+  .workspace-help-button {
+    width: 44px;
+    height: 48px;
+    border-color: transparent;
+    background: transparent;
+  }
+  .workspace-help-topics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 18px;
+  }
+  .workspace-help-topics button {
+    padding: 11px;
+    font-size: 12px;
+    gap: 9px;
+    min-height: 62px;
+  }
+  .workspace-help-story {
+    padding: 20px 16px;
+  }
+  .workspace-help-story-heading {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .workspace-help-story-heading > span {
+    width: 48px;
+    height: 52px;
+  }
+  .workspace-help-story-heading h3 {
+    font-size: 21px;
+  }
+  .workspace-help-story li {
+    gap: 10px;
+  }
+  .workspace-help-story p {
+    font-size: 13px;
+  }
+  .workspace-help-footer {
+    margin-top: 20px;
+  }
+}

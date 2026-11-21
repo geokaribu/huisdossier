@@ -1,4 +1,21 @@
 export type Point = [number, number, number];
+export interface HouseInformationItem {
+  id: string;
+  title: string;
+  value?: string;
+  text: string;
+  topic:
+    | "dimensions"
+    | "layout"
+    | "finishes"
+    | "furnishing"
+    | "sources"
+    | "accuracy";
+  status: "source" | "resident" | "approximate" | "unknown";
+  source?: string;
+  roomIds?: string[];
+  assetKinds?: string[];
+}
 export interface LampScenario {
   height: number;
   lumens: number;
@@ -183,6 +200,7 @@ export interface Dossier {
   }[];
 }
 export interface HouseAppearance {
+  information?: HouseInformationItem[];
   shell?: {
     rearSurface: number;
     hiddenSurfaceIndices: number[];
@@ -383,6 +401,7 @@ export interface PlanWall {
   climber?: { top: number; coverage: number; trellis: boolean };
 }
 export interface Floorplan {
+  information?: HouseInformationItem[];
   version: 1;
   label: string;
   source: string;

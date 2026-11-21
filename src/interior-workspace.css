@@ -1,0 +1,301 @@
+/* The interior is a broad scene with a room directory below it, at every width. */
+.interior-layout.interior-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.interior-workspace .interior-scene {
+  height: clamp(480px, 65vh, 760px);
+  border-radius: 26px;
+}
+.interior-workspace .interior-scene:fullscreen {
+  width: 100%;
+  height: 100dvh;
+  border-radius: 0;
+}
+.interior-directory {
+  min-width: 0;
+  background: white;
+  border-radius: 26px;
+  padding: 28px;
+  scroll-margin-top: 100px;
+}
+.interior-directory .interior-intro {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 0;
+  margin-bottom: 26px;
+}
+.interior-directory .interior-intro h2 {
+  font-size: 24px;
+  margin: 0;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  outline: none;
+}
+.interior-directory .interior-intro p {
+  display: block;
+  max-width: none;
+  font-size: 13px;
+  margin: 0;
+  color: var(--muted);
+}
+.interior-directory-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+}
+.interior-map-panel {
+  background: #f5f2e8;
+  border-radius: 18px;
+  padding: 20px;
+}
+.interior-map-panel h3 {
+  font-size: 14px;
+  font-weight: 550;
+  margin-bottom: 20px;
+}
+.interior-directory .interior-map {
+  width: 100%;
+  height: 300px;
+  max-height: none;
+  max-width: 100%;
+  margin: 0;
+}
+.interior-directory .interior-map [role="button"]:focus-visible {
+  stroke: var(--navy);
+  stroke-width: 0.12;
+  outline: none;
+}
+.interior-directory .interior-rooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  padding: 0;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+.interior-directory .interior-room-row {
+  min-width: 0;
+  padding: 12px;
+  margin: 0;
+  background: #f4f5ed;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.interior-directory .interior-room-row:nth-child(3n + 2) {
+  background: #f1edf6;
+}
+.interior-directory .interior-room-row:nth-child(3n) {
+  background: #faf0de;
+}
+.interior-directory .room-view-button {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+  padding: 8px;
+  min-height: 140px;
+  border-radius: 12px;
+  text-align: left;
+}
+.interior-directory .room-view-button > span {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 15px;
+  min-width: 0;
+}
+.interior-directory .room-picture {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  flex-shrink: 0;
+}
+.interior-directory .room-choice-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.interior-directory .room-choice-copy strong {
+  font-size: 17px;
+  font-weight: 550;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.interior-directory .room-choice-copy small {
+  display: block;
+  font-size: 12px;
+  white-space: normal;
+  line-height: 1.5;
+}
+.interior-directory .room-view-button > .room-view-label {
+  font-size: 12px;
+  color: var(--muted);
+  gap: 7px;
+}
+.interior-directory .room-view-label > svg:last-child {
+  margin-left: auto;
+}
+.interior-directory .room-view-button.active {
+  background: #fff4d8;
+  outline: 2px solid var(--selection-line);
+  outline-offset: -1px;
+}
+.interior-directory .room-view-button:hover {
+  background: #ffffff90;
+}
+.interior-directory .interior-rooms .interior-room-row > .room-dossier-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  min-height: 48px;
+  font-size: 12px;
+  border-radius: 12px;
+  background: white;
+  padding: 10px;
+}
+.interior-directory .room-dossier-button:hover {
+  background: #fff9e8;
+}
+.interior-directory .room-unlinked {
+  white-space: normal;
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 48px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.interior-source-details {
+  margin-top: 26px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.interior-source-details summary {
+  font-size: 13px;
+  min-height: 44px;
+  padding: 14px 0;
+  cursor: pointer;
+  color: var(--muted);
+}
+.interior-source-details p {
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 75ch;
+  color: var(--muted);
+  margin: 10px 0;
+}
+.room-directory-shortcut {
+  position: absolute;
+  bottom: 70px;
+  right: 20px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 12px 17px;
+  border-radius: 15px;
+  box-shadow: 0 3px 0 #1f2b3515;
+  color: var(--navy);
+  font-size: 14px;
+}
+.room-directory-shortcut:hover {
+  background: var(--book-butter);
+}
+@media (max-width: 1050px) {
+  .interior-directory {
+    padding: 24px;
+  }
+  .interior-directory-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .interior-directory .interior-rooms {
+    grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+  }
+  .interior-directory .interior-map {
+    height: 280px;
+  }
+}
+@media (max-width: 800px) {
+  .interior-directory-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .interior-map-panel {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 16px;
+    align-items: center;
+  }
+  .interior-map-panel h3 {
+    font-size: 18px;
+    margin-bottom: 0;
+  }
+  .interior-directory .interior-map {
+    height: 230px;
+  }
+  .interior-directory .interior-rooms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .interior-workspace .interior-scene {
+    height: 550px;
+  }
+  .interior-directory {
+    padding: 22px 16px;
+    border-radius: 22px;
+  }
+  .interior-directory .interior-intro {
+    margin-bottom: 20px;
+  }
+  .interior-directory .interior-intro h2 {
+    font-size: 23px;
+  }
+  .interior-directory .interior-intro p {
+    font-size: 12px;
+    line-height: 1.6;
+    max-width: 30ch;
+  }
+  .interior-directory .interior-rooms {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .interior-directory .room-view-button {
+    min-height: 120px;
+  }
+  .interior-directory .room-choice-copy strong {
+    font-size: 18px;
+  }
+  .interior-map-panel {
+    padding: 18px;
+  }
+  .interior-map-panel h3 {
+    font-size: 16px;
+  }
+  .interior-directory .interior-map {
+    height: 210px;
+  }
+  .room-directory-shortcut {
+    bottom: 75px;
+    right: 14px;
+    font-size: 13px;
+    padding: 12px 14px;
+  }
+}

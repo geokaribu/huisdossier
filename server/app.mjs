@@ -9,6 +9,7 @@ import { createStore } from "./store.mjs";
 import { managementRoutes, calendarDate } from "./management-routes.mjs";
 import { calendarToday } from "./management.mjs";
 import { planningRoutes } from "./planning-routes.mjs";
+import { assistantRoutes } from "./assistant-routes.mjs";
 import { floorplanForView } from "../src/furnishings.ts";
 import { readLighting, saveLampScenario } from "./lighting.mjs";
 import {
@@ -62,6 +63,7 @@ export function createApp({
   houses,
   root,
   modelDirectory = path.join(root, "public/data"),
+  assistantOptions = {},
 }) {
   const app = express();
   const store = createStore(directory, houses);
@@ -72,6 +74,48 @@ export function createApp({
     );
     if (model.house?.id !== houseId)
       throw new Error("Model en dossier-ID komen niet overeen.");
+    z.object({
+      house: z.object({
+        id: z.string(),
+        address: z.string(),
+        rd: z.tuple([z.number().finite(), z.number().finite()]),
+      }),
+      source: z.object({
+        urls: z.array(z.string()),
+        fetchedAt: z.string(),
+        attribution: z.string(),
+        license: z.string(),
+      }),
+      buildings: z
+        .array(
+          z.object({
+            id: z.string(),
+            target: z.boolean(),
+            attributes: z.record(z.string(), z.unknown()),
+            surfaces: z.array(
+              z.object({
+                type: z.string(),
+                rings: z
+                  .array(
+                    z
+                      .array(
+                        z.tuple([
+                          z.number().finite(),
+                          z.number().finite(),
+                          z.number().finite(),
+                        ]),
+                      )
+                      .min(3),
+                  )
+                  .min(1),
+              }),
+            ),
+          }),
+        )
+        .refine((items) =>
+          items.some((item) => item.target && item.surfaces.length > 0),
+        ),
+    }).parse(model);
     return model;
   };
   mkdirSync(uploadDir, { recursive: true });
@@ -99,6 +143,13 @@ export function createApp({
     )
       return res.status(404).json({ error: "Woning niet gevonden." });
     next();
+  });
+  assistantRoutes(app, {
+    directory,
+    houses,
+    store,
+    modelFor,
+    ...assistantOptions,
   });
   app.get("/api/houses/:houseId/model", async (req, res) => {
     res.json(await modelFor(req.params.houseId));
@@ -320,7 +371,20 @@ export function createApp({
   });
   app.get("/api/houses/:houseId/export", async (req, res) => {
     const houseId = req.params.houseId;
-    const model = await modelFor(houseId);
+    const exportWarnings = [];
+    const optional = async (resource, read) => {
+      try {
+        return await read();
+      } catch {
+        exportWarnings.push({
+          resource,
+          message:
+            "Niet beschikbaar in deze export; controleer de oorspronkelijke lokale bron.",
+        });
+        return null;
+      }
+    };
+    const model = await optional("model", () => modelFor(houseId));
     const files = [];
     for (const file of store.allFiles(houseId))
       files.push({
@@ -337,31 +401,50 @@ export function createApp({
       "Content-Disposition",
       `attachment; filename="${houseId}-huisdossier.json"`,
     );
-    const plan = await readFloorplan(directory, houseId);
+    const plan = await optional("floorplan", () =>
+      readFloorplan(directory, houseId),
+    );
+    const appearance = await optional("appearance", () =>
+      exportAppearance(directory, houseId),
+    );
+    const lighting = await optional("lighting", () =>
+      readLighting(directory, houseId),
+    );
+    const floorplanFiles = plan
+      ? await optional("floorplanFiles", () =>
+          exportFloorplanFiles(directory, houseId),
+        )
+      : [];
+    res.setHeader(
+      "X-Huisdossier-Export-Warnings",
+      exportWarnings.map((warning) => warning.resource).join(","),
+    );
     res.json({
       schemaVersion: 1,
       exportedAt: new Date().toISOString(),
+      house: houses.find((house) => house.id === houseId),
+      exportWarnings,
       model,
       dossier: store.dossier(houseId),
       management: store.management(houseId),
       files,
-      appearance: await exportAppearance(directory, houseId),
+      appearance,
       floorplan: plan,
-      lighting: await readLighting(directory, houseId),
+      lighting,
       floorplanVariants: plan
         ? {
             furnished: plan,
             unfurnished: floorplanForView(plan, "unfurnished"),
           }
         : null,
-      floorplanFiles: await exportFloorplanFiles(directory, houseId),
+      floorplanFiles,
     });
   });
   // Preserve API 404 semantics rather than serving the SPA for a mistyped endpoint.
   app.use("/api", (_req, res) =>
     res.status(404).json({ error: "Niet gevonden." }),
   );
-  app.use((error, _req, res, _next) => {
+  app.use((error, req, res, _next) => {
     if (
       error.status &&
       Number.isInteger(error.status) &&
@@ -382,7 +465,12 @@ export function createApp({
             : "Het bestand kon niet worden toegevoegd.",
       });
     console.error(error);
-    res.status(500).json({ error: "Opslaan is niet gelukt. Probeer opnieuw." });
+    res.status(500).json({
+      error:
+        req.method === "GET"
+          ? "Laden is niet gelukt. Probeer opnieuw."
+          : "Opslaan is niet gelukt. Probeer opnieuw.",
+    });
   });
   return { app, store };
 }

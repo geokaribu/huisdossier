@@ -3,8 +3,6 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   Focus,
-  Minus,
-  Plus,
   Camera,
   RotateCcw,
   Box,
@@ -12,6 +10,8 @@ import {
   MapPin,
   Footprints,
 } from "lucide-react";
+import { ViewerTools } from "./ViewerTools";
+import { nudgeCamera, zoomCamera } from "./viewerNavigation";
 import { triangulateSurface } from "./geometry";
 import { createLightingRig, contextBuildings } from "./lightingScene";
 import type { LightingRig } from "./lightingScene";
@@ -61,12 +61,13 @@ interface Props {
   onSelect: (id: string) => void;
   placing: boolean;
   onPlace: (point: Point) => void;
-  onError: (message: string) => void;
+  compact?: boolean;
 }
 type ExteriorView = "overview" | "front" | "rear" | "roof" | "top";
 interface ViewerApi {
   frame: (top?: boolean, front?: boolean, roof?: boolean) => void;
   zoom: (factor: number) => void;
+  navigate: (x: number, y: number, pan: boolean) => void;
   photo: () => void;
   view: (side: ExteriorView) => void;
   update: (
@@ -91,22 +92,27 @@ export function Viewer({
   onSelect,
   placing,
   onPlace,
-  onError,
+  compact = false,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  const section = useRef<HTMLElement>(null);
+  const [attempt, setAttempt] = useState(0);
   const north = useRef<HTMLDivElement>(null);
   const api = useRef<ViewerApi | null>(null);
   const sceneView = useRef<{ camera: number[]; target: number[] } | null>(null);
   const callbacks = useRef({ onSelect, onPlace, placing, assets });
   callbacks.current = { onSelect, onPlace, placing, assets };
   const [hovered, setHovered] = useState("");
-  const context = lightSettings.neighbors;
+  // The housebook presents the selected house on its own; the full model keeps
+  // the user's neighbourhood setting and all context controls.
+  const context = !compact && lightSettings.neighbors;
   const rig = useRef<LightingRig | null>(null);
   const lightState = useRef({ lighting, lightSettings });
   lightState.current = { lighting, lightSettings };
   const [wire, setWire] = useState(false);
   const [top, setTop] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [textureIssue, setTextureIssue] = useState("");
   const [styled, setStyled] = useState(true);
   const [view, setView] = useState<ExteriorView>("overview");
   const [cutaway, setCutaway] = useState(false);
@@ -114,6 +120,8 @@ export function Viewer({
   useEffect(() => {
     if (!host.current) return;
     const container = host.current;
+    setFailed(false);
+    setTextureIssue("");
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
@@ -138,6 +146,7 @@ export function Viewer({
       `Interactief 3D-model van ${data.house.address}. Gebruik de knoppen voor bovenaanzicht en zoomen; kies onderdelen in de lijst.`,
     );
     renderer.domElement.setAttribute("role", "img");
+    renderer.domElement.tabIndex = 0;
     container.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog("#F6F2E7", 65, 140);
@@ -175,7 +184,7 @@ export function Viewer({
           () => invalidate(),
           undefined,
           () =>
-            onError(
+            setTextureIssue(
               "Het gevelbeeld kon niet worden geladen. De oorspronkelijke gebouwvorm blijft beschikbaar.",
             ),
         )
@@ -190,7 +199,7 @@ export function Viewer({
           appearance.aerial.texture,
           () => invalidate(),
           undefined,
-          () => onError("De luchtfoto kon niet worden geladen."),
+          () => setTextureIssue("De luchtfoto kon niet worden geladen."),
         )
       : null;
     if (aerialMap) {
@@ -361,7 +370,19 @@ export function Viewer({
     scene.add(ring);
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 400);
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    controls.domElement!.style.touchAction = "pan-y";
+    controls.enableDamping = !window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    controls.enableZoom = false;
+    const focusZoom = () => {
+      controls.enableZoom = true;
+    };
+    const blurZoom = () => {
+      controls.enableZoom = false;
+    };
+    renderer.domElement.addEventListener("focus", focusZoom);
+    renderer.domElement.addEventListener("blur", blurZoom);
     controls.dampingFactor = 0.09;
     controls.maxPolarAngle = Math.PI / 2 - 0.025;
     controls.minDistance = 6;
@@ -463,6 +484,7 @@ export function Viewer({
       controls.update();
     };
     const viewSide = (side: ExteriorView) => {
+      controls.minDistance = 6;
       setView(side);
       setTop(false);
       if (side === "top") {
@@ -546,11 +568,10 @@ export function Viewer({
       view: viewSide,
       frame,
       zoom(factor) {
-        camera.position
-          .sub(controls.target)
-          .multiplyScalar(factor)
-          .add(controls.target);
-        controls.update();
+        zoomCamera(camera, controls, factor);
+      },
+      navigate(x, y, pan) {
+        nudgeCamera(camera, controls, x, y, pan);
       },
       photo() {
         renderer.render(scene, camera);
@@ -668,6 +689,7 @@ export function Viewer({
     const mouse = new THREE.Vector2();
     const tap = new SpatialTap();
     const pointerDown = (event: PointerEvent) => {
+      renderer.domElement.focus({ preventScroll: true });
       tap.down(event);
     };
     const hitsAt = (event: PointerEvent) => {
@@ -739,9 +761,7 @@ export function Viewer({
     renderer.domElement.addEventListener("pointerleave", pointerLeave);
     const onLost = (event: Event) => {
       event.preventDefault();
-      onError(
-        "De 3D-weergave is onderbroken. Herlaad de pagina om verder te kijken.",
-      );
+      setFailed(true);
     };
     renderer.domElement.addEventListener("webglcontextlost", onLost);
     const resize = new ResizeObserver(() => {
@@ -772,6 +792,8 @@ export function Viewer({
       renderer.domElement.removeEventListener("pointerleave", pointerLeave);
       clearOutline();
       renderer.domElement.removeEventListener("webglcontextlost", onLost);
+      renderer.domElement.removeEventListener("focus", focusZoom);
+      renderer.domElement.removeEventListener("blur", blurZoom);
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
           o.geometry.dispose();
@@ -788,7 +810,7 @@ export function Viewer({
       rear?.textures.forEach((t) => t.dispose());
       renderer.domElement.remove();
     };
-  }, [data, appearance, floorplan, onError]);
+  }, [data, appearance, floorplan, attempt]);
   useEffect(() => {
     rig.current?.update(lighting, lightSettings);
   }, [lighting, lightSettings, data, appearance, floorplan]);
@@ -807,7 +829,8 @@ export function Viewer({
   ]);
   return (
     <section
-      className={`viewer ${placing ? "placing" : ""} ${lightSettings.enabled ? "lighting-active" : ""}`}
+      ref={section}
+      className={`viewer ${compact ? "viewer-home" : ""} ${placing ? "placing" : ""} ${lightSettings.enabled ? "lighting-active" : ""}`}
       aria-label="Huis verkennen"
     >
       <div className="viewer-toolbar">
@@ -834,6 +857,11 @@ export function Viewer({
           </button>
         </div>
         <div className="viewer-actions">
+          <ViewerTools
+            target={section}
+            onNavigate={(x, y, pan) => api.current?.navigate(x, y, pan)}
+            onZoom={(factor) => api.current?.zoom(factor)}
+          />
           <button
             className="icon-button photo-button"
             title="Bewaar afbeelding van het model"
@@ -851,13 +879,19 @@ export function Viewer({
         </div>
       )}
       {failed && (
-        <div className="viewer-failed">
+        <div className="viewer-failed" role="alert">
           <Box size={32} />
           <h3>3D is niet beschikbaar</h3>
           <p>
             Schakel hardwareversnelling in je browser in. Je kunt het dossier
             hieronder wel gebruiken.
           </p>
+          <button
+            className="button secondary"
+            onClick={() => setAttempt((n) => n + 1)}
+          >
+            3D opnieuw starten
+          </button>
         </div>
       )}
       <div className="model-label">
@@ -871,21 +905,30 @@ export function Viewer({
           </span>
           {appearance && (
             <div className="view-choice">
-              <select
+              <div
+                className="view-postcards"
+                role="group"
                 aria-label="Kies aanzicht"
-                value={view}
-                onChange={(event) =>
-                  api.current?.view(event.target.value as ExteriorView)
-                }
               >
-                <option value="overview">Het hele huis</option>
-                <option value="front">Voorkant</option>
-                <option value="top">Bovenkant</option>
-                {rearAvailable(floorplan, appearance) && (
-                  <option value="rear">Achterkant en terras</option>
-                )}
-                <option value="roof">Dak van dichtbij</option>
-              </select>
+                {(
+                  [
+                    ["overview", "Hele huis"],
+                    ["front", "Voorkant"],
+                    ["roof", "Dak"],
+                    ...(rearAvailable(floorplan, appearance)
+                      ? [["rear", "Achterkant"]]
+                      : []),
+                  ] as [ExteriorView, string][]
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    aria-pressed={view === id}
+                    onClick={() => api.current?.view(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               {view === "rear" && floorplan && (
                 <button onClick={onInterior}>
                   <Footprints size={14} /> Binnen kijken
@@ -938,24 +981,9 @@ export function Viewer({
       </div>
       <div className="view-controls">
         <button
-          aria-label="Zoom in"
-          title="Zoom in"
-          onClick={() => api.current?.zoom(0.8)}
-        >
-          <Plus size={19} />
-        </button>
-        <button
-          aria-label="Zoom uit"
-          title="Zoom uit"
-          onClick={() => api.current?.zoom(1.25)}
-        >
-          <Minus size={19} />
-        </button>
-        <span />
-        <button
           aria-label="Centreer het huis"
           title="Centreer het huis"
-          onClick={() => api.current?.frame(top)}
+          onClick={() => api.current?.view(view)}
         >
           <Focus size={19} />
         </button>
@@ -966,12 +994,17 @@ export function Viewer({
             setTop(false);
             setWire(false);
             onNeighbors(false);
-            api.current?.frame();
+            api.current?.view("overview");
           }}
         >
           <RotateCcw size={18} />
         </button>
       </div>
+      {textureIssue && (
+        <div className="viewer-texture-issue" role="status">
+          {textureIssue}
+        </div>
+      )}
       <div className="viewer-bottom">
         <span>
           {placing ? (
@@ -985,9 +1018,9 @@ export function Viewer({
                 "Omgeving voor de kijker weggesneden; schaduw blijft behouden."
               ) : (
                 <>
-                  Sleep om te draaien <span className="dot-sep">·</span> Scroll
-                  om te zoomen <span className="dot-sep">·</span> Klik op een
-                  gevel of dak
+                  Sleep om te draaien <span className="dot-sep">·</span> Klik in
+                  het beeld en scroll om te zoomen{" "}
+                  <span className="dot-sep">·</span> Klik op een gevel of dak
                 </>
               )}
             </>

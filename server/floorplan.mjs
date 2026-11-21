@@ -1,6 +1,7 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
+import { informationSchema } from "./information.mjs";
 
 const point = z.tuple([
   z.number().finite().min(-100).max(100),
@@ -21,292 +22,308 @@ const joinery = z.object({
   openAngle: z.number().min(65).max(100),
   defaultOpen: z.boolean(),
 });
-const schema = z.object({
-  version: z.literal(1),
-  label: z.string(),
-  source: z.string(),
-  description: z.string(),
-  ceilingHeight: z.number().min(2).max(5),
-  outline: polygon,
-  ceiling: polygon,
-  spawn: point,
-  rooms: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        polygon,
-        center: point,
-        color,
-        area: z.number().positive().optional(),
-        outside: z.boolean().optional(),
-        shared: z.boolean().optional(),
-        floor: z.enum(["wood", "tile"]).optional(),
-        floorColor: color.optional(),
-        floorTiling: z
-          .object({ size: z.number().min(0.1).max(2), groutColor: color })
-          .optional(),
-        paving: z
-          .object({ size: z.number().positive().max(2), color })
-          .optional(),
-        viewYaw: z.number().finite().optional(),
-        viewPitch: z.number().min(-1.25).max(1.25).optional(),
-        viewFov: z.number().min(45).max(110).optional(),
-      }),
-    )
-    .max(100),
-  walls: z
-    .array(
-      z
-        .object({
-          a: point,
-          b: point,
-          thickness: z.number().min(0.04).max(1),
-          outsideRoomId: z.string().min(1).optional(),
-          height: z.number().positive().max(5).optional(),
-          finish: z
-            .object({ color, texture: z.enum(["stucco", "brick"]) })
+const schema = z
+  .object({
+    version: z.literal(1),
+    label: z.string(),
+    source: z.string(),
+    description: z.string(),
+    information: informationSchema.optional(),
+    ceilingHeight: z.number().min(2).max(5),
+    outline: polygon,
+    ceiling: polygon,
+    spawn: point,
+    rooms: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          polygon,
+          center: point,
+          color,
+          area: z.number().positive().optional(),
+          outside: z.boolean().optional(),
+          shared: z.boolean().optional(),
+          floor: z.enum(["wood", "tile"]).optional(),
+          floorColor: color.optional(),
+          floorTiling: z
+            .object({ size: z.number().min(0.1).max(2), groutColor: color })
             .optional(),
-          coatings: z
-            .array(
-              z.object({
-                side: z.enum(["positive", "negative"]),
-                from: z.number().nonnegative(),
-                to: z.number().positive(),
-                color,
-                skirtingColor: color.optional(),
-                pattern: z
-                  .object({
-                    texture: z
-                      .string()
-                      .regex(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/),
-                    tileSize: positiveSize,
-                    attribution: z.string(),
-                    generated: z.boolean(),
-                  })
-                  .optional(),
-                lower: z
-                  .object({
-                    color,
-                    height: z.number().positive().max(3),
-                    railColor: color,
-                  })
-                  .optional(),
-              }),
-            )
-            .max(30)
+          paving: z
+            .object({ size: z.number().positive().max(2), color })
             .optional(),
-          climber: z
-            .object({
-              top: z.number().positive().max(4),
-              coverage: z.number().min(0).max(1),
-              trellis: z.boolean(),
-            })
-            .optional(),
-          openings: z
-            .array(
-              z.object({
-                offset: z.number().nonnegative(),
-                width: z.number().positive(),
-                sill: z.number().nonnegative(),
-                height: z.number().positive(),
-                kind: z.enum(["door", "window"]),
-                frameColor: color.optional(),
-                joinery: joinery.optional(),
-                door: z
-                  .object({
-                    id: z.string().min(1),
-                    label: z.string().min(1),
-                    color,
-                    hinge: z.enum(["start", "end"]),
-                    swing: z.enum(["positive", "negative"]),
-                    openAngle: z.number().min(65).max(110),
-                    defaultOpen: z.boolean(),
-                  })
-                  .optional(),
-              }),
-            )
-            .default([]),
-        })
-        .superRefine((wall, ctx) => {
-          const length = Math.hypot(
-            wall.b[0] - wall.a[0],
-            wall.b[1] - wall.a[1],
-          );
-          if (length < 0.01)
-            ctx.addIssue({ code: "custom", message: "Wand heeft geen lengte" });
-          for (const coat of wall.coatings ?? []) {
-            if (
-              coat.to <= coat.from ||
-              coat.to > length + 0.01 ||
-              (coat.lower && coat.lower.height >= (wall.height ?? 5))
-            )
+          viewYaw: z.number().finite().optional(),
+          viewPitch: z.number().min(-1.25).max(1.25).optional(),
+          viewFov: z.number().min(45).max(110).optional(),
+        }),
+      )
+      .max(100),
+    walls: z
+      .array(
+        z
+          .object({
+            a: point,
+            b: point,
+            thickness: z.number().min(0.04).max(1),
+            outsideRoomId: z.string().min(1).optional(),
+            height: z.number().positive().max(5).optional(),
+            finish: z
+              .object({ color, texture: z.enum(["stucco", "brick"]) })
+              .optional(),
+            coatings: z
+              .array(
+                z.object({
+                  side: z.enum(["positive", "negative"]),
+                  from: z.number().nonnegative(),
+                  to: z.number().positive(),
+                  color,
+                  skirtingColor: color.optional(),
+                  pattern: z
+                    .object({
+                      texture: z
+                        .string()
+                        .regex(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/),
+                      tileSize: positiveSize,
+                      attribution: z.string(),
+                      generated: z.boolean(),
+                    })
+                    .optional(),
+                  lower: z
+                    .object({
+                      color,
+                      height: z.number().positive().max(3),
+                      railColor: color,
+                    })
+                    .optional(),
+                }),
+              )
+              .max(30)
+              .optional(),
+            climber: z
+              .object({
+                top: z.number().positive().max(4),
+                coverage: z.number().min(0).max(1),
+                trellis: z.boolean(),
+              })
+              .optional(),
+            openings: z
+              .array(
+                z.object({
+                  offset: z.number().nonnegative(),
+                  width: z.number().positive(),
+                  sill: z.number().nonnegative(),
+                  height: z.number().positive(),
+                  kind: z.enum(["door", "window"]),
+                  frameColor: color.optional(),
+                  joinery: joinery.optional(),
+                  door: z
+                    .object({
+                      id: z.string().min(1),
+                      label: z.string().min(1),
+                      color,
+                      hinge: z.enum(["start", "end"]),
+                      swing: z.enum(["positive", "negative"]),
+                      openAngle: z.number().min(65).max(110),
+                      defaultOpen: z.boolean(),
+                    })
+                    .optional(),
+                }),
+              )
+              .default([]),
+          })
+          .superRefine((wall, ctx) => {
+            const length = Math.hypot(
+              wall.b[0] - wall.a[0],
+              wall.b[1] - wall.a[1],
+            );
+            if (length < 0.01)
               ctx.addIssue({
                 code: "custom",
-                message: "Wandkleur valt buiten de wand",
+                message: "Wand heeft geen lengte",
               });
-            for (const other of wall.coatings ?? [])
+            for (const coat of wall.coatings ?? []) {
               if (
-                other !== coat &&
-                other.side === coat.side &&
-                coat.from < other.to &&
-                other.from < coat.to
+                coat.to <= coat.from ||
+                coat.to > length + 0.01 ||
+                (coat.lower && coat.lower.height >= (wall.height ?? 5))
               )
                 ctx.addIssue({
                   code: "custom",
-                  message: "Wandkleuren overlappen",
+                  message: "Wandkleur valt buiten de wand",
                 });
-          }
-          let end = 0;
-          for (const opening of wall.openings) {
-            if (
-              opening.offset < end ||
-              opening.offset + opening.width > length + 0.01
-            )
-              ctx.addIssue({
-                code: "custom",
-                message: "Openingen overlappen of vallen buiten de wand",
-              });
-            end = opening.offset + opening.width;
-            if (
-              opening.joinery &&
-              (opening.kind !== "door" ||
-                opening.width - opening.joinery.fixedLeft < 0.8 - 1e-6)
-            )
-              ctx.addIssue({
-                code: "custom",
-                message: "Glazen deur heeft geen bruikbare doorgang",
-              });
-            if (
-              opening.door &&
-              (opening.kind !== "door" ||
-                opening.joinery ||
-                opening.sill > 0.05 ||
-                opening.width < 0.5)
-            )
-              ctx.addIssue({
-                code: "custom",
-                message: "Binnendeur hoort bij één vrije deuropening",
-              });
-          }
-        }),
-    )
-    .max(300),
-  fixtures: z
-    .array(
-      z.object({
-        kind: z.enum([
-          "counter",
-          "sink",
-          "hob",
-          "toilet",
-          "basin",
-          "shower",
-          "closet",
-          "stairs",
-        ]),
-        center: point,
-        size: positiveSize,
-        height: z.number().positive().max(3),
-        fixed: z.boolean().optional(),
-        mounting: z.literal("wall").optional(),
-        rotation: z.number().finite().optional(),
-        base: z.number().nonnegative().max(3).optional(),
-      }),
-    )
-    .max(100),
-  decorations: z
-    .array(
-      z
-        .object({
-          id: z.string(),
+              for (const other of wall.coatings ?? [])
+                if (
+                  other !== coat &&
+                  other.side === coat.side &&
+                  coat.from < other.to &&
+                  other.from < coat.to
+                )
+                  ctx.addIssue({
+                    code: "custom",
+                    message: "Wandkleuren overlappen",
+                  });
+            }
+            let end = 0;
+            for (const opening of wall.openings) {
+              if (
+                opening.offset < end ||
+                opening.offset + opening.width > length + 0.01
+              )
+                ctx.addIssue({
+                  code: "custom",
+                  message: "Openingen overlappen of vallen buiten de wand",
+                });
+              end = opening.offset + opening.width;
+              if (
+                opening.joinery &&
+                (opening.kind !== "door" ||
+                  opening.width - opening.joinery.fixedLeft < 0.8 - 1e-6)
+              )
+                ctx.addIssue({
+                  code: "custom",
+                  message: "Glazen deur heeft geen bruikbare doorgang",
+                });
+              if (
+                opening.door &&
+                (opening.kind !== "door" ||
+                  opening.joinery ||
+                  opening.sill > 0.05 ||
+                  opening.width < 0.5)
+              )
+                ctx.addIssue({
+                  code: "custom",
+                  message: "Binnendeur hoort bij één vrije deuropening",
+                });
+            }
+          }),
+      )
+      .max(300),
+    fixtures: z
+      .array(
+        z.object({
           kind: z.enum([
-            "patio-table",
-            "patio-chair",
-            "plant-shelf",
-            "planter",
-            "rain-pipe",
-            "sofa",
-            "armchair",
-            "coffee-table",
-            "indoor-plant",
-            "utility-niche",
-            "barbecue",
-            "storage-cabinet",
-            "hanging-planter",
-            "bookcase",
-            "dining-table",
-            "dining-chair",
-            "fridge",
-            "curtain",
-            "footstool",
-            "pendant",
-            "picture-frame",
-            "kitchen-run",
-            "kitchen-cabinet",
-            "wall-shelf",
-            "range-cooker",
-            "recliner",
-            "bed",
-            "sliding-wardrobe",
-            "low-cabinet",
-            "laundry-hamper",
-            "potted-dracaena",
-            "built-in",
+            "counter",
+            "sink",
+            "hob",
+            "toilet",
+            "basin",
+            "shower",
+            "closet",
+            "stairs",
           ]),
           center: point,
           size: positiveSize,
-          height: z.number().positive().max(4),
+          height: z.number().positive().max(3),
+          fixed: z.boolean().optional(),
+          mounting: z.literal("wall").optional(),
           rotation: z.number().finite().optional(),
           base: z.number().nonnegative().max(3).optional(),
-          color: color.optional(),
-          plant: z.enum(["flowers", "shrub"]).optional(),
-          solid: z.boolean().optional(),
-          fixed: z.boolean().optional(),
-          contents: z.boolean().optional(),
-          secondaryColor: color.optional(),
-          topColor: color.optional(),
-          panelCount: z.number().int().min(2).max(8).optional(),
-          mirrorPanel: z.number().int().min(0).max(7).optional(),
-          bulbs: z.number().int().min(1).max(4).optional(),
-          shade: z.boolean().optional(),
-          artwork: z
-            .object({
-              texture: z
-                .string()
-                .regex(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/),
-              attribution: z.string(),
-              generated: z.boolean(),
-            })
-            .optional(),
-          light: z
-            .object({
-              color,
-              intensity: z.number().positive().max(100),
-              distance: z.number().positive().max(30),
-            })
-            .optional(),
-        })
-        .superRefine((item, ctx) => {
-          if (
-            item.kind === "sliding-wardrobe" &&
-            (item.mirrorPanel ?? Math.floor((item.panelCount ?? 3) / 2)) >=
-              (item.panelCount ?? 3)
-          )
-            ctx.addIssue({
-              code: "custom",
-              message: "Spiegelpaneel valt buiten de kast",
-            });
-          if (item.light && item.kind !== "pendant")
-            ctx.addIssue({
-              code: "custom",
-              message: "Lichtbron hoort bij een hanglamp",
-            });
         }),
-    )
-    .max(100)
-    .optional(),
-});
+      )
+      .max(100),
+    decorations: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            kind: z.enum([
+              "patio-table",
+              "patio-chair",
+              "plant-shelf",
+              "planter",
+              "rain-pipe",
+              "sofa",
+              "armchair",
+              "coffee-table",
+              "indoor-plant",
+              "utility-niche",
+              "barbecue",
+              "storage-cabinet",
+              "hanging-planter",
+              "bookcase",
+              "dining-table",
+              "dining-chair",
+              "fridge",
+              "curtain",
+              "footstool",
+              "pendant",
+              "picture-frame",
+              "kitchen-run",
+              "kitchen-cabinet",
+              "wall-shelf",
+              "range-cooker",
+              "recliner",
+              "bed",
+              "sliding-wardrobe",
+              "low-cabinet",
+              "laundry-hamper",
+              "potted-dracaena",
+              "built-in",
+            ]),
+            center: point,
+            size: positiveSize,
+            height: z.number().positive().max(4),
+            rotation: z.number().finite().optional(),
+            base: z.number().nonnegative().max(3).optional(),
+            color: color.optional(),
+            plant: z.enum(["flowers", "shrub"]).optional(),
+            solid: z.boolean().optional(),
+            fixed: z.boolean().optional(),
+            contents: z.boolean().optional(),
+            secondaryColor: color.optional(),
+            topColor: color.optional(),
+            panelCount: z.number().int().min(2).max(8).optional(),
+            mirrorPanel: z.number().int().min(0).max(7).optional(),
+            bulbs: z.number().int().min(1).max(4).optional(),
+            shade: z.boolean().optional(),
+            artwork: z
+              .object({
+                texture: z
+                  .string()
+                  .regex(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/),
+                attribution: z.string(),
+                generated: z.boolean(),
+              })
+              .optional(),
+            light: z
+              .object({
+                color,
+                intensity: z.number().positive().max(100),
+                distance: z.number().positive().max(30),
+              })
+              .optional(),
+          })
+          .superRefine((item, ctx) => {
+            if (
+              item.kind === "sliding-wardrobe" &&
+              (item.mirrorPanel ?? Math.floor((item.panelCount ?? 3) / 2)) >=
+                (item.panelCount ?? 3)
+            )
+              ctx.addIssue({
+                code: "custom",
+                message: "Spiegelpaneel valt buiten de kast",
+              });
+            if (item.light && item.kind !== "pendant")
+              ctx.addIssue({
+                code: "custom",
+                message: "Lichtbron hoort bij een hanglamp",
+              });
+          }),
+      )
+      .max(100)
+      .optional(),
+  })
+  .superRefine((plan, context) => {
+    const rooms = new Set(plan.rooms.map((room) => room.id));
+    for (const [index, item] of (plan.information ?? []).entries())
+      for (const roomId of item.roomIds ?? [])
+        if (!rooms.has(roomId))
+          context.addIssue({
+            code: "custom",
+            path: ["information", index, "roomIds"],
+            message: "Informatie verwijst naar een onbekende ruimte.",
+          });
+  });
 
 export async function readFloorplan(directory, houseId) {
   try {

@@ -1,0 +1,370 @@
+/* A personal housebook: a large real model, tactile photo paper and room
+   postcards. Decorative objects never stand in for verified house content. */
+.spatial-home .house-stage {
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 24px;
+  margin-bottom: 0;
+}
+.spatial-home .house-stage-scene {
+  border-radius: 28px;
+}
+.spatial-home .viewer-home {
+  height: 510px;
+  min-height: 510px;
+}
+.home-memory {
+  min-width: 0;
+  background: #e2ebd8;
+  border-radius: 32px 32px 32px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.home-memory-pictures {
+  position: relative;
+  min-height: 235px;
+  flex: 1;
+}
+.home-still-life {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10px 2px 0;
+}
+.home-memory-copy {
+  position: relative;
+  padding: 8px 28px 28px;
+}
+.home-memory h3 {
+  font-size: 29px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+.home-memory p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0 18px;
+  max-width: 30ch;
+  color: #465b42;
+}
+.home-memory-add,
+.home-memory-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  width: 100%;
+  font-size: 13px;
+}
+.home-memory-add {
+  background: var(--navy);
+  color: white;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.home-memory-add:hover {
+  background: #344d40;
+}
+.home-memory-open {
+  margin-top: 4px;
+}
+.home-memory-open:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.home-photo {
+  position: absolute;
+  inset: 24px 24px 22px;
+  padding: 8px 8px 0;
+  background: #fffdf7;
+  box-shadow: 0 5px 12px #33452b20;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  transform: rotate(-5deg);
+  border-radius: 2px;
+}
+.home-photo img {
+  width: 100%;
+  height: 0;
+  flex: 1;
+  min-height: 0;
+  object-fit: cover;
+}
+.home-photo span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 12px 6px;
+}
+/* One generous photo; the collection opens the rest without tiny targets. */
+.has-photos .home-memory-pictures {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+}
+.has-photos .home-photo {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  min-width: 0;
+  height: 210px;
+}
+.has-photos .home-photo:focus-visible {
+  outline-offset: 4px;
+  z-index: 1;
+}
+.home-practical {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  padding: 16px 4px 28px;
+}
+.home-practical button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.home-practical button:hover {
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.dossier-home .place-grid {
+  gap: 20px;
+}
+.dossier-home .place-card {
+  grid-template-columns: minmax(0, 1fr) 18px;
+  grid-template-rows: 132px auto auto;
+  align-content: start;
+  padding: 10px 10px 18px;
+  gap: 0 10px;
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 #d6d1c255;
+}
+.dossier-home .place-drawing {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 132px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: #e2ebd8;
+  overflow: hidden;
+}
+.dossier-home .place-card:nth-child(3n + 2) .place-drawing {
+  background: #f8e8ab;
+}
+.dossier-home .place-card:nth-child(3n) .place-drawing {
+  background: #f4dfcd;
+}
+.dossier-home .place-drawing > svg {
+  width: 66px;
+  height: 66px;
+  padding: 12px;
+  background: #fffdf8;
+  border-radius: 20px 20px 8px 20px;
+  box-shadow: 4px 5px 0 #66705b20;
+  transform: rotate(-6deg);
+}
+.dossier-home .place-drawing > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dossier-home .place-card strong {
+  grid-column: 1;
+  grid-row: 2;
+  padding: 14px 6px 0;
+  font-size: 17px;
+  line-height: 1.35;
+}
+.dossier-home .place-card small {
+  grid-column: 1;
+  grid-row: 3;
+  padding: 6px 6px 0;
+}
+.dossier-home .place-arrow {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  margin-top: 12px;
+}
+.dossier-home .place-card:hover {
+  border-color: #8e9a80;
+  background: #fffdf8;
+}
+.capture-photo-input {
+  padding: 24px;
+  border-radius: 18px;
+  background: #e6eddd;
+  color: var(--navy);
+  gap: 14px !important;
+}
+.capture-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.capture-panel {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.capture-panel .entry-kind {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.capture-panel .resident-form {
+  max-width: 840px;
+}
+.capture-layout > .capture-help {
+  max-width: 840px;
+}
+.capture-photo-input > svg {
+  color: #4d6644;
+}
+.capture-photo-input > input {
+  background: #fffdf8;
+}
+.capture-photo-choice {
+  padding: 16px;
+  background: #fff0d7;
+  border-radius: 12px;
+}
+.capture-photo-choice input {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.capture-place {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.capture-place legend {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.capture-selected-place {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.capture-place .place-filter {
+  max-width: 100%;
+  margin-bottom: 0;
+}
+.capture-place .place-filter button {
+  flex-basis: 110px;
+  min-height: 100px;
+  font-size: 12px;
+}
+.capture-extra {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.capture-extra summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.capture-extra label {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+@media (max-width: 1260px) {
+  .spatial-home .house-stage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .home-memory {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+  .home-memory-pictures {
+    min-height: 270px;
+  }
+  .home-memory-copy {
+    padding: 28px;
+  }
+  .has-photos .home-photo {
+    height: 210px;
+  }
+}
+@media (max-width: 700px) {
+  .capture-panel .entry-kind {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .spatial-welcome h2 {
+    font-size: 34px;
+  }
+  .spatial-home .viewer-home {
+    min-height: 410px;
+    height: 410px;
+  }
+  .home-memory {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 24px 24px 24px 6px;
+  }
+  .home-memory-pictures {
+    min-height: 210px;
+  }
+  .home-memory-copy {
+    padding: 8px 24px 24px;
+  }
+  .home-memory h3 br {
+    display: none;
+  }
+  .home-memory h3 {
+    font-size: 27px;
+  }
+  .home-memory p {
+    max-width: none;
+  }
+  .home-still-life {
+    padding: 4px 20px 0;
+  }
+  .home-practical {
+    display: grid;
+    gap: 0;
+    padding-bottom: 24px;
+  }
+  .dossier-home .place-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .dossier-home .place-card {
+    grid-template-rows: 112px auto auto;
+    padding: 8px 8px 14px;
+  }
+  .dossier-home .place-drawing {
+    height: 112px;
+  }
+  .dossier-home .place-card strong {
+    font-size: 15px;
+    padding-inline: 2px;
+  }
+  .dossier-home .place-card small {
+    padding-inline: 2px;
+  }
+}
+@media (max-width: 360px) {
+  .dossier-home .place-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

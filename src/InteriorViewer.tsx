@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { ViewerTools } from "./ViewerTools";
+import { placeIcon } from "./dossierDisplay";
+import { PlanInformation } from "./InformationBook";
+import { nudgeCamera, zoomCamera } from "./viewerNavigation";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   ArrowDown,
@@ -12,6 +16,8 @@ import {
   Map as MapIcon,
   RotateCcw,
   DoorOpen,
+  FolderOpen,
+  LayoutGrid,
 } from "lucide-react";
 import type {
   Floorplan,
@@ -54,6 +60,9 @@ interface InteriorApi {
   room: (point: PlanPoint, yaw?: number, pitch?: number, fov?: number) => void;
   door: (id: string, open: boolean) => void;
   reset: (top?: boolean) => void;
+  navigate: (x: number, y: number, pan: boolean) => void;
+  zoom: (factor: number) => void;
+  step: (x: number, y: number) => void;
 }
 
 function floorShape(points: PlanPoint[], material: THREE.Material, y = 0) {
@@ -135,8 +144,9 @@ export function InteriorViewer({
   initialRoomId,
   onDossier,
   dossierRooms = [],
+  preview = false,
 }: {
-  data: HouseData;
+  data: HouseData | null;
   appearance: HouseAppearance | null;
   lighting: LightingEnvironment | null;
   lightSettings: LightingSettings;
@@ -144,8 +154,12 @@ export function InteriorViewer({
   initialRoomId?: string;
   onDossier?: (roomId: string) => void;
   dossierRooms?: string[];
+  preview?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const section = useRef<HTMLElement>(null);
+  const directory = useRef<HTMLElement>(null);
+  const [attempt, setAttempt] = useState(0);
   const api = useRef<InteriorApi | null>(null);
   const selectionCallbacks = useRef({ onDossier, dossierRooms });
   selectionCallbacks.current = { onDossier, dossierRooms };
@@ -189,6 +203,7 @@ export function InteriorViewer({
   useEffect(() => {
     if (!host.current) return;
     const container = host.current;
+    setFailed(false);
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -205,7 +220,7 @@ export function InteriorViewer({
     renderer.toneMappingExposure = 1.05;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     const canvas = renderer.domElement;
-    canvas.tabIndex = 0;
+    canvas.tabIndex = preview ? -1 : 0;
     canvas.setAttribute(
       "aria-label",
       "3D-interieur. Kies Rondlopen, gebruik W A S D of de pijltjestoetsen en sleep om rond te kijken. Escape stopt het rondlopen.",
@@ -249,12 +264,25 @@ export function InteriorViewer({
     const camera = new THREE.PerspectiveCamera(58, 1, 0.045, 100);
     camera.rotation.order = "YXZ";
     const controls = new OrbitControls(camera, canvas);
+    controls.domElement!.style.touchAction = "pan-y";
     let dirty = true;
     const invalidate = () => {
       dirty = true;
     };
     controls.addEventListener("change", invalidate);
-    controls.enableDamping = true;
+    controls.enableDamping = !window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    controls.enableZoom = false;
+    const focusZoom = () => {
+      controls.enableZoom = true;
+    };
+    const blurZoom = () => {
+      controls.enableZoom = false;
+      movement.current.clear();
+    };
+    canvas.addEventListener("focus", focusZoom);
+    canvas.addEventListener("blur", blurZoom);
     controls.maxPolarAngle = Math.PI / 2 - 0.03;
     controls.minDistance = 2;
     controls.maxDistance = 40;
@@ -655,12 +683,13 @@ export function InteriorViewer({
       yaw = 0,
       pitch = 0,
       dragged = false;
-    const rig = appearance?.rear
-      ? createLightingRig(scene, renderer, data, invalidate, {
-          appearance,
-          plan,
-        })
-      : null;
+    const rig =
+      data && appearance?.rear
+        ? createLightingRig(scene, renderer, data, invalidate, {
+            appearance,
+            plan,
+          })
+        : null;
     updateLighting.current = () => {
       const state = lightState.current;
       rig?.update(state.lighting, state.lightSettings);
@@ -681,13 +710,22 @@ export function InteriorViewer({
       dirty = true;
       controls.target.copy(center);
       controls.target.y = 0.2;
-      const length = bounds[3] - bounds[1];
+      const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const aspect =
+        container.clientWidth / Math.max(1, container.clientHeight);
+      const length = Math.max(
+        bounds[3] - bounds[1],
+        (bounds[2] - bounds[0]) / aspect,
+        1,
+      );
+      const fit = (length / (2 * tan)) * 1.25;
+      controls.maxDistance = Math.max(40, fit * 2);
       camera.position
         .copy(center)
         .add(
           top
-            ? new THREE.Vector3(0, length * 1.25, 0.001)
-            : new THREE.Vector3(length * 0.43, length * 0.9, length * 0.55),
+            ? new THREE.Vector3(0, fit, 0.001)
+            : new THREE.Vector3(fit * 0.43, fit * 0.9, fit * 0.55),
         );
       camera.lookAt(controls.target);
       controls.update();
@@ -708,11 +746,44 @@ export function InteriorViewer({
       setWalking(enabled);
       if (enabled) {
         look();
+        if (!preview)
+          section.current?.scrollIntoView({
+            block: "start",
+            behavior: "instant",
+          });
         canvas.focus({ preventScroll: true });
       } else frame();
     };
     api.current = {
       walk: setWalk,
+      zoom: (factor) => {
+        if (!walk) zoomCamera(camera, controls, factor);
+      },
+      navigate: (x, y, pan) => {
+        if (walk) {
+          yaw -= (x * Math.PI) / 12;
+          pitch = THREE.MathUtils.clamp(
+            pitch - (y * Math.PI) / 18,
+            -1.25,
+            1.25,
+          );
+          look();
+        } else nudgeCamera(camera, controls, x, y, pan);
+      },
+      step: (x, y) => {
+        if (!walk) return;
+        p = moveInside(
+          plan,
+          p,
+          [
+            (x * Math.cos(yaw) + y * Math.sin(yaw)) * 0.3,
+            (y * Math.cos(yaw) - x * Math.sin(yaw)) * 0.3,
+          ],
+          doorState,
+        );
+        setPosition([...p]);
+        look();
+      },
       reset: (top) => {
         setWalk(false);
         p = [...plan.spawn];
@@ -778,6 +849,10 @@ export function InteriorViewer({
     const keydown = (e: KeyboardEvent) => {
       if (
         !walk ||
+        document.activeElement !== canvas ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey ||
         (e.target instanceof HTMLElement &&
           /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))
       )
@@ -831,7 +906,8 @@ export function InteriorViewer({
       lastY = 0;
     const down = (e: PointerEvent) => {
       tap.down(e);
-      if (!walk) return;
+      canvas.focus({ preventScroll: true });
+      if (!walk || !e.isPrimary || e.button !== 0) return;
       dragged = true;
       lastX = e.clientX;
       lastY = e.clientY;
@@ -841,7 +917,7 @@ export function InteriorViewer({
       tap.move(e);
       if (!walk && !e.buttons && e.pointerType !== "touch")
         canvas.style.cursor = roomAt(e) ? "pointer" : "grab";
-      if (!walk || !dragged) return;
+      if (!walk || !dragged || !e.isPrimary) return;
       yaw -= (e.clientX - lastX) * 0.004;
       pitch = Math.max(
         -1.25,
@@ -862,12 +938,21 @@ export function InteriorViewer({
       dragged = false;
       tap.cancel(e);
     };
-    canvas.addEventListener("pointerdown", down);
-    canvas.addEventListener("pointermove", move);
-    canvas.addEventListener("pointerup", up);
-    canvas.addEventListener("pointercancel", cancel);
-    window.addEventListener("keydown", keydown);
-    window.addEventListener("keyup", keyup);
+    const lost = (event: Event) => {
+      event.preventDefault();
+      clear();
+      setFailed(true);
+    };
+    canvas.addEventListener("webglcontextlost", lost);
+    if (!preview) {
+      canvas.addEventListener("pointerdown", down);
+      canvas.addEventListener("pointermove", move);
+      canvas.addEventListener("pointerup", up);
+      canvas.addEventListener("pointercancel", cancel);
+      window.addEventListener("keydown", keydown);
+      window.addEventListener("keyup", keyup);
+    }
+    if (preview) controls.enabled = false;
     window.addEventListener("blur", clear);
     document.addEventListener("visibilitychange", clear);
     const resize = new ResizeObserver(() => {
@@ -938,6 +1023,9 @@ export function InteriorViewer({
       window.removeEventListener("keyup", keyup);
       window.removeEventListener("blur", clear);
       document.removeEventListener("visibilitychange", clear);
+      canvas.removeEventListener("webglcontextlost", lost);
+      canvas.removeEventListener("focus", focusZoom);
+      canvas.removeEventListener("blur", blurZoom);
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up);
@@ -967,7 +1055,7 @@ export function InteriorViewer({
     };
     // A house change remounts the viewer; the scene is entirely profile-driven.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan, data, appearance]);
+  }, [plan, data, appearance, attempt, preview]);
   useEffect(() => {
     updateLighting.current?.();
   }, [lighting, lightSettings]);
@@ -987,10 +1075,28 @@ export function InteriorViewer({
       <Icon size={20} />
     </button>
   );
+  if (preview)
+    return (
+      <div className="interior-portrait">
+        <div ref={host} className="interior-canvas" />
+        {failed && <Footprints size={64} aria-hidden="true" />}
+      </div>
+    );
   return (
-    <div className="interior-layout">
-      <section className="interior-scene" aria-label="Interieur bekijken">
+    <div className="interior-layout interior-workspace">
+      <section
+        ref={section}
+        className="interior-scene"
+        aria-label="Interieur bekijken"
+      >
         <div className="interior-toolbar">
+          <ViewerTools
+            target={section}
+            walking={walking}
+            onNavigate={(x, y, pan) => api.current?.navigate(x, y, pan)}
+            onZoom={(factor) => api.current?.zoom(factor)}
+            onStep={(x, y) => api.current?.step(x, y)}
+          />
           <div className="interior-modes">
             <button
               className={!walking ? "active" : ""}
@@ -1045,8 +1151,16 @@ export function InteriorViewer({
         )}
         {failed && (
           <div className="interior-failed" role="alert">
-            3D kan niet starten. Schakel hardwareversnelling in je browser in en
-            herlaad de pagina.
+            <p>
+              3D is onderbroken of kan niet starten. De ruimtelijst en dossiers
+              blijven beschikbaar.
+            </p>
+            <button
+              className="button secondary"
+              onClick={() => setAttempt((n) => n + 1)}
+            >
+              3D opnieuw starten
+            </button>
           </div>
         )}
         <div
@@ -1063,6 +1177,25 @@ export function InteriorViewer({
             ? "W A S D / pijltjes = lopen · slepen = kijken · Esc = overzicht"
             : "Klik op een ruimte voor het dossier · sleep om te draaien · scroll om te zoomen"}
         </div>
+        <button
+          className="room-directory-shortcut"
+          onClick={async () => {
+            if (document.fullscreenElement === section.current)
+              await document.exitFullscreen();
+            directory.current
+              ?.querySelector("h2")
+              ?.focus({ preventScroll: true });
+            directory.current?.scrollIntoView({
+              block: "start",
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                .matches
+                ? "instant"
+                : "smooth",
+            });
+          }}
+        >
+          <LayoutGrid size={19} /> Kamers kiezen
+        </button>
         {walking && (
           <div className="walk-pad" aria-label="Loopbediening">
             <span />
@@ -1074,160 +1207,168 @@ export function InteriorViewer({
           </div>
         )}
       </section>
-      <aside className="interior-sidebar">
+      <aside
+        className="interior-directory"
+        ref={directory}
+        aria-label="Kamers en plattegrond"
+      >
         <div className="interior-intro">
-          <h2>Ruimtes</h2>
-          <p>
-            Kies een kamer om binnen te kijken. Bij Dossier vind je de
-            informatie over die ruimte.
-          </p>
+          <h2 tabIndex={-1}>Kies een ruimte</h2>
+          <p>Kijk binnen of open wat er bij deze plek bewaard is.</p>
         </div>
-        <svg
-          className="interior-map"
-          viewBox={`${bounds[0] - 0.25} ${bounds[1] - 0.25} ${bounds[2] - bounds[0] + 0.5} ${bounds[3] - bounds[1] + 0.5}`}
-          role="group"
-          aria-label="Plattegrond: kies een ruimte of open het ruimtedossier"
-        >
-          {plan.rooms.map((room) => (
-            <polygon
-              key={room.id}
-              points={room.polygon.map((p) => p.join(",")).join(" ")}
-              fill={room.color}
-              stroke="#fdfcf9"
-              strokeWidth=".06"
-              role="button"
-              tabIndex={0}
-              aria-label={
-                dossierRooms.includes(room.id)
-                  ? `Open dossier ${room.name}`
-                  : `Bekijk ${room.name}`
-              }
-              onClick={() =>
-                dossierRooms.includes(room.id)
-                  ? onDossier?.(room.id)
-                  : api.current?.room(
-                      room.center,
-                      room.viewYaw,
-                      room.viewPitch,
-                      room.viewFov,
-                    )
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  if (dossierRooms.includes(room.id)) onDossier?.(room.id);
-                  else
+        <div className="interior-directory-layout">
+          <div className="interior-map-panel">
+            <h3>Je plattegrond</h3>
+            <svg
+              className="interior-map"
+              viewBox={`${bounds[0] - 0.25} ${bounds[1] - 0.25} ${bounds[2] - bounds[0] + 0.5} ${bounds[3] - bounds[1] + 0.5}`}
+              role="group"
+              aria-label="Plattegrond: kies een ruimte of open het ruimtedossier"
+            >
+              {plan.rooms.map((room) => (
+                <polygon
+                  key={room.id}
+                  points={room.polygon.map((p) => p.join(",")).join(" ")}
+                  fill={room.color}
+                  stroke="#fdfcf9"
+                  strokeWidth=".06"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={
+                    dossierRooms.includes(room.id)
+                      ? `Open dossier ${room.name}`
+                      : `Bekijk ${room.name}`
+                  }
+                  onClick={() =>
+                    dossierRooms.includes(room.id)
+                      ? onDossier?.(room.id)
+                      : api.current?.room(
+                          room.center,
+                          room.viewYaw,
+                          room.viewPitch,
+                          room.viewFov,
+                        )
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      if (dossierRooms.includes(room.id)) onDossier?.(room.id);
+                      else
+                        api.current?.room(
+                          room.center,
+                          room.viewYaw,
+                          room.viewPitch,
+                          room.viewFov,
+                        );
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                />
+              ))}
+              {plan.walls.map((wall, i) => {
+                const dx = wall.b[0] - wall.a[0],
+                  dz = wall.b[1] - wall.a[1],
+                  length = Math.hypot(dx, dz);
+                return (
+                  <g key={i} pointerEvents="none">
+                    {wallSolids(wall, doors).map(([a, b], n) => (
+                      <line
+                        key={n}
+                        x1={wall.a[0] + (dx * a) / length}
+                        y1={wall.a[1] + (dz * a) / length}
+                        x2={wall.a[0] + (dx * b) / length}
+                        y2={wall.a[1] + (dz * b) / length}
+                        stroke="#37434b"
+                        strokeWidth=".055"
+                      />
+                    ))}
+                    {openDoorLeaves(wall, doors).map(([a, b], n) => (
+                      <line
+                        key={`leaf-${n}`}
+                        x1={a[0]}
+                        y1={a[1]}
+                        x2={b[0]}
+                        y2={b[1]}
+                        stroke="#526371"
+                        strokeWidth=".045"
+                      />
+                    ))}
+                  </g>
+                );
+              })}
+              <circle
+                pointerEvents="none"
+                cx={position[0]}
+                cy={position[1]}
+                r=".19"
+                fill="#F8891E"
+                stroke="white"
+                strokeWidth=".06"
+              />
+            </svg>
+          </div>
+          <div className="interior-rooms">
+            {plan.rooms.map((room) => (
+              <div className="interior-room-row" key={room.id}>
+                <button
+                  key={room.id}
+                  className={`room-view-button ${walking && activeRoom?.id === room.id ? "active" : ""}`}
+                  aria-label={`Bekijk ${room.name} in 3D`}
+                  aria-pressed={walking && activeRoom?.id === room.id}
+                  onClick={() =>
                     api.current?.room(
                       room.center,
                       room.viewYaw,
                       room.viewPitch,
                       room.viewFov,
-                    );
-                }
-              }}
-              style={{ cursor: "pointer" }}
-            />
-          ))}
-          {plan.walls.map((wall, i) => {
-            const dx = wall.b[0] - wall.a[0],
-              dz = wall.b[1] - wall.a[1],
-              length = Math.hypot(dx, dz);
-            return (
-              <g key={i} pointerEvents="none">
-                {wallSolids(wall, doors).map(([a, b], n) => (
-                  <line
-                    key={n}
-                    x1={wall.a[0] + (dx * a) / length}
-                    y1={wall.a[1] + (dz * a) / length}
-                    x2={wall.a[0] + (dx * b) / length}
-                    y2={wall.a[1] + (dz * b) / length}
-                    stroke="#37434b"
-                    strokeWidth=".055"
-                  />
-                ))}
-                {openDoorLeaves(wall, doors).map(([a, b], n) => (
-                  <line
-                    key={`leaf-${n}`}
-                    x1={a[0]}
-                    y1={a[1]}
-                    x2={b[0]}
-                    y2={b[1]}
-                    stroke="#526371"
-                    strokeWidth=".045"
-                  />
-                ))}
-              </g>
-            );
-          })}
-          <circle
-            pointerEvents="none"
-            cx={position[0]}
-            cy={position[1]}
-            r=".19"
-            fill="#F8891E"
-            stroke="white"
-            strokeWidth=".06"
-          />
-        </svg>
-        <div className="interior-rooms">
-          {plan.rooms.map((room) => (
-            <div className="interior-room-row" key={room.id}>
-              <button
-                key={room.id}
-                className={
-                  walking && activeRoom?.id === room.id ? "active" : ""
-                }
-                onClick={() =>
-                  api.current?.room(
-                    room.center,
-                    room.viewYaw,
-                    room.viewPitch,
-                    room.viewFov,
-                  )
-                }
-              >
-                <span>
-                  <span
-                    className="room-swatch"
-                    style={{ background: room.color }}
-                  />
-                  {room.name}
-                </span>
-                <small>
-                  {room.area
-                    ? `${room.area.toLocaleString("nl-NL")} m²`
-                    : room.shared
-                      ? "gedeeld"
-                      : room.outside
-                        ? "buiten"
-                        : ""}
-                  <ArrowRight size={14} />
-                </small>
-              </button>
-              {dossierRooms.includes(room.id) && (
-                <button
-                  className="room-dossier-button"
-                  aria-label={`Open dossier ${room.name}`}
-                  onClick={() => onDossier?.(room.id)}
+                    )
+                  }
                 >
-                  Dossier →
+                  <span>
+                    <span
+                      className="room-picture"
+                      style={{ background: room.color }}
+                      aria-hidden="true"
+                    >
+                      {placeIcon({ name: room.name, kind: "ruimte" }, 24)}
+                    </span>
+                    <span className="room-choice-copy">
+                      <strong>{room.name}</strong>
+                      <small>
+                        {room.area
+                          ? `${room.area.toLocaleString("nl-NL")} m²`
+                          : room.shared
+                            ? "Gedeelde ruimte"
+                            : room.outside
+                              ? "Buitenruimte"
+                              : ""}
+                      </small>
+                    </span>
+                  </span>
+                  <span className="room-view-label">
+                    <Footprints size={16} /> Binnen kijken{" "}
+                    <ArrowRight size={15} />
+                  </span>
                 </button>
-              )}
-            </div>
-          ))}
+                {!dossierRooms.includes(room.id) && (
+                  <small className="room-unlinked">
+                    Nog geen dossier gekoppeld
+                  </small>
+                )}
+                {dossierRooms.includes(room.id) && (
+                  <button
+                    className="room-dossier-button"
+                    aria-label={`Open dossier ${room.name}`}
+                    onClick={() => onDossier?.(room.id)}
+                  >
+                    <FolderOpen size={17} /> Foto’s, info & klussen
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="interior-provenance">
-          <strong>Bronnen en maten</strong>
-          <p>
-            3,70 m tuinbreedte · 2,64 m plafond in de woonkamer. Eén woonlaag;
-            verdere maten en afwerking zijn benaderd.
-          </p>
-          <details>
-            <summary>Bron & aannames</summary>
-            <p>{plan.source}</p>
-            <p>{plan.description}</p>
-          </details>
-        </div>
+        <PlanInformation plan={plan} />
       </aside>
     </div>
   );

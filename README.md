@@ -34,6 +34,7 @@ De server luistert uitsluitend op de eigen computer. Er is nog geen account- of 
 
 ## Wat werkt
 
+- **Vraag je huis**: vragen over de gekozen woning of plek, met bronfragmenten, documenten, onderhoud en bekende kosten. Verbind zelf OpenAI of een lokaal Ollama-model via **AI instellen**. Zonder die aansluiting blijft de chat uit. Zie [bediening, AI-instellingen en grenzen](docs/house-assistant.md).
 - **Mijn huisdossier**: ruimtes en onderwerpen met notities, bestanden, open klussen en historie. Een ruimte is aan een vaste plattegrond-ID gekoppeld, met een directe overgang naar 3D en terug.
 - Documenten doorzoeken op inhoud, categorie en onderdeel; Markdown, tekst en geëxtraheerde documenttekst lokaal lezen en PDF-originelen bekijken. Nieuwe tekstuploads worden direct doorzoekbaar. Andere bestandsformaten houden hun originele download.
 - Klussen zonder verplichte datum vastleggen, een eigenaar kiezen, wachten of eerst controleren aangeven en de gegevens later bewerken. Bron en peildatum blijven bij geïmporteerde acties zichtbaar.

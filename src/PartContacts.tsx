@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ReadableText } from "./ReadableText";
 import { Plus, Pencil, Users } from "lucide-react";
 import { Dialog } from "./Dialog";
 import {
@@ -105,8 +106,8 @@ export function PartContacts({
               {(link.notes || person.notes) && (
                 <details>
                   <summary>Contactnotities</summary>
-                  {link.notes && <p>{link.notes}</p>}
-                  {person.notes && <p>{person.notes}</p>}
+                  {link.notes && <ReadableText text={link.notes} />}
+                  {person.notes && <ReadableText text={person.notes} />}
                 </details>
               )}
               {confirm === person.id ? (

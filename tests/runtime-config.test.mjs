@@ -186,9 +186,32 @@ test("model API and export use the installation model directory; removing a doss
     store = null;
     await mkdir(modelDirectory);
     const model = {
-      house: { id: house.id },
-      source: { attribution: "Fixture" },
-      buildings: [],
+      house: { id: house.id, address: "Testkantoor", rd: [100000, 400000] },
+      source: {
+        attribution: "Fixture",
+        fetchedAt: "2026-11-20",
+        license: "Test",
+        urls: [],
+      },
+      buildings: [
+        {
+          id: "test-building",
+          target: true,
+          attributes: {},
+          surfaces: [
+            {
+              type: "RoofSurface",
+              rings: [
+                [
+                  [100000, 400000, 3],
+                  [100004, 400000, 3],
+                  [100000, 400004, 3],
+                ],
+              ],
+            },
+          ],
+        },
+      ],
     };
     await writeFile(
       path.join(modelDirectory, `${house.id}.json`),

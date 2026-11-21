@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { ReadableText } from "./ReadableText";
 import {
   CalendarDays,
-  Download,
   Pencil,
   Plus,
   Users,
@@ -9,6 +9,7 @@ import {
   Play,
   ClipboardList,
 } from "lucide-react";
+import { DossierExport } from "./DossierExport";
 import { request } from "./api";
 import { Dialog } from "./Dialog";
 import {
@@ -208,7 +209,7 @@ export function ManagementPage({
                     </p>
                   )}
                   <ContactActions person={person} />
-                  {person.notes && <p>{person.notes}</p>}
+                  {person.notes && <ReadableText text={person.notes} />}
                   {(dossier.contactLinks ?? []).some(
                     (link) => link.personId === person.id,
                   ) && (
@@ -248,11 +249,14 @@ export function ManagementPage({
             </p>
           </div>
         )}
-        <p className="form-note management-note">
-          Dit zijn personen in het lokale dossier. Een gekozen naam legt vast
-          bij wie een melding of invoer hoort; het is geen persoonlijke
-          aanmelding. Archiveren bewaart de bestaande historie.
-        </p>
+        <details className="form-note management-note">
+          <summary>Over personen in dit dossier</summary>
+          <p>
+            Dit zijn personen in het lokale dossier. Een gekozen naam legt vast
+            bij wie een melding of invoer hoort; het is geen persoonlijke
+            aanmelding. Archiveren bewaart de bestaande historie.
+          </p>
+        </details>
       </section>
       <section className="content-panel" id="maintenance-plans">
         <div className="section-heading">
@@ -372,10 +376,11 @@ export function ManagementPage({
             <li>Rond werk af met het resultaat en de werkelijke datum.</li>
             <li>Orden de invoer bij Nog te ordenen en bewaar een kopie.</li>
           </ol>
-          <a className="button secondary" href={`${api}/export`}>
-            <Download size={16} />
-            Download volledige dossierkopie
-          </a>
+          <DossierExport
+            url={`${api}/export`}
+            className="button secondary"
+            label="Download dossierkopie"
+          />
           <p className="form-note management-note">
             De kopie bevat gegevens, oorspronkelijke bestanden, personen en
             onderhoudsafspraken. Bewaar hem ook buiten deze computer.

@@ -1,0 +1,236 @@
+.capture-guide {
+  width: 100%;
+  min-width: 0;
+  padding: 28px;
+  background: #f0eee3;
+  border-radius: 24px;
+  margin-top: 8px;
+}
+.capture-guide-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.capture-guide-heading h2 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+.capture-guide-heading p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.capture-guide-heading > svg {
+  color: #68765b;
+  flex-shrink: 0;
+}
+.capture-guide-steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+}
+.capture-guide-steps > li {
+  min-width: 0;
+  background: #fffdf8;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.capture-guide-art {
+  height: 148px;
+  display: grid;
+  place-items: center;
+  background: #e6e0ee;
+}
+.capture-guide-place .capture-guide-art {
+  background: #f8e8ab;
+}
+.capture-guide-result .capture-guide-art {
+  background: #e0ead7;
+}
+.capture-guide-postcard {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  background: #fffdf8;
+  width: 160px;
+  height: 112px;
+  padding: 12px;
+  transform: rotate(-6deg);
+  box-shadow: 3px 5px 0 #4a39521a;
+  border-radius: 3px;
+}
+.capture-guide-postcard > svg {
+  color: #665077;
+}
+.capture-guide-postcard > span {
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.4;
+}
+.capture-guide-location {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  background: #fffdf8;
+  border-radius: 26px 26px 8px 26px;
+  transform: rotate(5deg);
+  box-shadow: 3px 5px 0 #7e653b20;
+  color: #7d5b2b;
+}
+.capture-guide-location .capture-guide-pin {
+  position: absolute;
+  right: -8px;
+  bottom: -2px;
+  background: var(--orange);
+  color: var(--navy);
+  padding: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.capture-guide-folder {
+  position: relative;
+  color: #4d6942;
+  transform: rotate(-5deg);
+}
+.capture-guide-folder > svg:last-child {
+  position: absolute;
+  right: -8px;
+  bottom: -4px;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 50%;
+  background: #fffdf8;
+  box-shadow: 0 2px 0 #4c66342b;
+}
+.capture-guide-copy {
+  padding: 20px;
+  position: relative;
+}
+.capture-guide-step {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #eee9dc;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.capture-guide-copy h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.capture-guide-copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.capture-guide-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 22px;
+  color: var(--muted);
+}
+.capture-guide-note > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.capture-guide-note p {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 85ch;
+}
+@media (max-width: 900px) {
+  .capture-guide {
+    padding: 24px;
+  }
+  .capture-guide-steps {
+    gap: 12px;
+  }
+  .capture-guide-copy {
+    padding: 16px;
+  }
+  .capture-guide-postcard {
+    width: 135px;
+  }
+}
+@media (max-width: 700px) {
+  .capture-guide {
+    padding: 22px 16px;
+    border-radius: 20px;
+  }
+  .capture-guide-heading h2 {
+    font-size: 22px;
+  }
+  .capture-guide-heading > svg {
+    display: none;
+  }
+  .capture-guide-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .capture-guide-steps > li {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+  .capture-guide-art {
+    height: 100%;
+    min-height: 154px;
+  }
+  .capture-guide-postcard {
+    width: 72px;
+    height: 100px;
+    padding: 10px 5px;
+    gap: 10px;
+  }
+  .capture-guide-postcard > svg {
+    width: 30px;
+    height: 30px;
+  }
+  .capture-guide-postcard > span {
+    font-size: 10px;
+  }
+  .capture-guide-location {
+    width: 58px;
+    height: 64px;
+    border-radius: 18px 18px 6px 18px;
+  }
+  .capture-guide-location > svg:first-child {
+    width: 34px;
+  }
+  .capture-guide-location .capture-guide-pin {
+    width: 27px;
+    height: 27px;
+  }
+  .capture-guide-folder > svg:first-child {
+    width: 48px;
+  }
+  .capture-guide-folder > svg:last-child {
+    width: 27px;
+    height: 27px;
+  }
+  .capture-guide-copy h3 {
+    font-size: 15px;
+  }
+  .capture-guide-copy p {
+    font-size: 12px;
+  }
+}

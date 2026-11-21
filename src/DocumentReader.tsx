@@ -1,9 +1,12 @@
+import { InlineText } from "./InlineText";
+import { ReadableText } from "./ReadableText";
 import { useEffect, useState } from "react";
 import { Download, FileText, LoaderCircle } from "lucide-react";
 import { request } from "./api";
 import type { Attachment, Asset } from "./types";
 
 export const categoryName: Record<string, string> = {
+  photos: "Foto's van thuis",
   actions: "Klussen",
   history: "Historie",
   maintenance: "Onderhoud",
@@ -21,36 +24,7 @@ export const categoryName: Record<string, string> = {
   reference: "Naslag",
 };
 
-export function InlineText({ text }: { text: string }) {
-  return (
-    <>
-      {text
-        .split(
-          /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,})/g,
-        )
-        .map((part, i) => {
-          if (part.startsWith("**") && part.endsWith("**"))
-            return <strong key={i}>{part.slice(2, -2)}</strong>;
-          if (part.startsWith("`") && part.endsWith("`"))
-            return <code key={i}>{part.slice(1, -1)}</code>;
-          const link = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
-          if (link)
-            return (
-              <a key={i} href={link[2]} target="_blank" rel="noreferrer">
-                {link[1]}
-              </a>
-            );
-          if (/^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(part))
-            return (
-              <a key={i} href={`mailto:${part}`}>
-                {part}
-              </a>
-            );
-          return part;
-        })}
-    </>
-  );
-}
+export { InlineText } from "./InlineText";
 
 // Local documents are text, never executable HTML. A small renderer keeps source tables readable.
 function DocumentText({ text }: { text: string }) {
@@ -101,18 +75,12 @@ function DocumentText({ text }: { text: string }) {
                     <InlineText text={line.replace(/^#+\s/, "")} />
                   </h3>
                 ) : (
-                  <p key={j}>
-                    <InlineText text={line} />
-                  </p>
+                  <ReadableText key={j} text={line} />
                 ),
               )}
             </div>
           );
-        return (
-          <p key={i}>
-            <InlineText text={block} />
-          </p>
-        );
+        return <ReadableText key={i} text={block} />;
       })}
     </div>
   );
@@ -164,11 +132,15 @@ export function DocumentReader({
         <span>{assets.find((a) => a.id === file.assetId)?.name}</span>
         {file.sourceDate && <span>Bron: {file.sourceDate}</span>}
       </div>
-      {file.summary && <div className="document-summary">{file.summary}</div>}
+      {file.summary && (
+        <div className="document-summary">
+          <ReadableText text={file.summary} />
+        </div>
+      )}
       {file.source && (
         <details className="document-origin">
           <summary>Herkomst bekijken</summary>
-          <p>{file.source}</p>
+          <ReadableText text={file.source} />
           <p>
             Samenvatting en bronstuk kunnen verschillen. Controleer de peildatum
             bij oude documenten.

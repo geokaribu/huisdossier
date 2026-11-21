@@ -2,7 +2,6 @@ import { useEffect, useRef, type MouseEvent } from "react";
 import {
   Box,
   Database,
-  Download,
   Footprints,
   FolderOpen,
   House,
@@ -11,15 +10,25 @@ import {
   Plus,
   Wrench,
   X,
-  Settings2,
+  UsersRound,
   CalendarDays,
+  MessageCircle,
 } from "lucide-react";
+import { DossierExport } from "./DossierExport";
+import { WorkspaceHelp } from "./WorkspaceHelp";
+import { HouseChapter } from "./HouseAtlas";
+import type { HouseData } from "./types";
 import { housePageUrl, type HousePage } from "./houseSelection";
 
 export const pageInfo: Record<
   HousePage,
   { title: string; description: string }
 > = {
+  assistant: {
+    title: "Vraag je huis",
+    description:
+      "Je huisboek denkt met je mee. Met antwoorden uit wat je hebt bewaard.",
+  },
   dossier: {
     title: "Huisdossier",
     description:
@@ -35,14 +44,13 @@ export const pageInfo: Record<
       "Kies een ruimte, loop binnen en open het bijbehorende dossier.",
   },
   files: {
-    title: "Documenten & foto's",
+    title: "Jouw verzameling",
     description:
-      "Alle bestanden van deze woning, doorzoekbaar op onderwerp en inhoud.",
+      "Foto's, ideeën, handleidingen en alles wat bij je huis hoort.",
   },
   tasks: {
-    title: "Onderhoud",
-    description:
-      "Houd bij wat aandacht vraagt, wie het oppakt en wat al is gedaan.",
+    title: "Klussen voor je huis",
+    description: "Wat aandacht vraagt. En wat al is gedaan.",
   },
   sources: {
     title: "Bronnen & model",
@@ -51,18 +59,15 @@ export const pageInfo: Record<
   },
   capture: {
     title: "Iets toevoegen",
-    description:
-      "Bewaar wat je opmerkt, weet of hebt uitgevoerd. Een korte invoer is genoeg om te beginnen.",
+    description: "Een foto, idee of klus. Geef het een plek.",
   },
   manage: {
-    title: "Beheer",
-    description:
-      "Regel de personen, onderhoudsafspraken en het bijhouden van deze woning.",
+    title: "Mensen rond je huis",
+    description: "De mensen die meedenken en meehelpen.",
   },
   planning: {
-    title: "Planning",
-    description:
-      "Bekijk wat eraan komt, stel herinneringen in en neem onderhoud mee naar je agenda.",
+    title: "Je huisagenda",
+    description: "De plannen voor je huis, op een rij.",
   },
 };
 export function followWorkspaceLink(
@@ -109,7 +114,7 @@ export function WorkspaceNavigation({
         ...surface.querySelectorAll<HTMLElement>(
           "a[href],button:not([disabled])",
         ),
-      ];
+      ].filter((element) => element.getClientRects().length > 0);
       const first = controls[0],
         last = controls.at(-1);
       if (event.shiftKey && document.activeElement === first) {
@@ -135,27 +140,28 @@ export function WorkspaceNavigation({
   }, [mobile]);
   const groups = [
     {
-      label: "Dossier",
+      label: "Van je huis",
       items: [
-        { id: "dossier", label: "Overzicht", Icon: House },
+        { id: "dossier", label: "Mijn huis", Icon: House },
+        { id: "assistant", label: "Vraag je huis", Icon: MessageCircle },
         { id: "capture", label: "Iets toevoegen", Icon: Plus },
-        { id: "files", label: "Documenten & foto's", Icon: FolderOpen },
-        { id: "tasks", label: "Onderhoud", Icon: Wrench },
+        { id: "files", label: "Verzameling", Icon: FolderOpen },
+        { id: "tasks", label: "Klussen", Icon: Wrench },
+      ],
+    },
+    {
+      label: "Je huis in 3D",
+      items: [
+        { id: "model", label: "Buiten", Icon: Box },
+        { id: "interior", label: "Binnen", Icon: Footprints },
+      ],
+    },
+    {
+      label: "Praktisch",
+      items: [
         { id: "planning", label: "Planning", Icon: CalendarDays },
-      ],
-    },
-    {
-      label: "Woning verkennen",
-      items: [
-        { id: "model", label: "Buiten bekijken", Icon: Box },
-        { id: "interior", label: "Binnen kijken", Icon: Footprints },
-      ],
-    },
-    {
-      label: "Achtergrond",
-      items: [
-        { id: "manage", label: "Beheer", Icon: Settings2 },
-        { id: "sources", label: "Bronnen & model", Icon: Database },
+        { id: "manage", label: "Mensen & afspraken", Icon: UsersRound },
+        { id: "sources", label: "Bronnen", Icon: Database },
       ],
     },
   ] as const;
@@ -200,28 +206,33 @@ export function WorkspaceNavigation({
           </button>
         </div>
         <nav aria-label="Pagina's">
-          {groups.map((group) => (
-            <div className="navigation-group" key={group.label}>
-              <span className="navigation-label">{group.label}</span>
-              {group.items.map(({ id, label, Icon }) => (
-                <a
-                  key={id}
-                  href={housePageUrl(window.location.href, houseId, id)}
-                  className={`nav-link ${page === id ? "active" : ""}`}
-                  aria-current={page === id ? "page" : undefined}
-                  onClick={(event) =>
-                    followWorkspaceLink(event, () => onNavigate(id))
-                  }
-                >
-                  <Icon size={18} strokeWidth={1.7} aria-hidden="true" />
-                  <span>{label}</span>
-                  {id === "tasks" && count > 0 && (
-                    <span className="nav-count">{count}</span>
-                  )}
-                </a>
-              ))}
-            </div>
-          ))}
+          {groups.map((group) => {
+            const links = group.items.map(({ id, label, Icon }) => (
+              <a
+                key={id}
+                href={housePageUrl(window.location.href, houseId, id)}
+                className={`nav-link ${page === id ? "active" : ""}`}
+                aria-current={page === id ? "page" : undefined}
+                onClick={(event) =>
+                  followWorkspaceLink(event, () => onNavigate(id))
+                }
+              >
+                <Icon size={18} strokeWidth={1.7} aria-hidden="true" />
+                <span>{label}</span>
+                {id === "tasks" && count > 0 && (
+                  <span className="nav-count">{count}</span>
+                )}
+              </a>
+            ));
+            return (
+              <div className="navigation-group" key={group.label}>
+                {group.label !== "Van je huis" && (
+                  <span className="navigation-label">{group.label}</span>
+                )}
+                {links}
+              </div>
+            );
+          })}
         </nav>
         <div className="sidebar-footer">
           <LockKeyhole size={16} aria-hidden="true" />
@@ -235,6 +246,8 @@ export function WorkspaceNavigation({
   );
 }
 export function WorkspaceHeader({
+  page,
+  onNavigate,
   houses,
   houseId,
   mobile,
@@ -242,6 +255,8 @@ export function WorkspaceHeader({
   onHouse,
   onExport,
 }: {
+  page: HousePage;
+  onNavigate: (page: HousePage) => void;
   houses: { id: string; address: string; city: string }[];
   houseId: string;
   mobile: boolean;
@@ -260,54 +275,56 @@ export function WorkspaceHeader({
       >
         <Menu size={22} />
       </button>
-      <label className="top-house-selector" htmlFor="house-select">
-        <House size={18} aria-hidden="true" />
-        <span className="sr-only">Woning kiezen</span>
-        <select
-          id="house-select"
-          value={houseId}
-          onChange={(event) => onHouse(event.target.value)}
-        >
-          {houses.map((house) => (
-            <option key={house.id} value={house.id}>
-              {house.address} · {house.city}
-            </option>
-          ))}
-        </select>
-      </label>
-      <a
-        href={onExport}
-        className="export-link"
-        title="Download het volledige dossier met bestanden"
-      >
-        <Download size={16} aria-hidden="true" />
-        <span>Exporteer dossier</span>
-      </a>
+      <div className="house-switcher" role="group" aria-label="Woning kiezen">
+        {houses.map((house) => (
+          <button
+            key={house.id}
+            aria-pressed={houseId === house.id}
+            onClick={() => {
+              if (houseId !== house.id) onHouse(house.id);
+            }}
+          >
+            <House size={16} aria-hidden="true" />
+            <span>
+              {house.address}
+              <small>{house.city}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="workspace-top-actions">
+        <WorkspaceHelp page={page} onNavigate={onNavigate} />
+        <DossierExport url={onExport} />
+      </div>
     </header>
   );
 }
 export function WorkspacePageHeading({
   page,
   onAdd,
+  data,
+  onExplore,
 }: {
   page: HousePage;
   onAdd: () => void;
+  data: HouseData | null;
+  onExplore: () => void;
 }) {
   const label =
     page === "tasks"
       ? "Melding toevoegen"
-      : page === "dossier"
-        ? "Onderdeel toevoegen"
-        : page === "files"
-          ? "Bestand toevoegen"
-          : null;
+      : page === "files"
+        ? "Bestand toevoegen"
+        : null;
   return (
-    <div className="page-heading">
-      <div>
+    <div
+      className={`page-heading chapter-heading ${page === "model" || page === "interior" ? "chapter-spatial" : ""}`}
+    >
+      <div className="chapter-copy">
         <h1 id="page-title" tabIndex={-1}>
           {pageInfo[page].title}
         </h1>
-        <p>{pageInfo[page].description}</p>
+        {page !== "dossier" && <p>{pageInfo[page].description}</p>}
       </div>
       {label && (
         <button className="button primary" onClick={onAdd}>
@@ -315,6 +332,12 @@ export function WorkspacePageHeading({
           {label}
         </button>
       )}
+      {data &&
+        page !== "dossier" &&
+        page !== "model" &&
+        page !== "interior" && (
+          <HouseChapter data={data} onExplore={onExplore} />
+        )}
     </div>
   );
 }

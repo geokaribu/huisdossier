@@ -1,6 +1,7 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
+import { informationSchema } from "./information.mjs";
 
 const point = z.tuple([z.number().finite(), z.number().finite()]);
 const color = z.string().regex(/^#[0-9a-f]{6}$/i);
@@ -10,6 +11,7 @@ const schema = z
     version: z.literal(1),
     label: z.string(),
     description: z.string(),
+    information: informationSchema.optional(),
     attribution: z.string(),
     generated: z.boolean(),
     shell: z

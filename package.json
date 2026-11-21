@@ -8,6 +8,12 @@
   },
   "scripts": {
     "check:installation": "node scripts/check-installation.mjs",
+    "customer:init": "node scripts/init-customer.mjs",
+    "customer": "node scripts/customer.mjs",
+    "backup": "node scripts/installation-backup.mjs backup",
+    "restore": "node scripts/installation-backup.mjs restore",
+    "verify": "npm test && npm run build",
+    "clean": "node scripts/clean-generated.mjs",
     "import:lighting": "node scripts/import-lighting.mjs",
     "dev": "node server/index.mjs",
     "build": "tsc --noEmit && vite build",

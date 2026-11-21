@@ -1,77 +1,109 @@
-# Een herhaalbare lokale installatie
+﻿# Een herhaalbare lokale installatie
 
-Deze handleiding is voor degene die Huisdossier installeert en oplevert. Bewoners en gebruikers voeren informatie in via de interface. De server blijft loopback-only; dit is geen instructie voor publieke hosting.
+Eén codebasis, een eigen map per klant. Node 24+ is vereist. Bewoners vullen hun huisboek in via de app; onderstaande stappen zijn voor installatie en onderhoud. De server luistert alleen op `127.0.0.1`.
 
-## Code en gegevens scheiden
+## Een klant starten
 
-Dezelfde gebouwde code kan met verschillende installatiebestanden draaien. Er zijn drie optionele instellingen, allemaal absolute paden:
-
-| Variabele                 | Standaard            | Inhoud                                                                      |
-| ------------------------- | -------------------- | --------------------------------------------------------------------------- |
-| `HUISDOSSIER_HOUSES_FILE` | `config/houses.json` | JSON-catalogus met panden voor deze installatie                             |
-| `HUISDOSSIER_DATA_DIR`    | `data/`              | SQLite, uploads, privéscenario's, afwerking, plattegronden en importbronnen |
-| `HUISDOSSIER_MODELS_DIR`  | `public/data/`       | Bronmodellen per dossier-ID                                                 |
-
-Alle importers en de server lezen dezelfde instellingen. De app laadt modellen via `/api/houses/:id/model`; export gebruikt dezelfde modellenmap. De standaardmap onder `public/data` blijft bruikbaar voor de bestaande openbare casussen. Bewaar klantgebonden configuratie en nieuwe modellen bij voorkeur buiten de checkout of onder de genegeerde privémap; voeg ze niet aan Git toe. Een andere modellenmap verwijdert geen al aanwezige kopieën uit `public/data` en maakt de app niet geschikt voor publieke hosting.
-
-Voorbeeld met uitsluitend fictieve paden; maak de eigen catalogus en laat de variabelen gelden voor **alle** start- en importcommando's:
+Installeer en bouw de gedeelde code één keer:
 
 ```powershell
-$env:HUISDOSSIER_HOUSES_FILE = 'C:\Huisdossier\Voorbeeldklant\houses.json'
-$env:HUISDOSSIER_DATA_DIR = 'C:\Huisdossier\Voorbeeldklant\data'
-$env:HUISDOSSIER_MODELS_DIR = 'C:\Huisdossier\Voorbeeldklant\models'
-npm run check:installation
-npm run build
-npm start
+npm ci
+npm run verify
 ```
 
-`.env` wordt niet automatisch geladen. Gebruik dezelfde proces-/serviceconfiguratie bij herstart. Een aparte databestandsmap is geen gebruikersautorisatie. Voor twee gelijktijdige processen zijn afzonderlijke poorten nodig (`PORT`); het toewijzen van processen/poorten en het kiezen van de gewenste installatie blijft een beheerhandeling. Open nooit dezelfde installatie met verschillende catalogussen als een vervanging voor echte toegangsrechten.
+Maak een **nieuwe** map buiten de codecheckout. Het commando vraagt adres, plaats, postcode, naam en een vaste dossier-ID:
 
-## Catalogus en startonderdelen
+```powershell
+npm run customer:init -- C:\Huisdossier-klanten\Voorbeeld
+npm run customer -- C:\Huisdossier-klanten\Voorbeeld check
+npm run customer -- C:\Huisdossier-klanten\Voorbeeld start
+```
 
-Gebruik de vorm van `config/houses.json`, met een unieke stabiele ID. Verander een bestaand ID niet bij een naams- of adrescorrectie: uploads, profielen en dossiers verwijzen ernaar. `provider` is `bag` (standaard) of `vlaanderen`. BAG vereist een geldig gevormd verblijfsobject-ID. De importer controleert daarna de werkelijke bronrelatie; schemavalidatie bewijst nog geen geldig adres.
+Open `http://127.0.0.1:4173`. Zonder 3D-model werken plaatsen, documenten, notities, klussen en export al. De wizard kiest `provider: "none"` en verzint geen kamers, materialen of bronrelaties. Voeg eigen plaatsen in de app toe. AI is optioneel en wordt per installatie ingesteld via **Vraag je huis**.
 
-`starterAssets` bestaat uit `slug`, `name`, `description` en optioneel `kind`: `gebouw`, `dak`, `gevel`, `ruimte`, `installatie` of `overig`. Zonder `kind` blijft het een installatie voor compatibiliteit met bestaande configuraties. `building`, `roof`, `facade` en `inbox` zijn gereserveerd. Duplicaten, onveilige ID's en onbekende configuratievelden worden vóór serverstart geweigerd.
+Voor vooraf ingerichte woningen:
 
-Voorbeeld van uitsluitend het onderdelenveld voor een kantoorproef, zonder verzonnen onderhoudsinterval:
+```powershell
+npm run customer:init -- C:\Huisdossier-klanten\Voorbeeld --catalog C:\Invoer\houses.json
+```
+
+Een bestaande map wordt nooit overschreven. De nieuwe klantmap bevat:
+
+| Bestand/map         | Doel                                                                   |
+| ------------------- | ---------------------------------------------------------------------- |
+| `installation.json` | Versie 1, catalogus-, data-, modellenpad en poort                      |
+| `houses.json`       | Woningen en startonderdelen                                            |
+| `data/`             | SQLite, uploads, privéprofielen, importbronnen en eventuele AI-sleutel |
+| `models/`           | Bronmodellen per vaste woning-ID                                       |
+| `.gitignore`        | Houdt deze installatiegegevens buiten Git                              |
+
+Paden in `installation.json` zijn relatief aan dit bestand. De klantmap kan daardoor worden verplaatst zonder broncode te wijzigen. Pas voor een tweede gelijktijdige klant de `port` aan. Eén installatie mag slechts door één server of muterend import-/back-upproces tegelijk worden gebruikt. Houd de hele klantmap privé; een back-up bevat ook eventuele AI-instellingen en sleutels.
+
+## Woningen en startonderdelen aanpassen
+
+Een minimale volledige `houses.json` met uitsluitend fictieve inhoud:
 
 ```json
-{
-  "starterAssets": [
-    {
-      "slug": "vergaderruimte",
-      "name": "Vergaderruimte",
-      "description": "Locatie en gegevens aanvullen.",
-      "kind": "ruimte"
-    },
-    {
-      "slug": "contracten",
-      "name": "Contracten",
-      "description": "Afspraken bij deze locatie.",
-      "kind": "overig"
-    }
-  ]
-}
+[
+  {
+    "id": "voorbeeldhuis",
+    "name": "Ons huisboek",
+    "address": "Voorbeeldstraat 1",
+    "postcode": "1000 AA",
+    "city": "Voorbeeldstad",
+    "provider": "none",
+    "starterAssets": [
+      {
+        "slug": "werkkamer",
+        "name": "Werkkamer",
+        "description": "Volgens bewoners.",
+        "kind": "ruimte",
+        "roomId": "office"
+      }
+    ]
+  }
+]
 ```
 
-Dit is een **fragment**, geen complete catalogus. Het maakt nog geen kantoorplattegrond of meerdere bouwlagen. Startonderdelen worden alleen toegevoegd als ze ontbreken; eigen bewerkingen worden niet vervangen als de configuratie later verandert. Startpakketten hebben nog geen automatische upgradeversies.
+`roomId` is optioneel en koppelt aan dezelfde vaste kamer-ID in een eigen plattegrondprofiel. Een startonderdeel maakt geen plattegrond. Toegestane `kind`: `gebouw`, `dak`, `gevel`, `ruimte`, `installatie`, `overig`. Zonder `kind` blijft het een installatie. `building`, `roof`, `facade`, `inbox` zijn gereserveerde slugs. Duplicaten, onveilige ID's en onbekende velden worden geweigerd. Startonderdelen worden alleen toegevoegd als ze ontbreken; een herstart vervangt eigen tekst en kamerkoppelingen niet.
 
-## Controleren vóór opleveren
+Verander bestaande woning-ID's of onderdeelsleutels niet bij een adres- of naamscorrectie: gegevens en bronkoppelingen verwijzen ernaar. Een woning uit de catalogus halen verwijdert geen gegevens; heractiveren met dezelfde ID maakt ze opnieuw bereikbaar. Dit is geen privacy-/verwijderflow.
+
+Voor bronmodellen: `bag` vereist een verblijfsobject-ID (`vboId`) en RD-anker (`rd`); `vlaanderen` vereist een passend Lambert 72-anker in het historische veld `rd`. Neem de overige bronvelden over uit het bestaande catalogusformaat. De bronimport controleert de werkelijke adres-/gebouwrelatie. `query` wordt standaard uit het adres afgeleid. Bronmodellen behouden attributie, licentie, CRS, exacte bronrelatie en ophaaldatum. Een model is geen geverifieerd interieur.
+
+Stop de klantserver vóór importeren:
 
 ```powershell
-npm run import:house -- eigen-dossier-id
-npm run check:installation
-node scripts/check-installation.mjs --json
+npm run customer -- C:\Huisdossier-klanten\Voorbeeld import:house voorbeeldhuis
+npm run customer -- C:\Huisdossier-klanten\Voorbeeld check
 ```
 
-Import vraagt altijd een expliciet dossier-ID. De Vlaamse importer gebruikt de Vlaamse bron; de lichtimport ondersteunt alleen de Nederlandse BAG/BGT-bron. Documentimport gebruikt ook de ingestelde catalogus en privémap. Elk commando dat nieuwe brondata ophaalt kan afhankelijk zijn van bereikbaarheid en volledigheid van die bron.
+`import:lighting` ondersteunt alleen de Nederlandse BAG/BGT-bron. `import:dossier` verwacht daarnaast bronmap, privaat manifest en optioneel een bronsleutel; zie [de importhandleiding](document-import.md). Dezelfde klantkeuze geldt voor alle importers. Modelimport valideert tussenuitvoer en vervangt het actieve JSON-bestand atomisch; maak vóór bronupdates een back-up voor versieherstel.
 
-`check:installation` is read-only: het maakt geen DB, uploads of profielen en haalt niets van internet op. Het controleert de catalogus en per pand de aanwezigheid/identiteit/bronlabels van het model, schema's van optionele profielen en aanwezigheid van gekoppelde texturen. Exitcode 1 betekent configuratiefout of een fout in deze gecontroleerde bestanden. Een niet-ingericht optioneel profiel is toegestaan. JSON-uitvoer heeft `ready` voor deze lokale bestandscontrole en altijd `hostedReady: false` voor de huidige productversie.
+## Back-up, herstel en updates
 
-Het commando controleert **niet** de volledige geometrie, ruimtelijke registratie, uploadinhoud, database-integriteit, accounts, rechten, back-upherstel of belasting. Het bestaande dossier en de export vereisen nog een model; zonder model betekent een catalogusitem nog geen bruikbare dossierstart. De test met een nieuw adres kan pas als oplevering tellen nadat ook documenten, invoer en onderhoud in de browser zijn doorlopen.
+Stop de server met Ctrl+C. Een actieve installatie weigert back-up en een tweede start. Alle meegeleverde importers gebruiken hetzelfde installatieslot. Na een afgebroken proces wordt een slot met een aantoonbaar verdwenen proces-ID automatisch opgeruimd. Verwijder een ongeldig slotbestand niet zonder eerst vast te stellen dat alle schrijvende processen gestopt zijn.
 
-## Uit beheer nemen, bijwerken en herstellen
+Maak een **nieuwe** back-upmap, buiten de bronmappen:
 
-Een pand uit de catalogus halen verwijdert geen gegevens. Het verdwijnt uit de selector en de huisgebonden API weigert het. Bij opnieuw configureren zijn de bestaande gegevens weer beschikbaar. Dit is geen verwijder-/privacyflow en geen alternatief voor rechten per gebruiker. Bestaande losse bestanden onder de standaard statische bronmap zijn hiermee niet automatisch verwijderd.
+```powershell
+npm run customer -- C:\Huisdossier-klanten\Voorbeeld backup D:\Backups\Voorbeeld-2026-11-21
+npm run restore -- D:\Backups\Voorbeeld-2026-11-21 C:\Huisdossier-klanten\Voorbeeld-herstel
+npm run customer -- C:\Huisdossier-klanten\Voorbeeld-herstel check
+```
 
-Maak vóór een update een consistente kopie van de volledige installatiegegevens: catalogus, modellen en de gestopte privémap. Externe catalogus/modellenpaden vallen niet vanzelf onder een kopie van `data/`. Test upgrades en herstel eerst in een geïsoleerde installatie. De dossierexport bevat de modelgegevens en originele bestanden, maar heeft nog geen automatische herstelimport. Zie [bewonersbeheer](resident-management.md) en [productaudit](product-readiness.md).
+De back-up bevat catalogus, modellen, gehele privémap, draagbare installatieconfiguratie en SHA-256-bestandscontrole. SQLite-integriteit wordt gecontroleerd. Symlinks worden geweigerd. Herstel weigert bestaande doelmappen en gewijzigde/onvolledige back-ups. Dit is een **volledige installatiekopie**; de JSON-dossierexport heeft nog geen bijbehorende terugimport. Controleer na herstel de app met een eigen poort, documenten/originelen en onderhoud voordat de herstelde installatie de oude vervangt. Bewaar back-ups op een afzonderlijke gegevensdrager met passend toegangsbeheer; het commando versleutelt niet en regelt geen automatische planning of bewaartermijn.
+
+Bijwerken: stop → back-up → nieuwe code ophalen → `npm ci` → `npm run verify` → klantcontrole → starten. De database gebruikt additieve migraties. Terugrollen betekent bijpassende oude code plus herstel van de vooraf gemaakte installatiekopie; start oude code niet blind op een al bijgewerkte database. Update de gedeelde code eerst met een herstelde proefinstallatie vóór alle klanten opnieuw starten.
+
+## Bestaande installatie en technische controles
+
+Zonder klantcommando blijven `config/houses.json`, `data/`, `public/data/` en poort 4173 de standaard. `npm run dev`, `npm start`, `npm run check:installation`, `npm run backup -- <nieuwe-map>` blijven daarvoor werken.
+
+`HUISDOSSIER_INSTALLATION` mag rechtstreeks een absoluut pad naar `installation.json` aanwijzen. Legacy absolute variabelen `HUISDOSSIER_HOUSES_FILE`, `HUISDOSSIER_DATA_DIR`, `HUISDOSSIER_MODELS_DIR` blijven ondersteund en overschrijven die paden bij rechtstreeks starten. Het expliciete `customer`-commando verwijdert deze drie oude overrides uit zijn subprocess zodat een achtergebleven shellinstelling geen andere klant kiest. `PORT` overschrijft de descriptorpoort. `.env` wordt niet automatisch geladen.
+
+`check:installation` is read-only en offline: catalogus, volledige modelschemavalidatie inclusief eindige geometriecoördinaten/bronlabels/CRS/woning-ID, optionele profielen en gekoppelde texturen. Een ontbrekend model is bij `provider: none` toegestaan. Een onjuist aanwezig model blijft een fout. JSON-uitvoer (`check --json`) heeft `ready` voor deze bestandscontrole en `hostedReady: false`. Het controleert geen volledige ruimtelijke juistheid, database/uploadkoppelingen, rechten of belasting; back-up/herstel controleert apart de database en gekopieerde bytes.
+
+`npm run verify` voert tests, TypeScript en productiebuild uit. GitHub Actions herhaalt dit op Windows en Linux met Node 24. Tijdelijke ontwikkelbeelden opruimen: `npm run clean` toont de selectie; `npm run clean -- --apply` verwijdert uitsluitend `.playwright-mcp`, `test-results` en `huisdossier-*.png` in de projectroot. Privégegevens, dependencies, broncode en de gebouwde app blijven staan.
+
+Publieke hosting, accounts, klantenrechten, automatische scans, automatische updates en een beheerde back-updienst zijn niet ingericht. Zie [productaudit](product-readiness.md) en [technische reviewkaart](maintenance-review.md).

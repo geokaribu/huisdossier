@@ -119,12 +119,32 @@ test("installation preflight detects missing, mismatched and uncredited models w
     await assert.rejects(readdir(directory), { code: "ENOENT" });
     await mkdir(path.join(root, "public/data"), { recursive: true });
     const model = {
-      house: { id: house.id },
-      buildings: [{ target: true, surfaces: [{}] }],
+      house: { id: house.id, address: house.address, rd: house.rd },
+      buildings: [
+        {
+          id: "fixture-building",
+          target: true,
+          attributes: {},
+          surfaces: [
+            {
+              type: "RoofSurface",
+              rings: [
+                [
+                  [0, 0, 3],
+                  [4, 0, 3],
+                  [0, 4, 3],
+                ],
+              ],
+            },
+          ],
+        },
+      ],
       source: {
         attribution: "Test fixture",
         license: "Test only",
         crs: "Test CRS",
+        urls: [],
+        fetchedAt: "2026-11-20",
       },
     };
     const target = path.join(root, "public/data", `${house.id}.json`);
@@ -189,6 +209,7 @@ test("model API and export use the installation model directory; removing a doss
       house: { id: house.id, address: "Testkantoor", rd: [100000, 400000] },
       source: {
         attribution: "Fixture",
+        crs: "Synthetic CRS",
         fetchedAt: "2026-11-20",
         license: "Test",
         urls: [],

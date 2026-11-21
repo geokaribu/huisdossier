@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createStore } from "../server/store.mjs";
 import { importDossier } from "../server/import-dossier.mjs";
 import { loadRuntimeConfig } from "../server/runtime-config.mjs";
+import { lockInstallation } from "../server/installation-lock.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const [houseId, sourceRoot, manifestPath, sourceKey = "local-documents"] =
@@ -14,8 +15,10 @@ if (!houseId || !sourceRoot || !manifestPath)
   );
 const { directory, houses } = await loadRuntimeConfig(root);
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-const store = createStore(directory, houses);
+const release = await lockInstallation(directory);
+let store;
 try {
+  store = createStore(directory, houses);
   const report = await importDossier({
     store,
     directory,
@@ -42,5 +45,6 @@ try {
   );
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  store.close();
+  store?.close();
+  await release();
 }

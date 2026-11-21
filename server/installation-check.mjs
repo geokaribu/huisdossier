@@ -1,9 +1,10 @@
-import { readFile, access } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import path from "node:path";
 import { loadRuntimeConfig } from "./runtime-config.mjs";
 import { readFloorplan, floorplanTextureNames } from "./floorplan.mjs";
 import { readAppearance } from "./appearance.mjs";
 import { readLighting } from "./lighting.mjs";
+import { readModel } from "./model.mjs";
 
 /** Read-only preflight. No database creation, seeding, downloads or inferred geometry. */
 export async function checkInstallation(root, env = process.env) {
@@ -31,35 +32,35 @@ export async function checkInstallation(root, env = process.env) {
         return null;
       }
     };
-    await check("Buitenmodel", async () => {
-      const model = JSON.parse(
-        await readFile(
-          path.join(config.modelDirectory, `${house.id}.json`),
-          "utf8",
-        ),
-      );
-      if (model.house?.id !== house.id)
-        throw new Error("Model hoort bij een ander dossier.");
-      if (
-        !Array.isArray(model.buildings) ||
-        !model.buildings.some((b) => b.target && b.surfaces?.length)
-      )
-        throw new Error("Model bevat geen doelgebouw met vlakken.");
-      if (
-        !model.source?.attribution ||
-        !model.source?.license ||
-        !model.source?.crs
-      )
-        throw new Error(
-          "Bronvermelding, licentie of coördinatenstelsel ontbreekt.",
-        );
-      return model;
-    });
+    await check(
+      "Buitenmodel",
+      async () => {
+        try {
+          return await readModel(config.modelDirectory, house.id);
+        } catch (error) {
+          if (error.code === "ENOENT" && house.provider === "none") return null;
+          throw error;
+        }
+      },
+      house.provider === "none",
+    );
     const plan = await check(
       "Plattegrond",
       () => readFloorplan(config.directory, house.id),
       true,
     );
+    if (plan)
+      await check("Kamerkoppelingen", async () => {
+        for (const asset of house.starterAssets)
+          if (
+            asset.roomId &&
+            !plan.rooms.some((room) => room.id === asset.roomId)
+          )
+            throw new Error(
+              `Startonderdeel ${asset.slug} verwijst naar een onbekende ruimte.`,
+            );
+        return true;
+      });
     if (plan)
       await check(
         "Plattegrondtexturen",
@@ -112,7 +113,7 @@ export async function checkInstallation(root, env = process.env) {
     limits: [
       "Controle van lokale configuratie en gekoppelde modelbestanden; geen volledige integriteits- of beveiligingsaudit.",
       "Geen persoonlijke aanmelding, toegangsrechten of gedeelde hosting ingericht.",
-      "Dossier en export vereisen in deze versie nog een buitenmodel. Ontbrekende optionele profielen zijn toegestaan; ongeldige profielen blokkeren het laden.",
+      "Dossier en export werken zonder buitenmodel. Een bronmodel ontbreekt bewust bij provider none; een ontbrekend verwacht bronmodel is een opleverfout. Ongeldige optionele profielen worden gerapporteerd.",
     ],
     dossiers,
   };

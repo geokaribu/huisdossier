@@ -2,7 +2,13 @@
 
 Audit op 20 november 2026. Uitgangspunt: de werkende versie op commit `5a1b936`, met de configuratie- en installatieverbeteringen die hieronder apart staan. Opdracht: snel opnieuw kunnen inzetten voor particulieren, kantoren en andere panden. De huidige twee dossiers zijn praktijkvoorbeelden, geen bewijs van een compleet klantenplatform.
 
-## Conclusie
+## Stand op 21 november 2026
+
+De audit hieronder blijft als historische nulmeting van 20 november staan. Sindsdien werken dossierstart en export zonder model en worden optionele verrijkingen afzonderlijk geladen (R1). Nieuwe klanten kunnen met een draagbare installatieconfiguratie en eigen gegevensmap worden gestart. Offline installatieback-up en herstel naar een nieuwe map controleren bestandscontrolesommen en SQLite-integriteit; server, importers en back-up delen een exclusief installatieslot. Modelimport schrijft gevalideerde uitvoer atomisch, en Windows/Linux-CI controleert tests en build (delen van R8/R9/R15/R20). Zie de actuele [installatiehandleiding](installation.md) en [reviewkaart](maintenance-review.md).
+
+Dit levert een herhaalbare lokale klantinstallatie op. Accounts, online selfservice, rechten per organisatie, kantoorbouwlagen, automatische operationele updates en een back-updienst zijn nog open. De oorspronkelijke bevindingen over verplichte modellen, rechtstreeks overschrijven en ontbrekend herstel hieronder beschrijven de oude situatie. De resterende productkeuzes blijven relevant.
+
+## Historische conclusie ? 20 november
 
 **Er is een bruikbare gedeelde dossierkern. Een volgend pand is nog geen herhaalbare productoplevering.** De grootste beperking is de koppeling van de gewone dossierfunctie aan het 3D-model en de handmatige installatie. Voor kantoren ontbreken bovendien een organisatie-/rechtenmodel, meerdere bouwlagen en bewezen afhandeling van grotere documentverzamelingen.
 

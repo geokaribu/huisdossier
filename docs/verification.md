@@ -89,11 +89,29 @@ Dakcontrole: twee glasopeningen en de balkonuitsparing met raycasts gecontroleer
 Gecombineerd buitenmodel: gevelopeningen met raycasts, negdiepte, dorpels, expliciete plattegrondtransformatie, lage achterbouw en dakobjecten getest. De originele BAG-oppervlakken en invoerplattegrond blijven ongewijzigd. De API/export bewaart de plaatsing, gevelparameters en dakdetails. De negen beginpunten blijven vrij en bereikbaar na plaatsing van de woonkamermeubels.
 
 De gemeentelijke luchtfoto is als PNG van 1600 × 1600 pixels voor 40 × 40 m opgehaald. De live WMS-metadata meldt 25 mm bronresolutie en opname 8 april 2026. De nieuwe metadata blijft behouden in de bestaande API/export-test. Bovenaanzicht, voorgevel en achterbouw visueel gecontroleerd met de nieuwe foto. Alle vijf aanzichten, afwerking uit, draadmodel, overgang naar binnen en terrasdeuren werken op 390 px zonder pagina-overloop of consolefouten. Het profiel bevat nu elf terras- en woonkamerobjecten.
+
 # Huisassistent — 21 november 2026
 
 `npm test`: 83 tests geslaagd; `npm run build`: geslaagd, met de bestaande waarschuwing over de gedeelde 3D-bundel. Nieuwe controles staan in `tests/assistant.test.mjs`: woning- en plekgrenzen, bronstatus, modelmaten versus meting, onderhoudskosten met onbekende/0-bedragen, sleutelafscherming, vaste provideradressen, geen hulpmiddelen, `store:false`, ongeldige bronnen, weigeringen/onvolledige antwoorden, providerfouten, annulering, gelijktijdigheid en verzoeklimieten.
 
 Browserproef op geïsoleerde synthetische woningen met een herkenbaar nagebootst antwoord: verbinding instellen, OpenAI/lokaal/uit-keuzes, vraag, vervolgvragen, bronfragment/document openen, terug naar gesprek, plek wisselen, woning wisselen zonder oude berichten, stoppen en een providerfout tonen. 320, 390, 768, 1024 en 1440 px zonder horizontale overloop; het eerste vraagveld staat na de compacte herwerking ook op 320/390 px in het eerste scherm. API-sleutels van de testfixture zijn uitsluitend testtekst; er zijn geen private testvragen naar een AI-aanbieder verstuurd. De feitelijke installatie heeft nog geen AI-sleutel of lokaal model; echte modelkwaliteit en een echte providerverbinding blijven te verifiëren na instelling. Bron-ID-validatie bewijst geen semantische juistheid van een modelantwoord.
+
 ## Algemene handleiding — 21 november 2026
 
 Vaste ⓘ-knop op alle tien werkpagina's; zes onderwerpen met drie stappen en doorverwijzing naar de bijbehorende pagina. De actuele pagina kiest het eerste onderwerp. Desktop/narrow-proef op synthetische woningen: 320/390/768/1024/1440 px zonder pagina- of dialoogoverloop; onderwerp wisselen, route openen, kruisje/Escape sluiten en focusherstel naar de trigger gecontroleerd. 83 tests en productiebuild slagen. De bestaande waarschuwing over de gedeelde 3D-bundel blijft bestaan.
+
+## Onderhoud en klantinstallaties — 21 november 2026
+
+Na de interfacecommit `c143d9b`: 91 tests geslaagd, TypeScript en productiebuild geslaagd. De bestaande waarschuwing over de gedeelde 3D-bundel (721,82 kB ongecomprimeerd) blijft; de twee viewers laden al afzonderlijk. `npm audit` meldt 0 bekende kwetsbaarheden, inclusief ontwikkeldependencies. Dit is geen pentest.
+
+Nieuwe regressies toetsen: externe modelvrije klantstart, behoud van kamer-ID's/eigen edits, dezelfde validatie bij model-API en preflight, een bewust ontbrekend model tegenover een ongeldig aanwezig model, volledige offline back-up/herstel met actieve-processloten en bestandscontrolesommen, blokkeren van importcommando's tijdens onderhoud, een consistent exportmoment bij gelijktijdig uploaden, privébestanden achter echte Vite-middleware en veilige opruiming zonder privédata/dependencies te verwijderen. De bestandsgrensproef gebruikt ook ruwe HTTP-paden zodat de client traversal niet vooraf normaliseert.
+
+De eerste volledige suite na de bestandsgrens vond een te ruime blokkade bij testinstallaties waar de app-root in de privémap ligt. De API-vrijstelling is daarop begrensd tot echte API-paden zonder dotsegmenten; de bestaande beheer-, planning- en lichttests plus de traversalregressies slagen samen. Geen bestaande grensasserties verwijderd.
+
+Geïsoleerde browserproeven op synthetische woningen: klusdetails blijven open bij een filterwijziging; browser-terug over een woningwissel bewaart onderdeel, zoektekst en categorie, ook met vertraagd dossierladen; een vertraagde klusafronding van woning A sluit of verandert woning B niet. Bron-/kluspagina's en de toevoegdialogen gecontroleerd op 1440 en 390 px zonder overloop of page errors. Een aparte productie-installatie zonder model kan een onderdeel aanmaken, na herladen terugvinden en exporteren zonder modelwaarschuwing; de console blijft leeg. Er zijn geen echte dossiers aangepast voor deze browserproeven.
+
+De echte installatie is gestopt en offline naar tijdelijke geïsoleerde mappen geback-upt en hersteld. Alle 231 geïnventariseerde bestanden en de inhoud van alle 12 databasetabellen komen overeen; de oorspronkelijke gegevens bleven behouden. De herstelde preflight slaagt. Deze eigen testkopieën zijn vervolgens verwijderd. De bestaande twee woningen slagen ook voor `check:installation`; de oorspronkelijke privéprofielen blijven intact.
+
+GitHub Actions controleert `npm ci`, tests, build en preflight op Windows en Linux met Node 24. De lokale resultaten hierboven staan los van de uiteindelijke status van die externe run. Back-ups en updates worden niet automatisch operationeel ingepland.
+
+De opruimselectie bestaat uit 196 bekende tijdelijke paden (circa 54,28 MiB): captures, Playwright-uitvoer en testresultaten. De privémap, gebruikte assets, dependencies en productiebuild blijven behouden; de app wordt na controle als productieversie op poort 4173 gestart.

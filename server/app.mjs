@@ -10,6 +10,8 @@ import { managementRoutes, calendarDate } from "./management-routes.mjs";
 import { calendarToday } from "./management.mjs";
 import { planningRoutes } from "./planning-routes.mjs";
 import { assistantRoutes } from "./assistant-routes.mjs";
+import { readModel } from "./model.mjs";
+import { privateFiles } from "./private-files.mjs";
 import { floorplanForView } from "../src/furnishings.ts";
 import { readLighting, saveLampScenario } from "./lighting.mjs";
 import {
@@ -64,59 +66,26 @@ export function createApp({
   root,
   modelDirectory = path.join(root, "public/data"),
   assistantOptions = {},
+  catalogPath = path.join(root, "config/houses.json"),
 }) {
   const app = express();
   const store = createStore(directory, houses);
   const uploadDir = path.join(directory, "uploads");
   const modelFor = async (houseId) => {
-    const model = JSON.parse(
-      await readFile(path.join(modelDirectory, `${houseId}.json`), "utf8"),
-    );
-    if (model.house?.id !== houseId)
-      throw new Error("Model en dossier-ID komen niet overeen.");
-    z.object({
-      house: z.object({
-        id: z.string(),
-        address: z.string(),
-        rd: z.tuple([z.number().finite(), z.number().finite()]),
-      }),
-      source: z.object({
-        urls: z.array(z.string()),
-        fetchedAt: z.string(),
-        attribution: z.string(),
-        license: z.string(),
-      }),
-      buildings: z
-        .array(
-          z.object({
-            id: z.string(),
-            target: z.boolean(),
-            attributes: z.record(z.string(), z.unknown()),
-            surfaces: z.array(
-              z.object({
-                type: z.string(),
-                rings: z
-                  .array(
-                    z
-                      .array(
-                        z.tuple([
-                          z.number().finite(),
-                          z.number().finite(),
-                          z.number().finite(),
-                        ]),
-                      )
-                      .min(3),
-                  )
-                  .min(1),
-              }),
-            ),
-          }),
-        )
-        .refine((items) =>
-          items.some((item) => item.target && item.surfaces.length > 0),
-        ),
-    }).parse(model);
-    return model;
+    try {
+      return await readModel(modelDirectory, houseId);
+    } catch (error) {
+      if (
+        error.code === "ENOENT" &&
+        houses.find((house) => house.id === houseId)?.provider === "none"
+      )
+        return null;
+      if (error.code === "ENOENT")
+        throw Object.assign(new Error("Nog geen gebouwmodel beschikbaar."), {
+          status: 404,
+        });
+      throw error;
+    }
   };
   mkdirSync(uploadDir, { recursive: true });
   app.disable("x-powered-by");
@@ -134,6 +103,7 @@ export function createApp({
     next();
   });
   app.use(express.json({ limit: "100kb" }));
+  app.use(privateFiles({ root, directory, catalogPath }));
   app.get("/api/houses", (_req, res) => res.json(houses));
   const configuredIds = new Set(houses.map((house) => house.id));
   app.use("/api/houses/:houseId", (req, res, next) => {
@@ -371,6 +341,8 @@ export function createApp({
   });
   app.get("/api/houses/:houseId/export", async (req, res) => {
     const houseId = req.params.houseId;
+    // All DB projections belong to one synchronous read transaction, before any IO yields.
+    const snapshot = store.exportSnapshot(houseId);
     const exportWarnings = [];
     const optional = async (resource, read) => {
       try {
@@ -386,7 +358,7 @@ export function createApp({
     };
     const model = await optional("model", () => modelFor(houseId));
     const files = [];
-    for (const file of store.allFiles(houseId))
+    for (const file of snapshot.files)
       files.push({
         id: file.id,
         name: file.name,
@@ -425,8 +397,8 @@ export function createApp({
       house: houses.find((house) => house.id === houseId),
       exportWarnings,
       model,
-      dossier: store.dossier(houseId),
-      management: store.management(houseId),
+      dossier: snapshot.dossier,
+      management: snapshot.management,
       files,
       appearance,
       floorplan: plan,

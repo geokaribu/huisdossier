@@ -62,13 +62,25 @@ export function createStore(directory, houses) {
       "Nieuwe informatie waarvan de juiste plek nog niet bekend is. Koppel ze later aan een ruimte of onderdeel.",
       null,
     );
+    const addStarter = db.prepare(
+      "INSERT OR IGNORE INTO assets (id,house_id,name,kind,description,position,room_id) VALUES (?,?,?,?,?,?,?)",
+    );
     for (const {
       slug,
       name,
       description,
       kind = "installatie",
+      roomId = null,
     } of house.starterAssets ?? [])
-      add.run(`${house.id}:${slug}`, house.id, name, kind, description, null);
+      addStarter.run(
+        `${house.id}:${slug}`,
+        house.id,
+        name,
+        kind,
+        description,
+        null,
+        roomId,
+      );
   }
   const assetRow = (r) => ({
     id: r.id,
@@ -316,6 +328,21 @@ export function createStore(directory, houses) {
         );
         return changes;
       });
+    },
+    exportSnapshot(houseId) {
+      db.exec("BEGIN");
+      try {
+        const result = {
+          dossier: this.dossier(houseId),
+          management: this.management(houseId),
+          files: this.allFiles(houseId),
+        };
+        db.exec("COMMIT");
+        return result;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
     },
     close() {
       db.close();

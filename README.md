@@ -8,7 +8,7 @@ De werkruimte groepeert dossier, documenten en onderhoud; buiten- en binnenweerg
 
 **Iets toevoegen** begeleidt bewoners bij een melding, notitie, bestand of uitgevoerd werk. **Beheer** bevat personen per woning, terugkerende onderhoudsafspraken en een controle op open aandachtspunten. Concepttekst blijft tijdens de browsersessie bewaard; onbekende plekken kunnen eerst bij **Nog te ordenen**. Personen zijn lokale dossierprofielen, geen logins. Zie [invoer en beheer voor bewoners](docs/resident-management.md).
 
-Voor hergebruik als product: [diepgaande audit en prioriteiten](docs/product-readiness.md) en [herhaalbare lokale installatie](docs/installation.md). Een eigen catalogus, privémap en modellenmap kunnen via omgevingsinstellingen buiten de code worden bewaard. `npm run check:installation` controleert de lokale installatiebestanden. Er is nog geen klantaccountplatform of start zonder gebouwmodel.
+Voor hergebruik als product: [herhaalbare lokale installatie](docs/installation.md), [technische reviewkaart](docs/maintenance-review.md) en [productaudit](docs/product-readiness.md). `npm run customer:init -- <nieuwe-klantmap>` maakt een eigen catalogus, priv?map en modellenmap buiten de code. `npm run customer -- <klantmap> start` kiest de klant expliciet. Starten zonder 3D-model werkt; accounts en publieke hosting zijn nog niet ingericht.
 
 De beoogde productvormen zijn Geokari-beheer, zelf online starten en een eigen klantinstallatie, vanuit dezelfde productkern. De audit maakt onderscheid tussen deze gewenste vormen en wat lokaal al werkt.
 
@@ -74,7 +74,7 @@ Een optioneel privéprofiel staat in `data/floorplans/<woning-id>/plan.json`. De
 
 De aangeleverde verkoopplattegrond is handmatig overgetrokken en geschaald op de vermelde tuinbreedte van 3,70 m. De plafondhoogte van 2,64 m staat bij de woonkamer; dezelfde hoogte in andere kamers is een aanname. Kameroppervlakken zijn de labels op de tekening. Keuken, kasten, sanitair en trap volgen de getekende posities; kleuren en afwerking zijn indicatief. Alleen deze ene woonlaag is uitgewerkt. De trap is context, geen toegang tot een verzonnen verdieping. Het interieur heeft nog geen ingemeten registratie op het buitenmodel en vervangt de BAG-oppervlakte niet. Kamerkeuze verplaatst de kijker direct naar een vrije beginplek; met de loopbediening beweeg je door de openingen.
 
-Voor een ander huis voeg je een eigen privéprofiel toe. Het formaat wordt gevalideerd in `server/floorplan.mjs`; rendercode bevat geen woningindeling. Ruimtes in deze eerste interieurversie zijn nog geen automatische dossieronderdelen.
+Voor een ander huis voeg je een eigen privéprofiel toe. Het formaat wordt gevalideerd in `server/floorplan.mjs`; rendercode bevat geen woningindeling. Dossieronderdelen koppelen via een vaste `roomId` aan een ruimte; de app maakt ontbrekende ruimtedossiers bij het laden van een geldig profiel aan.
 
 Aanvullende woonkamer- en keukenfoto's verfijnen de zithoek, eethoek en keuken met herbruikbare objecten in `src/livingFurniture.ts`. Wandbekleding kan een private textuur krijgen met een herhaalmaat in meters en eigen attributie. Bewaar zulke beelden naast `plan.json`; uitsluitend expliciet gekoppelde bestandsnamen worden via de API aangeboden. De export bewaart het ruwe profiel in `floorplan` en de originele textuurbytes in `floorplanFiles`. Dezelfde afwerking verschijnt waar van toepassing achter de glazen pui in het buitenmodel. Het botanische behang van de eerste woning is een AI-benadering uit een bewonersfoto, geen exacte reproductie.
 

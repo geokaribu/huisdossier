@@ -115,6 +115,9 @@ De echte installatie is gestopt en offline naar tijdelijke geïsoleerde mappen g
 GitHub Actions controleert `npm ci`, tests, build en preflight op Windows en Linux met Node 24. De lokale resultaten hierboven staan los van de uiteindelijke status van die externe run. Back-ups en updates worden niet automatisch operationeel ingepland.
 
 De opruimselectie bestaat uit 196 bekende tijdelijke paden (circa 54,28 MiB): captures, Playwright-uitvoer en testresultaten. De privémap, gebruikte assets, dependencies en productiebuild blijven behouden; de app wordt na controle als productieversie op poort 4173 gestart.
+
 ### Schone installatie in CI
 
 De eerste GitHub-run op `ef8b02d` vond bij `npm ci` twee ontbrekende indirecte WASM-pakketten in het bestaande lockbestand (`@emnapi/core` en `@emnapi/runtime`). De lokale geïnstalleerde boom en oudere npm-versie maakten dit niet zichtbaar. Het lockbestand is opnieuw opgelost met npm 11.19.1, dezelfde versie als de runner, zonder rechtstreekse dependencyversies te wijzigen. Beide platformtaken draaien onafhankelijk zodat een Linux-fout de Windows-controle niet afbreekt. De nieuwe run is het bewijs voor een schone installatie; de eerdere lokale tests blijven apart vermeld.
+
+De daaropvolgende runner met Node 24.22.3 vond een compatibiliteitsfout bij herstel: `fs.cp` weigert inmiddels ook een vooraf gereserveerde doelmap bij `errorOnExist: true`. Herstel kopieert nu ieder nieuw kind in die exclusief aangemaakte map. De garantie dat bestaande installaties nooit worden overschreven blijft behouden; dezelfde volledige lifecycleproef controleert dit op beide platformen.

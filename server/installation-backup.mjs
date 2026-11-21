@@ -176,14 +176,18 @@ export async function restoreInstallation(source, destination, root) {
   await mkdir(path.dirname(target), { recursive: true });
   await mkdir(target);
   try {
-    await cp(backup, target, {
-      recursive: true,
-      force: false,
-      errorOnExist: true,
-      filter: (file) =>
-        path.resolve(file) !== path.join(backup, "backup.json") &&
-        path.basename(file) !== ".server-lock.json",
-    });
+    // Reserve the root exclusively, then copy into new children. Recent Node
+    // versions reject cp(source, existingRoot, { errorOnExist: true }) even for
+    // directories; never relax the no-overwrite guarantee to work around it.
+    for (const name of await readdir(backup)) {
+      if (name === "backup.json" || name === ".server-lock.json") continue;
+      await cp(path.join(backup, name), path.join(target, name), {
+        recursive: true,
+        force: false,
+        errorOnExist: true,
+        filter: (file) => path.basename(file) !== ".server-lock.json",
+      });
+    }
     if (JSON.stringify(await inventory(target)) !== JSON.stringify(actual))
       throw new Error(
         "De herstelde bestanden komen niet overeen met de back-up.",
